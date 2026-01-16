@@ -117,25 +117,38 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ---
 
-#### 1.4 Add Retry Logic with Exponential Backoff ⬜
+#### 1.4 Add Retry Logic with Exponential Backoff ✅
 
 **File:** `src/utils/retry.ts`
 
 **Goal:** Gracefully handle transient failures
 
 **Subtasks:**
-- [ ] Create `retry()` utility function
-- [ ] Add exponential backoff
-- [ ] Add jitter to prevent thundering herd
-- [ ] Integrate into chapter-downloader.ts
+- [x] Create `retry()` utility function
+- [x] Add exponential backoff
+- [x] Add jitter to prevent thundering herd
+- [x] Integrate into chapter-downloader.ts
+- [x] Use isRetryableError() predicate
 - [ ] Add retry configuration to stealth config
 - [ ] Add unit tests
 
 **Files to Modify:**
-- Create: `src/utils/retry.ts`
-- Modify: `src/downloader/chapter-downloader.ts`
-- Modify: `config/stealth.json`
-- Create: `src/utils/__tests__/retry.test.ts`
+- Create: `src/utils/retry.ts` ✅
+- Modify: `src/downloader/chapter-downloader.ts` ✅
+- Modify: `config/stealth.json` ⬜
+- Create: `src/utils/__tests__/retry.test.ts` ⬜
+
+**Results:**
+- Created comprehensive retry utility with 3 functions:
+  - `retry()` - Main retry with exponential backoff
+  - `retryIf()` - Retry with custom predicate
+  - `retryWithTimeout()` - Retry with per-attempt timeout
+- Exponential backoff: baseDelay * (multiplier ^ attempt)
+- Jitter: +/- random variance to prevent thundering herd
+- Configurable: maxAttempts, baseDelay, maxDelay, multiplier, jitter
+- Integrated into chapter downloads (3 retries, 2-10s delays)
+- Uses isRetryableError() to only retry network/timeout errors
+- Automatic logging of retry attempts
 
 ---
 

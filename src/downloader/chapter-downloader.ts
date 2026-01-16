@@ -6,6 +6,8 @@ import { RateLimiter } from '../utils/rate-limiter';
 import { logger } from '../utils/logger';
 import { ensureDir, sanitizeFilename, formatBytes } from '../utils/fs';
 import { simulateMouseMovement, simulateScrolling } from '../browser/stealth';
+import { retry } from '../utils/retry';
+import { DownloadError, ErrorCode } from '../core/errors';
 
 export class ChapterDownloader {
   private browserManager: BrowserManager;
@@ -62,20 +64,35 @@ export class ChapterDownloader {
           await simulateScrolling(page);
         }
 
-        // Download the chapter
+        // Download the chapter with retry logic
         const filename = `${String(chapter.index + 1).padStart(3, '0')}-${sanitizeFilename(chapter.title)}.mp3`;
         const filepath = path.join(bookDir, filename);
 
-        const response = await page.goto(chapter.url, {
-          waitUntil: 'networkidle2',
-          timeout: 60000,
-        });
+        const buffer = await retry(
+          async () => {
+            const response = await page.goto(chapter.url, {
+              waitUntil: 'networkidle2',
+              timeout: 60000,
+            });
 
-        if (!response) {
-          throw new Error('No response from server');
-        }
+            if (!response) {
+              throw new DownloadError(
+                'No response from server',
+                ErrorCode.NETWORK_ERROR,
+                '',
+                chapter.index
+              );
+            }
 
-        const buffer = await response.buffer();
+            return await response.buffer();
+          },
+          {
+            maxAttempts: 3,
+            baseDelayMs: 2000,
+            maxDelayMs: 10000,
+          }
+        );
+
         await fs.writeFile(filepath, buffer);
 
         downloadedFiles.push(filepath);
