@@ -587,24 +587,34 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ---
 
-#### 5.4 Create Programmatic API (index.ts) ⬜
+#### 5.4 Create Programmatic API (index.ts) ✅
 
 **File:** `src/index.ts`
 
 **Goal:** Enable library usage
 
 **Subtasks:**
-- [ ] Export main classes
-- [ ] Export types
-- [ ] Export utilities
-- [ ] Add JSDoc documentation
-- [ ] Create usage examples in README
-- [ ] Add "Usage as Library" section to README
+- [x] Export main classes
+- [x] Export types
+- [x] Export utilities
+- [x] Add JSDoc documentation
+- [x] Create usage examples in README
+- [x] Add "Usage as Library" section to README
 
 **Files to Modify:**
-- Modify: `src/index.ts`
-- Modify: `README.md`
-- Create: `examples/programmatic-usage.ts`
+- Modify: `src/index.ts` ✅
+- Modify: `README.md` ✅
+- Create: `examples/programmatic-usage.ts` ✅
+
+**Results:**
+- Created comprehensive programmatic API with JSDoc documentation
+- Exported all core classes: DownloadOrchestrator, Config, StateManager, etc.
+- Exported all types: LibbyBook, LibbyChapter, AudioMetadata, etc.
+- Exported utilities: sleep, retry, sanitizeFilename, etc.
+- Exported error classes with proper types
+- Added "Usage as Library" section to README with 5 examples
+- Created examples/programmatic-usage.ts with 5 detailed examples
+- All exports verified to compile successfully
 
 ---
 

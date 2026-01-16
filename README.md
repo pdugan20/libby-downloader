@@ -246,6 +246,126 @@ Run without building:
 npm run dev -- download <book-id>
 ```
 
+## Usage as Library
+
+You can use Libby Downloader programmatically in your own Node.js or TypeScript applications.
+
+### Installation
+
+```bash
+npm install libby-downloader
+# or
+yarn add libby-downloader
+```
+
+### Basic Example
+
+```typescript
+import { DownloadOrchestrator } from 'libby-downloader';
+
+async function downloadBook() {
+  // Create orchestrator
+  const orchestrator = await DownloadOrchestrator.create('balanced', false);
+
+  try {
+    // Download book
+    const result = await orchestrator.downloadBook({
+      bookId: 'your-book-id',
+      outputDir: './downloads',
+      mode: 'balanced',
+      merge: true,
+      metadata: true,
+      headless: false,
+      onProgress: (progress) => {
+        console.log(`${progress.downloadedChapters}/${progress.totalChapters}`);
+      },
+    });
+
+    if (result.success) {
+      console.log(`Downloaded: ${result.outputPath}`);
+    }
+  } finally {
+    await orchestrator.cleanup();
+  }
+}
+```
+
+### Event-Based Progress Tracking
+
+```typescript
+import { ChapterDownloader, BrowserManager, RateLimiter } from 'libby-downloader';
+
+const browserManager = new BrowserManager({ headless: false });
+await browserManager.launch();
+
+const downloader = new ChapterDownloader(
+  browserManager,
+  new RateLimiter('balanced')
+);
+
+// Listen to events
+downloader.on('chapter:start', (event) => {
+  console.log(`Starting: ${event.chapterTitle}`);
+});
+
+downloader.on('chapter:complete', (event) => {
+  console.log(`Completed: ${event.chapterTitle}`);
+});
+
+downloader.on('chapter:error', (event) => {
+  console.error(`Error: ${event.error.message}`);
+});
+
+// Download chapters
+await downloader.downloadChapters(chapters, './output', 'Book Title');
+```
+
+### Resume Interrupted Downloads
+
+```typescript
+const orchestrator = await DownloadOrchestrator.create('safe', false);
+
+await orchestrator.downloadBook({
+  bookId: 'your-book-id',
+  outputDir: './downloads',
+  mode: 'safe',
+  merge: true,
+  metadata: true,
+  headless: false,
+  resume: true, // Enable resume
+});
+```
+
+### Custom Error Handling
+
+```typescript
+import { DownloadOrchestrator, LibbyError, AuthenticationError } from 'libby-downloader';
+
+const result = await orchestrator.downloadBook({...});
+
+if (!result.success) {
+  if (result.error instanceof AuthenticationError) {
+    console.error('Please login first');
+  } else if (result.error instanceof LibbyError) {
+    console.error(`Libby error: ${result.error.toDisplayString()}`);
+  } else {
+    console.error(`Unknown error: ${result.error}`);
+  }
+}
+```
+
+### Available Exports
+
+See [examples/programmatic-usage.ts](examples/programmatic-usage.ts) for comprehensive usage examples including:
+
+- Simple downloads with DownloadOrchestrator
+- Event-based progress tracking
+- Resume functionality
+- Custom logging levels
+- Error handling patterns
+
+Full API documentation is available in the TypeScript definitions exported from `src/index.ts`.
+
 ## Project Structure
 
 ```
