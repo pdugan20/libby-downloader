@@ -24,6 +24,34 @@ export interface DownloadOptions {
   onProgress?: (progress: DownloadProgress) => void;
 }
 
+export interface CaptureDownloadOptions {
+  captureData: CaptureData;
+  outputDir: string;
+  mode: 'safe' | 'balanced' | 'aggressive';
+  merge: boolean;
+  metadata: boolean;
+  resume?: boolean;
+  onProgress?: (progress: DownloadProgress) => void;
+}
+
+export interface CaptureData {
+  metadata: {
+    title: string;
+    subtitle?: string;
+    authors: string[];
+    narrator: string;
+    duration: number;
+    coverUrl: string;
+    description?: {
+      full?: string;
+      short?: string;
+    };
+  };
+  chapters: LibbyChapter[];
+  extractedAt: string;
+  extractedFrom: string;
+}
+
 export interface DownloadResult {
   success: boolean;
   book: LibbyBook;
@@ -173,6 +201,122 @@ export class DownloadOrchestrator {
   }
 
   /**
+   * Download audiobook from captured JSON data (no browser automation)
+   */
+  async downloadFromCapture(options: CaptureDownloadOptions): Promise<DownloadResult> {
+    const { captureData, outputDir, merge, metadata: embedMetadata, resume, onProgress } = options;
+    const stateManager = getStateManager();
+
+    // Use captured URL as book ID for state management
+    const bookId = captureData.extractedFrom.split('/').slice(-2).join('/');
+
+    try {
+      // Check for existing state if resume is requested
+      if (resume) {
+        const existingState = await stateManager.loadState(bookId);
+        if (existingState) {
+          logger.info(
+            `Resuming download: ${existingState.downloadedChapters.length}/${existingState.totalChapters} chapters complete`
+          );
+        }
+      }
+
+      // Show risk warning
+      this.rateLimiter.showRiskWarning();
+
+      // Validate FFmpeg if merging is requested
+      if (merge) {
+        await this.validateFFmpeg();
+      }
+
+      // Convert capture data to LibbyBook format
+      const bookMetadata: LibbyBook = {
+        id: bookId,
+        title: captureData.metadata.title,
+        subtitle: captureData.metadata.subtitle,
+        authors: captureData.metadata.authors,
+        narrator: captureData.metadata.narrator,
+        duration: captureData.metadata.duration,
+        coverUrl: captureData.metadata.coverUrl,
+        description:
+          captureData.metadata.description?.full || captureData.metadata.description?.short,
+      };
+
+      logger.success(`Using captured data for: ${bookMetadata.title}`);
+      logger.info(`Extracted at: ${captureData.extractedAt}`);
+      logger.info(`Chapters: ${captureData.chapters.length}`);
+
+      const chapters = captureData.chapters;
+
+      // Initialize download state
+      const downloadState: DownloadState = {
+        bookId,
+        bookTitle: bookMetadata.title,
+        totalChapters: chapters.length,
+        downloadedChapters: [],
+        outputDir,
+        mode: options.mode,
+        merge,
+        metadata: embedMetadata,
+        startedAt: new Date().toISOString(),
+        lastUpdatedAt: new Date().toISOString(),
+      };
+      await stateManager.saveState(downloadState);
+
+      // Download cover art from URL (no browser needed)
+      const coverPath = bookMetadata.coverUrl
+        ? await this.downloadCoverFromUrl(bookMetadata.coverUrl, outputDir, bookMetadata.title)
+        : undefined;
+
+      // Download all chapters (URLs are in the capture data)
+      const downloadedFiles = await this.downloadChapters(
+        chapters,
+        outputDir,
+        bookMetadata.title,
+        onProgress
+      );
+
+      // Process audio files
+      let finalOutputPath = path.join(outputDir, sanitizeFilename(bookMetadata.title));
+
+      if (merge && downloadedFiles.length > 1) {
+        finalOutputPath = await this.processAudioFiles(
+          downloadedFiles,
+          outputDir,
+          bookMetadata,
+          chapters,
+          coverPath,
+          embedMetadata
+        );
+      }
+
+      // Increment book counter for rate limiting
+      this.rateLimiter.incrementBookCounter();
+
+      // Delete state on successful completion
+      await stateManager.deleteState(bookId);
+
+      return {
+        success: true,
+        book: bookMetadata,
+        chapters,
+        outputPath: finalOutputPath,
+        downloadedFiles,
+      };
+    } catch (error) {
+      logger.error('Download failed', error);
+      return {
+        success: false,
+        book: {} as LibbyBook,
+        chapters: [],
+        outputPath: '',
+        downloadedFiles: [],
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
+    }
+  }
+
+  /**
    * Validate user is authenticated
    */
   private async validateAuthentication(): Promise<void> {
@@ -258,6 +402,44 @@ export class DownloadOrchestrator {
       }
 
       const bookOutputDir = path.join(outputDir, sanitizeFilename(bookMetadata.title));
+      await ensureDir(bookOutputDir);
+
+      const coverPath = path.join(bookOutputDir, 'cover.jpg');
+      await fs.writeFile(coverPath, coverBuffer);
+
+      logger.success('Cover art downloaded');
+      return coverPath;
+    } catch (error) {
+      logger.warn('Failed to download cover art', error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Download cover art from URL (no browser needed)
+   */
+  private async downloadCoverFromUrl(
+    coverUrl: string,
+    outputDir: string,
+    bookTitle: string
+  ): Promise<string | undefined> {
+    if (!coverUrl) {
+      return undefined;
+    }
+
+    try {
+      logger.info('Downloading cover art');
+
+      // Use fetch to download the image
+      const response = await fetch(coverUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const coverBuffer = Buffer.from(arrayBuffer);
+
+      const bookOutputDir = path.join(outputDir, sanitizeFilename(bookTitle));
       await ensureDir(bookOutputDir);
 
       const coverPath = path.join(bookOutputDir, 'cover.jpg');

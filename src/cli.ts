@@ -3,6 +3,8 @@
 import { Command } from 'commander';
 import * as path from 'path';
 import * as os from 'os';
+import { existsSync } from 'fs';
+import { promises as fs } from 'fs';
 import { BrowserManager } from './browser/manager';
 import { LibbyAuth } from './auth/libby-auth';
 import { LibbyAPI } from './downloader/libby-api';
@@ -143,67 +145,111 @@ program
 
 // Download command
 program
-  .command('download <book-id>')
-  .description('Download an audiobook by ID')
+  .command('download <book-id-or-file>')
+  .description('Download an audiobook by ID or from captured JSON file')
   .option('-o, --output <dir>', 'Output directory', path.join(os.homedir(), 'Downloads', 'Libby'))
   .option('--mode <mode>', 'Download mode: safe, balanced, or aggressive', 'balanced')
   .option('--no-merge', 'Do not merge chapters into single file')
   .option('--no-metadata', 'Do not embed metadata')
   .option('--no-headless', 'Run browser in visible mode (for debugging)')
   .option('--resume', 'Resume interrupted download', false)
-  .action(async (bookId, options) => {
+  .action(async (bookIdOrFile, options) => {
     let orchestrator: DownloadOrchestrator | null = null;
 
     try {
-      // Sanitize and validate inputs
-      const sanitizedBookId = sanitizeInput(bookId);
       const sanitizedMode = sanitizeInput(options.mode);
-
       const headless = options.headless !== false;
 
-      validateDownloadInputs({
-        bookId: sanitizedBookId,
-        outputDir: options.output,
-        mode: sanitizedMode,
-        merge: options.merge,
-        metadata: options.metadata,
-        headless,
-      });
+      // Check if input is a JSON file
+      const isJsonFile = bookIdOrFile.endsWith('.json') || existsSync(bookIdOrFile);
 
-      // Create orchestrator with dependencies
-      orchestrator = await DownloadOrchestrator.create(
-        sanitizedMode as 'safe' | 'balanced' | 'aggressive',
-        headless
-      );
+      if (isJsonFile) {
+        // Download from captured JSON file
+        logger.info('Using captured book data from file');
 
-      // Register cleanup handler
-      registerCleanupHandler(() => orchestrator?.cleanup());
+        if (!existsSync(bookIdOrFile)) {
+          throw new Error(`File not found: ${bookIdOrFile}`);
+        }
 
-      // Download book
-      console.log(chalk.bold('\nDownloading chapters...'));
-      const result = await orchestrator.downloadBook({
-        bookId: sanitizedBookId,
-        outputDir: options.output,
-        mode: sanitizedMode as 'safe' | 'balanced' | 'aggressive',
-        merge: options.merge,
-        metadata: options.metadata,
-        headless,
-        resume: options.resume,
-        onProgress: (progress) => {
-          console.log(
-            `Progress: ${progress.downloadedChapters}/${progress.totalChapters} - ${progress.currentChapter || 'Processing'}`
-          );
-        },
-      });
+        const captureData = JSON.parse(await fs.readFile(bookIdOrFile, 'utf-8'));
 
-      if (result.success) {
-        if (options.merge) {
-          logger.success(`\nAudiobook downloaded successfully: ${result.outputPath}`);
+        // Create orchestrator without browser
+        orchestrator = await DownloadOrchestrator.create(
+          sanitizedMode as 'safe' | 'balanced' | 'aggressive',
+          true // headless (won't be used)
+        );
+
+        registerCleanupHandler(() => orchestrator?.cleanup());
+
+        console.log(chalk.bold('\nDownloading chapters...'));
+        const result = await orchestrator.downloadFromCapture({
+          captureData,
+          outputDir: options.output,
+          mode: sanitizedMode as 'safe' | 'balanced' | 'aggressive',
+          merge: options.merge,
+          metadata: options.metadata,
+          resume: options.resume,
+          onProgress: (progress) => {
+            console.log(
+              `Progress: ${progress.downloadedChapters}/${progress.totalChapters} - ${progress.currentChapter || 'Processing'}`
+            );
+          },
+        });
+
+        if (result.success) {
+          if (options.merge) {
+            logger.success(`\nAudiobook downloaded successfully: ${result.outputPath}`);
+          } else {
+            logger.success(`\nChapters downloaded successfully to: ${options.output}`);
+          }
         } else {
-          logger.success(`\nChapters downloaded successfully to: ${options.output}`);
+          throw result.error || new Error('Download failed');
         }
       } else {
-        throw result.error || new Error('Download failed');
+        // Original flow: download from book ID
+        const sanitizedBookId = sanitizeInput(bookIdOrFile);
+
+        validateDownloadInputs({
+          bookId: sanitizedBookId,
+          outputDir: options.output,
+          mode: sanitizedMode,
+          merge: options.merge,
+          metadata: options.metadata,
+          headless,
+        });
+
+        orchestrator = await DownloadOrchestrator.create(
+          sanitizedMode as 'safe' | 'balanced' | 'aggressive',
+          headless
+        );
+
+        registerCleanupHandler(() => orchestrator?.cleanup());
+
+        console.log(chalk.bold('\nDownloading chapters...'));
+        const result = await orchestrator.downloadBook({
+          bookId: sanitizedBookId,
+          outputDir: options.output,
+          mode: sanitizedMode as 'safe' | 'balanced' | 'aggressive',
+          merge: options.merge,
+          metadata: options.metadata,
+          headless,
+          resume: options.resume,
+          onProgress: (progress) => {
+            console.log(
+              `Progress: ${progress.downloadedChapters}/${progress.totalChapters} - ${progress.currentChapter || 'Processing'}`
+            );
+          },
+        });
+
+        if (result.success) {
+          if (options.merge) {
+            logger.success(`\nAudiobook downloaded successfully: ${result.outputPath}`);
+          } else {
+            logger.success(`\nChapters downloaded successfully to: ${options.output}`);
+          }
+        } else {
+          throw result.error || new Error('Download failed');
+        }
       }
     } catch (error) {
       if (orchestrator) {
