@@ -51,6 +51,11 @@ class Logger {
     this.initialized = true;
   }
 
+  getLevel(): LogLevel {
+    this.ensureInitialized();
+    return this.level;
+  }
+
   debug(message: string, ...args: unknown[]): void {
     this.ensureInitialized();
     if (this.level <= LogLevel.DEBUG) {

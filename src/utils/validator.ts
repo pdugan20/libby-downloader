@@ -22,11 +22,11 @@ export function validateBookId(bookId: string): void {
     throw new ValidationError('Book ID cannot be empty', ErrorCode.INVALID_BOOK_ID);
   }
 
-  // Check format: alphanumeric + hyphens only
-  const validFormat = /^[a-zA-Z0-9-]+$/;
+  // Check format: alphanumeric + hyphens + slashes (for loanId/bookId format)
+  const validFormat = /^[a-zA-Z0-9/-]+$/;
   if (!validFormat.test(trimmed)) {
     throw new ValidationError(
-      `Invalid book ID format: "${bookId}". Book IDs should contain only letters, numbers, and hyphens.`,
+      `Invalid book ID format: "${bookId}". Book IDs should contain only letters, numbers, hyphens, and slashes.`,
       ErrorCode.INVALID_BOOK_ID
     );
   }

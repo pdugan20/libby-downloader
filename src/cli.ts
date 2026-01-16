@@ -44,25 +44,54 @@ program
   .description('Log in to your Libby account')
   .option('--headless', 'Run browser in headless mode', false)
   .action(async (options) => {
-    const browserManager = new BrowserManager({ headless: options.headless });
-    registerCleanupHandler(() => browserManager.close());
-
     try {
-      await browserManager.launch();
-      const auth = new LibbyAuth(browserManager);
+      // Step 1: Check login status in headless mode first (suppress logs)
+      logger.info('Checking login status...');
 
-      const isLoggedIn = await auth.isLoggedIn();
+      const originalLevel = logger.getLevel();
+      logger.setLevel(LogLevel.ERROR); // Suppress info/debug during headless check
+
+      const checkBrowser = new BrowserManager({ headless: true });
+      await checkBrowser.launch();
+
+      const checkAuth = new LibbyAuth(checkBrowser);
+      const page = checkBrowser.getPage();
+      await page.goto('https://libbyapp.com/interview/welcome#doYouHaveACard', {
+        waitUntil: 'networkidle2',
+      });
+
+      const isLoggedIn = await checkAuth.hasLocalStorageAuth();
+      await checkBrowser.close();
+
+      logger.setLevel(originalLevel); // Restore log level
 
       if (isLoggedIn) {
         logger.success('Already logged in to Libby');
-      } else {
-        await auth.login();
+        return;
       }
+
+      // Step 2: Not logged in - inform user before opening browser
+      logger.info('Not logged in');
+      logger.info('');
+      logger.info('Please complete the following steps in the browser:');
+      logger.info('  1. Select your library');
+      logger.info('  2. Enter your library card number');
+      logger.info('  3. Enter your PIN');
+      logger.info('');
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      logger.info('Opening browser...');
+
+      // Step 3: Open visible browser for manual login
+      const browserManager = new BrowserManager({ headless: options.headless });
+      registerCleanupHandler(() => browserManager.close());
+
+      await browserManager.launch();
+      const auth = new LibbyAuth(browserManager);
+      await auth.loginWithoutCheck(); // Skip the check, go straight to login
+
+      await browserManager.close();
     } catch (error) {
-      await browserManager.close();
       handleCliError(error, 'Login');
-    } finally {
-      await browserManager.close();
     }
   });
 
@@ -70,9 +99,9 @@ program
 program
   .command('list')
   .description('List your borrowed audiobooks')
-  .option('--headless', 'Run browser in headless mode', false)
+  .option('--no-headless', 'Run browser in visible mode (for debugging)')
   .action(async (options) => {
-    const browserManager = new BrowserManager({ headless: options.headless });
+    const browserManager = new BrowserManager({ headless: options.headless !== false });
     registerCleanupHandler(() => browserManager.close());
 
     try {
@@ -120,7 +149,7 @@ program
   .option('--mode <mode>', 'Download mode: safe, balanced, or aggressive', 'balanced')
   .option('--no-merge', 'Do not merge chapters into single file')
   .option('--no-metadata', 'Do not embed metadata')
-  .option('--headless', 'Run browser in headless mode', false)
+  .option('--no-headless', 'Run browser in visible mode (for debugging)')
   .option('--resume', 'Resume interrupted download', false)
   .action(async (bookId, options) => {
     let orchestrator: DownloadOrchestrator | null = null;
@@ -130,19 +159,21 @@ program
       const sanitizedBookId = sanitizeInput(bookId);
       const sanitizedMode = sanitizeInput(options.mode);
 
+      const headless = options.headless !== false;
+
       validateDownloadInputs({
         bookId: sanitizedBookId,
         outputDir: options.output,
         mode: sanitizedMode,
         merge: options.merge,
         metadata: options.metadata,
-        headless: options.headless,
+        headless,
       });
 
       // Create orchestrator with dependencies
       orchestrator = await DownloadOrchestrator.create(
         sanitizedMode as 'safe' | 'balanced' | 'aggressive',
-        options.headless
+        headless
       );
 
       // Register cleanup handler
@@ -156,7 +187,7 @@ program
         mode: sanitizedMode as 'safe' | 'balanced' | 'aggressive',
         merge: options.merge,
         metadata: options.metadata,
-        headless: options.headless,
+        headless,
         resume: options.resume,
         onProgress: (progress) => {
           console.log(
@@ -190,9 +221,9 @@ program
 program
   .command('logout')
   .description('Log out from Libby')
-  .option('--headless', 'Run browser in headless mode', false)
+  .option('--no-headless', 'Run browser in visible mode (for debugging)')
   .action(async (options) => {
-    const browserManager = new BrowserManager({ headless: options.headless });
+    const browserManager = new BrowserManager({ headless: options.headless !== false });
     registerCleanupHandler(() => browserManager.close());
 
     try {

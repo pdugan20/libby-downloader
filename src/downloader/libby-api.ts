@@ -55,12 +55,28 @@ export class LibbyAPI {
 
   /**
    * Navigate to a book's player page
+   * @param bookId Format: "loanId/bookId" or just "bookId" (will try to find loan)
    */
   async openBook(bookId: string): Promise<void> {
-    const url = `https://listen.libbyapp.com/${bookId}`;
+    // Parse the ID - it should be in format "loanId/bookId"
+    const parts = bookId.split('/');
+    let loanId: string;
+    let actualBookId: string;
+
+    if (parts.length === 2) {
+      loanId = parts[0];
+      actualBookId = parts[1];
+    } else {
+      // If only book ID provided, we need to get the loan ID from the shelf
+      throw new Error(
+        'Book ID must include loan ID. Run "libby list" to get the correct ID format.'
+      );
+    }
+
+    const url = `https://libbyapp.com/open/loan/${loanId}/${actualBookId}`;
     logger.info(`Opening book: ${url}`);
     await this.browserManager.goto(url);
-    await sleep(3000); // Wait for page to load
+    await sleep(8000); // Wait for page to load and BIF object to initialize
   }
 
   /**
@@ -98,9 +114,20 @@ export class LibbyAPI {
 
     try {
       /* eslint-disable @typescript-eslint/no-explicit-any */
-      // Wait for BIF object to be available
+      // Debug: Check what's on window before waiting
+      const windowCheck = await page.evaluate(() => {
+        return {
+          hasBIF: typeof (window as any).BIF !== 'undefined',
+          windowKeys: Object.keys(window).filter((k) => k.includes('BIF') || k.includes('bif')),
+        };
+      });
+      logger.debug(
+        `Before wait - hasBIF: ${windowCheck.hasBIF}, window keys: ${windowCheck.windowKeys.join(', ')}`
+      );
+
+      // Wait for BIF object to be available (increased timeout)
       await page.waitForFunction(() => (window as any).BIF !== undefined, {
-        timeout: 30000,
+        timeout: 60000,
       });
 
       const metadata = await page.evaluate(() => {
@@ -230,45 +257,57 @@ export class LibbyAPI {
    */
   async getBorrowedBooks(): Promise<LibbyBook[]> {
     try {
-      await this.browserManager.goto('https://libbyapp.com/shelf');
-      await sleep(2000);
+      // Use audiobook filter to only show audiobooks, not ebooks
+      await this.browserManager.goto('https://libbyapp.com/shelf/loans/default,audiobook');
+      await sleep(3000); // Give SPA more time to load
 
       const page = this.browserManager.getPage();
 
-      // Wait for shelf to load
-      await page.waitForSelector('[data-test-id="shelf-loan"]', {
-        timeout: 10000,
-      });
+      // Wait for SPA to render
+      await sleep(5000);
 
       const books = await page.evaluate(() => {
-        const bookElements = document.querySelectorAll('[data-test-id="shelf-loan"]');
         const books: Array<{ id: string; title: string; authors: string[] }> = [];
 
-        bookElements.forEach((elem) => {
-          try {
-            const titleElem = elem.querySelector('[data-test-id="title-text"]');
-            const authorElem = elem.querySelector('[data-test-id="author-text"]');
-            const linkElem = elem.querySelector('a[href*="/listen/"]');
+        // Find return links which have the pattern: /shelf/loans/{loanId}-{bookId}/return
+        const allLinks = Array.from(document.querySelectorAll('a'));
+        const returnLinks = allLinks.filter(
+          (a) => a.href.includes('/shelf/loans/') && a.href.includes('/return')
+        );
 
-            if (titleElem && linkElem) {
-              const href = linkElem.getAttribute('href') || '';
-              const id = href.split('/listen/')[1] || '';
+        returnLinks.forEach((returnLink) => {
+          const href = returnLink.href;
+          const match = href.match(/\/shelf\/loans\/(\d+)-(\d+)\/return/);
 
+          if (match) {
+            const loanId = match[1];
+            const bookId = match[2];
+
+            // Find the title by looking for the book details link
+            const titleLink = allLinks.find((a) =>
+              a.href.includes(`/shelf/similar-${bookId}/page-1/${bookId}`)
+            );
+
+            let title = '';
+            if (titleLink) {
+              title = (titleLink.textContent || '').trim();
+              title = title.replace(/Title details at library$/i, '').trim();
+            }
+
+            if (title && bookId) {
               books.push({
-                id,
-                title: titleElem.textContent?.trim() || '',
-                authors: authorElem ? [authorElem.textContent?.trim() || ''] : [],
+                id: `${loanId}/${bookId}`, // Store as "loanId/bookId"
+                title,
+                authors: [], // Not available in this view
               });
             }
-          } catch (e) {
-            console.error('Failed to parse book element:', e);
           }
         });
 
         return books;
       });
 
-      logger.success(`Found ${books.length} borrowed books`);
+      logger.success(`Found ${books.length} borrowed audiobook${books.length !== 1 ? 's' : ''}`);
       return books;
     } catch (error) {
       logger.error('Failed to get borrowed books', error);
