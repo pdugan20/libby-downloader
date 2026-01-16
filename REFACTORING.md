@@ -26,24 +26,31 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ### Tasks
 
-#### 1.1 Create Download Orchestrator ⬜
+#### 1.1 Create Download Orchestrator ✅
 
 **File:** `src/core/orchestrator.ts`
 
 **Goal:** Extract 145-line download logic from cli.ts into reusable class
 
 **Subtasks:**
-- [ ] Create `DownloadOrchestrator` class
-- [ ] Move download flow from cli.ts
-- [ ] Add dependency injection
-- [ ] Return structured results (not process.exit)
-- [ ] Update cli.ts to use orchestrator
+- [x] Create `DownloadOrchestrator` class
+- [x] Move download flow from cli.ts
+- [x] Add dependency injection
+- [x] Return structured results (not process.exit)
+- [x] Update cli.ts to use orchestrator
 - [ ] Add unit tests
 
 **Files to Modify:**
-- Create: `src/core/orchestrator.ts`
-- Modify: `src/cli.ts`
-- Create: `src/core/__tests__/orchestrator.test.ts`
+- Create: `src/core/orchestrator.ts` ✅
+- Modify: `src/cli.ts` ✅
+- Create: `src/core/__tests__/orchestrator.test.ts` ⬜
+
+**Results:**
+- Reduced download command from 145 lines to 45 lines (68% reduction)
+- Extracted reusable `DownloadOrchestrator` class
+- Added factory method for easy instantiation
+- Added proper cleanup method
+- Returns structured `DownloadResult` instead of process.exit
 
 ---
 

@@ -6,12 +6,8 @@ import * as os from 'os';
 import { BrowserManager } from './browser/manager';
 import { LibbyAuth } from './auth/libby-auth';
 import { LibbyAPI } from './downloader/libby-api';
-import { ChapterDownloader } from './downloader/chapter-downloader';
-import { FFmpegProcessor } from './processor/ffmpeg-processor';
-import { MetadataEmbedder } from './metadata/embedder';
-import { RateLimiter } from './utils/rate-limiter';
 import { logger, LogLevel } from './utils/logger';
-import { ensureDir, sanitizeFilename } from './utils/fs';
+import { DownloadOrchestrator } from './core/orchestrator';
 import chalk from 'chalk';
 import ora from 'ora';
 
@@ -109,137 +105,47 @@ program
       ? options.mode
       : 'balanced';
 
-    const browserManager = new BrowserManager({ headless: options.headless });
-    const rateLimiter = new RateLimiter(mode as 'safe' | 'balanced' | 'aggressive');
+    let orchestrator: DownloadOrchestrator | null = null;
 
     try {
-      // Show risk warning
-      rateLimiter.showRiskWarning();
+      // Create orchestrator with dependencies
+      orchestrator = await DownloadOrchestrator.create(
+        mode as 'safe' | 'balanced' | 'aggressive',
+        options.headless
+      );
 
-      await browserManager.launch();
-      const auth = new LibbyAuth(browserManager);
-      const api = new LibbyAPI(browserManager);
-      const downloader = new ChapterDownloader(browserManager, rateLimiter);
-      const processor = new FFmpegProcessor();
-      const embedder = new MetadataEmbedder();
-
-      // Check login
-      const isLoggedIn = await auth.isLoggedIn();
-      if (!isLoggedIn) {
-        logger.error('Not logged in. Please run: libby login');
-        process.exit(1);
-      }
-
-      // Check FFmpeg
-      if (options.merge) {
-        const hasFFmpeg = await processor.checkFFmpeg();
-        if (!hasFFmpeg) {
-          logger.error('FFmpeg is required for merging chapters. Please install FFmpeg.');
-          process.exit(1);
-        }
-      }
-
-      // Open book and get metadata
-      let spinner = ora('Opening book').start();
-      await api.openBook(bookId);
-      spinner.succeed('Book opened');
-
-      spinner = ora('Extracting metadata').start();
-      const bookMetadata = await api.getBookMetadata();
-      if (!bookMetadata) {
-        spinner.fail('Failed to extract book metadata');
-        process.exit(1);
-      }
-      spinner.succeed(`Found: ${bookMetadata.title}`);
-
-      spinner = ora('Extracting chapters').start();
-      const chapters = await api.getChapters();
-      if (chapters.length === 0) {
-        spinner.fail('No chapters found');
-        process.exit(1);
-      }
-      spinner.succeed(`Found ${chapters.length} chapters`);
-
-      // Download cover
-      let coverPath: string | undefined;
-      if (bookMetadata.coverUrl) {
-        spinner = ora('Downloading cover art').start();
-        const coverBuffer = await api.downloadCover(bookMetadata.coverUrl);
-        if (coverBuffer) {
-          const outputDir = path.join(options.output, sanitizeFilename(bookMetadata.title));
-          await ensureDir(outputDir);
-          coverPath = path.join(outputDir, 'cover.jpg');
-          const fs = await import('fs/promises');
-          await fs.writeFile(coverPath, coverBuffer);
-          spinner.succeed('Cover art downloaded');
-        } else {
-          spinner.fail('Failed to download cover art');
-        }
-      }
-
-      // Download chapters
+      // Download book
       console.log(chalk.bold('\nDownloading chapters...'));
-      const downloadedFiles = await downloader.downloadChapters(
-        chapters,
-        options.output,
-        bookMetadata.title,
-        (progress) => {
+      const result = await orchestrator.downloadBook({
+        bookId,
+        outputDir: options.output,
+        mode: mode as 'safe' | 'balanced' | 'aggressive',
+        merge: options.merge,
+        metadata: options.metadata,
+        headless: options.headless,
+        onProgress: (progress) => {
           console.log(
             `Progress: ${progress.downloadedChapters}/${progress.totalChapters} - ${progress.currentChapter || 'Processing'}`
           );
+        },
+      });
+
+      if (result.success) {
+        if (options.merge) {
+          logger.success(`\nAudiobook downloaded successfully: ${result.outputPath}`);
+        } else {
+          logger.success(`\nChapters downloaded successfully to: ${options.output}`);
         }
-      );
-
-      // Merge chapters if requested
-      if (options.merge && downloadedFiles.length > 1) {
-        const outputDir = path.join(options.output, sanitizeFilename(bookMetadata.title));
-        const mergedPath = path.join(outputDir, `${sanitizeFilename(bookMetadata.title)}.mp3`);
-
-        spinner = ora('Merging chapters').start();
-        await processor.mergeChapters(downloadedFiles, mergedPath, {
-          title: bookMetadata.title,
-          artist: bookMetadata.authors.join(', '),
-          album: bookMetadata.title,
-          genre: 'Audiobook',
-        });
-        spinner.succeed('Chapters merged');
-
-        // Add chapter markers
-        if (chapters.length > 1) {
-          const tempPath = mergedPath + '.temp.mp3';
-          spinner = ora('Adding chapter markers').start();
-          await processor.addChapterMarkers(mergedPath, tempPath, chapters);
-          const fs = await import('fs/promises');
-          await fs.unlink(mergedPath);
-          await fs.rename(tempPath, mergedPath);
-          spinner.succeed('Chapter markers added');
-        }
-
-        // Embed metadata
-        if (options.metadata && coverPath) {
-          spinner = ora('Embedding metadata').start();
-          await embedder.embedMetadata(mergedPath, {
-            title: bookMetadata.title,
-            artist: bookMetadata.authors.join(', '),
-            album: bookMetadata.title,
-            genre: 'Audiobook',
-            comment: bookMetadata.description,
-            image: coverPath,
-          });
-          spinner.succeed('Metadata embedded');
-        }
-
-        logger.success(`\nAudiobook downloaded successfully: ${mergedPath}`);
       } else {
-        logger.success(`\nChapters downloaded successfully to: ${options.output}`);
+        throw result.error || new Error('Download failed');
       }
-
-      rateLimiter.incrementBookCounter();
     } catch (error) {
       logger.error('Download failed', error);
       process.exit(1);
     } finally {
-      await browserManager.close();
+      if (orchestrator) {
+        await orchestrator.cleanup();
+      }
     }
   });
 
