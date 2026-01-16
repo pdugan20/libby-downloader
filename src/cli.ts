@@ -8,8 +8,23 @@ import { LibbyAuth } from './auth/libby-auth';
 import { LibbyAPI } from './downloader/libby-api';
 import { logger, LogLevel } from './utils/logger';
 import { DownloadOrchestrator } from './core/orchestrator';
+import { LibbyError, AuthenticationError } from './core/errors';
 import chalk from 'chalk';
 import ora from 'ora';
+
+/**
+ * Handle CLI errors with proper formatting and recovery hints
+ */
+function handleCliError(error: unknown, context: string): never {
+  if (error instanceof LibbyError) {
+    console.error(chalk.red(`\n${error.toDisplayString()}\n`));
+  } else if (error instanceof Error) {
+    logger.error(`${context} failed`, error);
+  } else {
+    logger.error(`${context} failed: ${String(error)}`);
+  }
+  process.exit(1);
+}
 
 const program = new Command();
 
@@ -38,8 +53,8 @@ program
         await auth.login();
       }
     } catch (error) {
-      logger.error('Login failed', error);
-      process.exit(1);
+      await browserManager.close();
+      handleCliError(error, 'Login');
     } finally {
       await browserManager.close();
     }
@@ -60,8 +75,7 @@ program
 
       const isLoggedIn = await auth.isLoggedIn();
       if (!isLoggedIn) {
-        logger.error('Not logged in. Please run: libby login');
-        process.exit(1);
+        throw new AuthenticationError('Not logged in');
       }
 
       const spinner = ora('Fetching borrowed books').start();
@@ -84,8 +98,8 @@ program
       });
       console.log();
     } catch (error) {
-      logger.error('Failed to list books', error);
-      process.exit(1);
+      await browserManager.close();
+      handleCliError(error, 'List books');
     } finally {
       await browserManager.close();
     }
@@ -140,8 +154,10 @@ program
         throw result.error || new Error('Download failed');
       }
     } catch (error) {
-      logger.error('Download failed', error);
-      process.exit(1);
+      if (orchestrator) {
+        await orchestrator.cleanup();
+      }
+      handleCliError(error, 'Download');
     } finally {
       if (orchestrator) {
         await orchestrator.cleanup();
@@ -163,8 +179,8 @@ program
       await auth.logout();
       logger.success('Logged out successfully');
     } catch (error) {
-      logger.error('Logout failed', error);
-      process.exit(1);
+      await browserManager.close();
+      handleCliError(error, 'Logout');
     } finally {
       await browserManager.close();
     }

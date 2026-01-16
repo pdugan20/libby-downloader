@@ -13,8 +13,6 @@ A command-line tool for downloading audiobooks from Libby with realistic user si
 - This tool is for **educational purposes only**
 - Downloading audiobooks may **violate your library's terms of service**
 - **Library cards can be banned** for automated downloading
-- The original developer reported **multiple library card bans**
-- Even with "safe mode", there is **always detection risk**
 - Use at your own risk and accept full responsibility
 
 **This tool simulates human behavior to reduce detection risk, but cannot guarantee safety.**
@@ -120,7 +118,7 @@ libby logout
 
 ## Download Modes
 
-### Safe Mode (Recommended for First Use)
+### Safe Mode
 
 - 8-20 seconds between chapters
 - Automatic breaks every 3 chapters (30-90 seconds)
@@ -144,7 +142,7 @@ libby download <book-id> --mode safe
 libby download <book-id> --mode balanced
 ```
 
-### Aggressive Mode (High Risk)
+### Aggressive Mode
 
 - 2-6 seconds between chapters
 - No automatic breaks

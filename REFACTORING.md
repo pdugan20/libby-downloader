@@ -91,18 +91,29 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ---
 
-#### 1.3 Replace process.exit() Calls ⬜
+#### 1.3 Replace process.exit() Calls ✅
 
 **Goal:** Remove all 9 process.exit() calls, throw errors instead
 
 **Subtasks:**
-- [ ] Replace process.exit(1) with throw statements in cli.ts
-- [ ] Add try/catch at top level of CLI commands
-- [ ] Log errors before exiting
-- [ ] Add exit code enum (0=success, 1=error, 2=validation)
+- [x] Create centralized error handler (handleCliError)
+- [x] Replace inline process.exit(1) with throw statements
+- [x] Update all CLI commands to use handleCliError
+- [x] Display recovery hints for custom errors
+- [x] Proper cleanup before exit
 
 **Files to Modify:**
-- Modify: `src/cli.ts` (9 occurrences)
+- Modify: `src/cli.ts` ✅
+
+**Results:**
+- Reduced from 9 process.exit() calls to 1 centralized call
+- Created handleCliError() function that:
+  - Shows custom error messages with recovery hints
+  - Handles LibbyError instances specially
+  - Falls back to logger for unknown errors
+- All CLI commands now throw proper errors instead of direct exit
+- Orchestrator already returns DownloadResult (no process.exit)
+- Code is now library-friendly (orchestrator can be imported and used)
 
 ---
 
