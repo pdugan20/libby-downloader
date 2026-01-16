@@ -174,7 +174,7 @@ This tool improves on the original TamperMonkey script by:
 
 ## Configuration
 
-You can customize behavior by creating a `.env` file:
+You can customize behavior by creating a `.env` file or setting environment variables:
 
 ```bash
 cp .env.example .env
@@ -183,10 +183,41 @@ cp .env.example .env
 Edit `.env` to change defaults:
 
 ```bash
+# Output directory for downloaded audiobooks
 OUTPUT_DIR=~/Downloads/Libby
+
+# Default download mode (safe, balanced, aggressive)
 DOWNLOAD_MODE=balanced
+
+# Run browser in headless mode (true/false)
 HEADLESS=false
+
+# Log level (debug, info, warn, error, silent)
 LOG_LEVEL=info
+LIBBY_LOG_LEVEL=info  # Alternative environment variable
+```
+
+### Log Levels
+
+Control the amount of logging output:
+
+- `debug` - Verbose logging for debugging (shows all messages)
+- `info` - Normal logging (default)
+- `warn` - Only warnings and errors
+- `error` - Only errors
+- `silent` - No logging output
+
+Set via environment variable:
+
+```bash
+# Using LIBBY_LOG_LEVEL
+LIBBY_LOG_LEVEL=debug libby download <book-id>
+
+# Or using LOG_LEVEL
+LOG_LEVEL=debug libby download <book-id>
+
+# Or in .env file
+echo "LIBBY_LOG_LEVEL=debug" >> .env
 ```
 
 ## Advanced Usage

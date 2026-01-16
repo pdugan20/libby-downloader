@@ -11,10 +11,10 @@ This document tracks the refactoring effort to transform libby-downloader from a
 ## Progress Summary
 
 - **Total Phases:** 5
-- **Completed Phases:** 3 (Phase 1 ✅, Phase 2 ✅, Phase 3 ✅)
+- **Completed Phases:** 4 (Phase 1 ✅, Phase 2 ✅, Phase 3 ✅, Phase 4 ✅)
 - **Total Tasks:** 15
-- **Completed Tasks:** 13 (Phase 1: 5 tasks, Phase 2: 3 tasks, Phase 3: 3 tasks, Phase 4: 2 tasks)
-- **Overall Progress:** 87% (13 of 15 tasks complete)
+- **Completed Tasks:** 14 (Phase 1: 5 tasks, Phase 2: 3 tasks, Phase 3: 3 tasks, Phase 4: 3 tasks)
+- **Overall Progress:** 93% (14 of 15 tasks complete)
 
 ---
 
@@ -419,11 +419,12 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ---
 
-## Phase 4: State Management & Resilience 🟢
+## Phase 4: State Management & Resilience ✅
 
 **Priority:** Medium
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 **Estimated Effort:** Medium
+**Completion Date:** 2026-01-16
 
 ### Tasks
 
@@ -485,21 +486,31 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ---
 
-#### 4.3 Add Environment-Based Logging ⬜
+#### 4.3 Add Environment-Based Logging ✅
 
 **Goal:** Control log levels via config
 
 **Subtasks:**
-- [ ] Read LOG_LEVEL from environment
-- [ ] Default to 'info' in production
-- [ ] Add to Config class
-- [ ] Update logger initialization
-- [ ] Update README with LOG_LEVEL docs
+- [x] Read LOG_LEVEL from environment
+- [x] Default to 'info' in production
+- [x] Add to Config class (already existed)
+- [x] Update logger initialization
+- [x] Update README with LOG_LEVEL docs
 
 **Files to Modify:**
-- Modify: `src/utils/logger.ts`
-- Modify: `src/core/config.ts`
-- Modify: `README.md`
+- Modify: `src/utils/logger.ts` ✅
+- Modify: `src/core/config.ts` (no changes needed - already implemented) ✅
+- Modify: `README.md` ✅
+
+**Results:**
+- Logger now reads log level from environment variables
+- Supports both LIBBY_LOG_LEVEL and LOG_LEVEL environment variables
+- Added ensureInitialized() method for lazy initialization
+- Defaults to 'info' level in production
+- Added validation with helpful warning for invalid log levels
+- Updated README with comprehensive log level documentation
+- Documented all 5 log levels: debug, info, warn, error, silent
+- Added examples for setting log level via environment and .env file
 
 ---
 
