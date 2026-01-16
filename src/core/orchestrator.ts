@@ -282,12 +282,41 @@ export class DownloadOrchestrator {
   ): Promise<string[]> {
     logger.info('Downloading chapters');
 
-    const downloadedFiles = await this.downloader.downloadChapters(
-      chapters,
-      outputDir,
-      bookTitle,
-      onProgress
-    );
+    // Set up event listeners for progress tracking
+    if (onProgress) {
+      this.downloader.on('chapter:start', (event) => {
+        onProgress({
+          bookId: '',
+          bookTitle,
+          totalChapters: event.totalChapters,
+          downloadedChapters: event.chapterIndex,
+          currentChapter: event.chapterTitle,
+          status: 'downloading',
+        });
+      });
+
+      this.downloader.on('chapter:complete', () => {
+        // Progress update handled by chapter:start of next chapter
+      });
+
+      this.downloader.on('chapter:error', (event) => {
+        onProgress({
+          bookId: '',
+          bookTitle,
+          totalChapters: chapters.length,
+          downloadedChapters: event.chapterIndex,
+          status: 'failed',
+          error: event.error.message,
+        });
+      });
+    }
+
+    const downloadedFiles = await this.downloader.downloadChapters(chapters, outputDir, bookTitle);
+
+    // Clean up event listeners
+    this.downloader.removeAllListeners('chapter:start');
+    this.downloader.removeAllListeners('chapter:complete');
+    this.downloader.removeAllListeners('chapter:error');
 
     return downloadedFiles;
   }

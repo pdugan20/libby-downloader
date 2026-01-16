@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { EventEmitter } from 'events';
 import { LibbyChapter, DownloadProgress } from '../types';
 import { BrowserManager } from '../browser/manager';
 import { RateLimiter } from '../utils/rate-limiter';
@@ -9,17 +10,62 @@ import { simulateMouseMovement, simulateScrolling } from '../browser/stealth';
 import { retry } from '../utils/retry';
 import { DownloadError, ErrorCode } from '../core/errors';
 
-export class ChapterDownloader {
+/**
+ * Event emitted when chapter download starts
+ */
+export interface ChapterStartEvent {
+  chapterIndex: number;
+  chapterTitle: string;
+  totalChapters: number;
+}
+
+/**
+ * Event emitted when chapter download completes
+ */
+export interface ChapterCompleteEvent {
+  chapterIndex: number;
+  chapterTitle: string;
+  filePath: string;
+  fileSize: number;
+}
+
+/**
+ * Event emitted when chapter download fails
+ */
+export interface ChapterErrorEvent {
+  chapterIndex: number;
+  chapterTitle: string;
+  error: Error;
+}
+
+/**
+ * Event emitted when rate limiter starts a break
+ */
+export interface BreakStartEvent {
+  reason: string;
+  durationMs: number;
+}
+
+/**
+ * Event emitted when rate limiter ends a break
+ */
+export interface BreakEndEvent {
+  reason: string;
+}
+
+export class ChapterDownloader extends EventEmitter {
   private browserManager: BrowserManager;
   private rateLimiter: RateLimiter;
 
   constructor(browserManager: BrowserManager, rateLimiter: RateLimiter) {
+    super();
     this.browserManager = browserManager;
     this.rateLimiter = rateLimiter;
   }
 
   /**
    * Download all chapters for a book
+   * @deprecated Use event listeners instead of onProgress callback
    */
   async downloadChapters(
     chapters: LibbyChapter[],
@@ -41,7 +87,14 @@ export class ChapterDownloader {
       const chapter = chapters[i];
 
       try {
-        // Update progress
+        // Emit chapter:start event
+        this.emit('chapter:start', {
+          chapterIndex: i,
+          chapterTitle: chapter.title,
+          totalChapters: chapters.length,
+        } as ChapterStartEvent);
+
+        // Backward compatibility: Update progress via callback
         if (onProgress) {
           onProgress({
             bookId: '',
@@ -98,13 +151,52 @@ export class ChapterDownloader {
         downloadedFiles.push(filepath);
         logger.success(`Chapter ${i + 1} downloaded: ${formatBytes(buffer.length)}`);
 
+        // Emit chapter:complete event
+        this.emit('chapter:complete', {
+          chapterIndex: i,
+          chapterTitle: chapter.title,
+          filePath: filepath,
+          fileSize: buffer.length,
+        } as ChapterCompleteEvent);
+
         // Wait before next chapter (rate limiting)
         if (i < chapters.length - 1) {
+          // Check if we'll take a break
+          const shouldBreak =
+            this.rateLimiter.getConfig().occasionalBreak.enabled &&
+            (this.rateLimiter.getStats().chaptersDownloaded + 1) %
+              this.rateLimiter.getConfig().occasionalBreak.afterChapters ===
+              0;
+
+          if (shouldBreak) {
+            const { min, max } = this.rateLimiter.getConfig().occasionalBreak.duration;
+            const estimatedDuration = Math.floor((min + max) / 2);
+
+            this.emit('break:start', {
+              reason: 'Rate limiting - simulating human behavior',
+              durationMs: estimatedDuration,
+            } as BreakStartEvent);
+          }
+
           await this.rateLimiter.waitForNextChapter();
+
+          if (shouldBreak) {
+            this.emit('break:end', {
+              reason: 'Rate limiting - resuming downloads',
+            } as BreakEndEvent);
+          }
         }
       } catch (error) {
         logger.error(`Failed to download chapter ${i + 1}: ${chapter.title}`, error);
 
+        // Emit chapter:error event
+        this.emit('chapter:error', {
+          chapterIndex: i,
+          chapterTitle: chapter.title,
+          error: error instanceof Error ? error : new Error(String(error)),
+        } as ChapterErrorEvent);
+
+        // Backward compatibility: Update progress via callback
         if (onProgress) {
           onProgress({
             bookId: '',
@@ -120,6 +212,7 @@ export class ChapterDownloader {
       }
     }
 
+    // Backward compatibility: Final progress update
     if (onProgress) {
       onProgress({
         bookId: '',
