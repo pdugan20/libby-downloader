@@ -11,6 +11,7 @@ import { logger } from '../utils/logger';
 import { ensureDir, sanitizeFilename } from '../utils/fs';
 import { LibbyBook, LibbyChapter, DownloadProgress } from '../types';
 import { AuthenticationError, FFmpegError, ExtractionError, wrapError, ErrorCode } from './errors';
+import { getStateManager, DownloadState } from './state-manager';
 
 export interface DownloadOptions {
   bookId: string;
@@ -19,6 +20,7 @@ export interface DownloadOptions {
   merge: boolean;
   metadata: boolean;
   headless: boolean;
+  resume?: boolean;
   onProgress?: (progress: DownloadProgress) => void;
 }
 
@@ -73,9 +75,20 @@ export class DownloadOrchestrator {
    * Download a complete audiobook
    */
   async downloadBook(options: DownloadOptions): Promise<DownloadResult> {
-    const { bookId, outputDir, merge, metadata: embedMetadata, onProgress } = options;
+    const { bookId, outputDir, merge, metadata: embedMetadata, resume, onProgress } = options;
+    const stateManager = getStateManager();
 
     try {
+      // Check for existing state if resume is requested
+      if (resume) {
+        const existingState = await stateManager.loadState(bookId);
+        if (existingState) {
+          logger.info(
+            `Resuming download: ${existingState.downloadedChapters.length}/${existingState.totalChapters} chapters complete`
+          );
+        }
+      }
+
       // Show risk warning
       this.rateLimiter.showRiskWarning();
 
@@ -92,6 +105,21 @@ export class DownloadOrchestrator {
 
       // Extract chapters
       const chapters = await this.extractChapters();
+
+      // Initialize download state
+      const downloadState: DownloadState = {
+        bookId,
+        bookTitle: bookMetadata.title,
+        totalChapters: chapters.length,
+        downloadedChapters: [],
+        outputDir,
+        mode: options.mode,
+        merge,
+        metadata: embedMetadata,
+        startedAt: new Date().toISOString(),
+        lastUpdatedAt: new Date().toISOString(),
+      };
+      await stateManager.saveState(downloadState);
 
       // Download cover art
       const coverPath = await this.downloadCover(bookMetadata, outputDir);
@@ -120,6 +148,9 @@ export class DownloadOrchestrator {
 
       // Increment book counter for rate limiting
       this.rateLimiter.incrementBookCounter();
+
+      // Delete state on successful completion
+      await stateManager.deleteState(bookId);
 
       return {
         success: true,

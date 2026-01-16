@@ -13,8 +13,8 @@ This document tracks the refactoring effort to transform libby-downloader from a
 - **Total Phases:** 5
 - **Completed Phases:** 3 (Phase 1 ✅, Phase 2 ✅, Phase 3 ✅)
 - **Total Tasks:** 15
-- **Completed Tasks:** 11 (Phase 1: 5 tasks, Phase 2: 3 tasks, Phase 3: 3 tasks)
-- **Overall Progress:** 60% (3 of 5 phases complete)
+- **Completed Tasks:** 12 (Phase 1: 5 tasks, Phase 2: 3 tasks, Phase 3: 3 tasks, Phase 4: 1 task)
+- **Overall Progress:** 73% (12 of 15 tasks complete)
 
 ---
 
@@ -427,25 +427,34 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ### Tasks
 
-#### 4.1 Implement Download State Persistence ⬜
+#### 4.1 Implement Download State Persistence ✅
 
 **File:** `src/core/state-manager.ts`
 
 **Goal:** Enable resume functionality
 
 **Subtasks:**
-- [ ] Create `StateManager` class
-- [ ] Save state after each chapter download
-- [ ] Load state on startup
-- [ ] Wire up to existing `resumeDownload()` method
-- [ ] Add CLI flag `--resume`
-- [ ] Add unit tests
+- [x] Create `StateManager` class
+- [x] Save state after each chapter download
+- [x] Load state on startup
+- [x] Wire up to orchestrator downloadBook() method
+- [x] Add CLI flag `--resume`
+- [x] Add unit tests
 
 **Files to Modify:**
-- Create: `src/core/state-manager.ts`
-- Modify: `src/downloader/chapter-downloader.ts`
-- Modify: `src/cli.ts`
-- Create: `src/core/__tests__/state-manager.test.ts`
+- Create: `src/core/state-manager.ts` ✅
+- Modify: `src/core/orchestrator.ts` ✅
+- Modify: `src/cli.ts` ✅
+- Create: `src/core/__tests__/state-manager.test.ts` ✅
+
+**Results:**
+- Created StateManager class with full persistence functionality
+- State saved to ~/.libby-downloader/state/ directory as JSON files
+- Added methods: saveState, loadState, deleteState, updateChapterProgress, getProgress, listStates, cleanupOldStates
+- Integrated state management into DownloadOrchestrator
+- Added --resume flag to download command
+- Created comprehensive unit tests (19 tests, all passing)
+- State is automatically deleted on successful download completion
 
 ---
 

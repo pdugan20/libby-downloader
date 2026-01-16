@@ -121,6 +121,7 @@ program
   .option('--no-merge', 'Do not merge chapters into single file')
   .option('--no-metadata', 'Do not embed metadata')
   .option('--headless', 'Run browser in headless mode', false)
+  .option('--resume', 'Resume interrupted download', false)
   .action(async (bookId, options) => {
     let orchestrator: DownloadOrchestrator | null = null;
 
@@ -156,6 +157,7 @@ program
         merge: options.merge,
         metadata: options.metadata,
         headless: options.headless,
+        resume: options.resume,
         onProgress: (progress) => {
           console.log(
             `Progress: ${progress.downloadedChapters}/${progress.totalChapters} - ${progress.currentChapter || 'Processing'}`
