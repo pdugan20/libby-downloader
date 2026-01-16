@@ -1,7 +1,7 @@
 import { StealthConfig } from '../types';
 import { sleepRandom, formatDuration } from './delay';
 import { logger } from './logger';
-import * as stealthConfigData from '../../config/stealth.json';
+import { getConfig } from '../core/config';
 
 export class RateLimiter {
   private config: StealthConfig;
@@ -11,11 +11,9 @@ export class RateLimiter {
   private lastDownloadTime: number = 0;
 
   constructor(mode: 'safe' | 'balanced' | 'aggressive' = 'balanced') {
-    const modeConfig = stealthConfigData.modes[mode];
-    this.config = {
-      mode,
-      ...modeConfig,
-    };
+    // Load validated config from centralized Config singleton
+    const appConfig = getConfig();
+    this.config = appConfig.getStealthMode(mode);
     logger.info(`Rate limiter initialized in ${mode} mode`);
   }
 

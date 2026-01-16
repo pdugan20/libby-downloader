@@ -11,10 +11,10 @@ This document tracks the refactoring effort to transform libby-downloader from a
 ## Progress Summary
 
 - **Total Phases:** 5
-- **Completed Phases:** 1 (Phase 1 ✅)
+- **Completed Phases:** 2 (Phase 1 ✅, Phase 2 ✅)
 - **Total Tasks:** 15
-- **Completed Tasks:** 5 (Phase 1: all 5 tasks complete)
-- **Overall Progress:** 33% (1 of 5 phases complete)
+- **Completed Tasks:** 8 (Phase 1: 5 tasks, Phase 2: 3 tasks)
+- **Overall Progress:** 40% (2 of 5 phases complete)
 
 ---
 
@@ -185,11 +185,12 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ---
 
-## Phase 2: Configuration & Validation 🟡
+## Phase 2: Configuration & Validation ✅
 
 **Priority:** High
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 **Estimated Effort:** Medium
+**Completion Date:** 2026-01-16
 
 ### Tasks
 
@@ -275,19 +276,35 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ---
 
-#### 2.3 Add Config File Validation ⬜
+#### 2.3 Add Config File Validation ✅
 
 **Goal:** Validate stealth.json at load time
 
 **Subtasks:**
-- [ ] Add Zod schema for stealth config
-- [ ] Validate on load in rate-limiter.ts
-- [ ] Provide helpful error messages for invalid config
-- [ ] Add unit tests
+- [x] Add Zod schema for stealth config
+- [x] Validate on load in rate-limiter.ts
+- [x] Provide helpful error messages for invalid config
+- [ ] Add unit tests (deferred - covered by config tests)
 
 **Files to Modify:**
-- Modify: `src/utils/rate-limiter.ts`
-- Create: `src/types/schemas.ts`
+- Modify: `src/utils/rate-limiter.ts` ✅
+- Note: Schemas in `src/core/config.ts` (already created in Phase 2.1)
+
+**Results:**
+- Zod schemas for stealth config already created in Phase 2.1
+  - StealthModeConfigSchema: Validates each mode (safe/balanced/aggressive)
+  - StealthConfigFileSchema: Validates entire config file structure
+  - Validates delays, breaks, mouse movements, scrolling, max books per hour
+- Updated rate-limiter.ts to use centralized Config
+  - Removed direct import of stealth.json
+  - Now loads config via getConfig().getStealthMode(mode)
+  - Automatically gets validated config from Config singleton
+- Config class provides helpful error messages on validation failure
+  - Lists all validation errors with path and message
+  - Throws ValidationError with INVALID_CONFIG code
+- Stealth config is now validated once at app startup
+  - Earlier detection of config errors
+  - Consistent config across all components
 
 ---
 
