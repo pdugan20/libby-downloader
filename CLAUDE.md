@@ -162,6 +162,14 @@ npm run format:check              # Check if code is formatted
 - `commander` for CLI
 - `chalk` + `ora` for terminal UI
 
+**Dependency management:**
+- Dependabot configured in `.github/dependabot.yml`
+- Runs weekly checks every Monday
+- Groups related packages (TypeScript ESLint, Jest, Puppeteer, ESLint)
+- Creates PRs automatically for updates
+- Check security: `npm audit`
+- Check outdated: `npm outdated`
+
 ## When Libby Changes
 
 **CRITICAL monitoring points:**

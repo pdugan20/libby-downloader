@@ -1,0 +1,44 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      # Group all TypeScript ESLint packages together
+      typescript-eslint:
+        patterns:
+          - "@typescript-eslint/*"
+      # Group all Jest/testing packages together
+      jest:
+        patterns:
+          - "jest"
+          - "@types/jest"
+          - "ts-jest"
+      # Group Puppeteer packages together
+      puppeteer:
+        patterns:
+          - "puppeteer*"
+      # Group ESLint packages together
+      eslint:
+        patterns:
+          - "eslint*"
+        exclude-patterns:
+          - "@typescript-eslint/*"
+    # Automatically merge patch and minor updates for dev dependencies
+    labels:
+      - "dependencies"
+      - "automated"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "github-actions"
+      - "automated"
