@@ -2,101 +2,142 @@
 
 Get started with Libby Downloader in 5 minutes.
 
-## 1. Install Dependencies
+## Prerequisites
+
+Before starting, verify you have:
+
+**1. Node.js 18+**
 
 ```bash
-# Install Node.js dependencies
+node --version  # Should show v18.0.0 or higher
+```
+
+**2. FFmpeg**
+
+```bash
+ffmpeg -version  # Should show installed version
+```
+
+If missing:
+
+- **macOS**: `brew install ffmpeg`
+- **Ubuntu/Debian**: `sudo apt install ffmpeg`
+- **Windows**: Download from [ffmpeg.org](https://ffmpeg.org/download.html)
+
+## Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/pdugan20/libby-downloader.git
+cd libby-downloader
+
+# 2. Install dependencies
 npm install
 
-# Build the project
+# 3. Build the project
 npm run build
 
-# Install FFmpeg (required for merging)
-# macOS:
-brew install ffmpeg
-
-# Ubuntu/Debian:
-sudo apt install ffmpeg
+# 4. Link globally (makes 'libby' command available)
+npm link
 ```
 
-## 2. Login to Libby
+## Verify Installation
+
+Check that everything works:
 
 ```bash
-npm run dev -- login
+# Should show available commands
+libby --help
 ```
 
-A browser window will open. Log in to your Libby account normally, then the tool will save your session.
+If you see the help menu, you're ready to go!
 
-## 3. List Your Books
+## First Use
+
+### 1. Login to Libby
 
 ```bash
-npm run dev -- list
+libby login
 ```
 
-This shows all audiobooks you have borrowed, along with their IDs.
+A browser window will open. Log in to your Libby account normally, then close the browser. Your session will be saved.
 
-## 4. Download a Book
+### 2. List Your Borrowed Books
 
 ```bash
-# Copy the book ID from the list command
-npm run dev -- download <book-id>
-
-# Or use safe mode (recommended for first download)
-npm run dev -- download <book-id> --mode safe
+libby list
 ```
 
-The audiobook will be downloaded to `~/Downloads/Libby` by default.
+This shows all audiobooks you currently have borrowed, with their IDs.
 
-## Understanding Download Modes
+### 3. Download a Book
 
-- **Safe**: 8-20s between chapters, breaks every 3 chapters (slowest, safest)
+```bash
+# Use safe mode for your first download
+libby download <book-id> --mode safe
+```
+
+The audiobook will be downloaded to `~/Downloads/Libby/` by default.
+
+## Download Modes
+
+- **Safe**: 8-20s between chapters, breaks every 3 chapters (safest)
 - **Balanced**: 4-12s between chapters, breaks every 5 chapters (default)
-- **Aggressive**: 2-6s between chapters, no breaks (fastest, riskiest)
+- **Aggressive**: 2-6s between chapters, no breaks (highest risk)
 
-## Tips
+**Always start with safe mode for your first few downloads.**
 
-- Always start with **safe mode** for your first few downloads
-- Don't download multiple books in quick succession
-- Monitor for any warnings from your library
-- The tool will create a merged MP3 with metadata and chapter markers
-
-## Example Session
+## Example Workflow
 
 ```bash
-# 1. Login
-npm run dev -- login
+# Login
+libby login
 
-# 2. See what you have borrowed
-npm run dev -- list
+# See what you have borrowed
+libby list
 
 # Output:
-# Your Borrowed Audiobooks:
-#
 # 1. The Martian (abc123def456)
 #    by Andy Weir
-# 2. Project Hail Mary (xyz789ghi012)
-#    by Andy Weir
 
-# 3. Download in safe mode
-npm run dev -- download abc123def456 --mode safe
+# Download in safe mode
+libby download abc123def456 --mode safe
 
-# 4. Find your audiobook at:
+# Find your audiobook at:
 # ~/Downloads/Libby/The Martian/The Martian.mp3
 ```
 
 ## Troubleshooting
 
+**Command not found: libby**
+
+```bash
+# Run from project directory:
+npm link
+```
+
 **"Not logged in" error**
 
-Run `npm run dev -- login` again.
+```bash
+libby login
+```
 
 **"FFmpeg not found" error**
 
-Install FFmpeg (see step 1 above).
+Install FFmpeg (see Prerequisites above).
 
 **Very slow downloads**
 
-This is intentional. Use `--mode balanced` or `--mode aggressive` for faster speeds (higher risk).
+This is intentional for safety. Use `--mode balanced` for moderate speed, or `--mode aggressive` for fastest (highest risk of detection).
+
+## Development Mode
+
+For contributors: use `npm run dev --` to run without building:
+
+```bash
+npm run dev -- login
+npm run dev -- download <book-id>
+```
 
 ## Next Steps
 
