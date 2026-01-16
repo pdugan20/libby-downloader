@@ -73,7 +73,7 @@ const LoggingConfigSchema = z.object({
  * 4. Defaults (lowest priority)
  */
 export class Config {
-  private static instance: Config;
+  private static instance: Config | undefined;
 
   public readonly session: z.infer<typeof SessionConfigSchema>;
   public readonly download: z.infer<typeof DownloadConfigSchema>;
@@ -108,7 +108,7 @@ export class Config {
    * Reset singleton (mainly for testing)
    */
   public static reset(): void {
-    Config.instance = undefined as any;
+    Config.instance = undefined;
   }
 
   /**
@@ -123,7 +123,7 @@ export class Config {
       const result = StealthConfigFileSchema.safeParse(parsed);
 
       if (!result.success) {
-        const errors = result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`);
+        const errors = result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`);
         throw new ValidationError(
           `Invalid stealth configuration: ${errors.join(', ')}`,
           ErrorCode.INVALID_CONFIG
@@ -157,7 +157,7 @@ export class Config {
     const result = SessionConfigSchema.safeParse(config);
 
     if (!result.success) {
-      const errors = result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`);
+      const errors = result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`);
       throw new ValidationError(
         `Invalid session configuration: ${errors.join(', ')}`,
         ErrorCode.INVALID_CONFIG
@@ -182,7 +182,7 @@ export class Config {
     const result = DownloadConfigSchema.safeParse(config);
 
     if (!result.success) {
-      const errors = result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`);
+      const errors = result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`);
       throw new ValidationError(
         `Invalid download configuration: ${errors.join(', ')}`,
         ErrorCode.INVALID_CONFIG
@@ -205,7 +205,7 @@ export class Config {
     const result = BrowserConfigSchema.safeParse(config);
 
     if (!result.success) {
-      const errors = result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`);
+      const errors = result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`);
       throw new ValidationError(
         `Invalid browser configuration: ${errors.join(', ')}`,
         ErrorCode.INVALID_CONFIG
@@ -233,7 +233,7 @@ export class Config {
     const result = LoggingConfigSchema.safeParse(config);
 
     if (!result.success) {
-      const errors = result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`);
+      const errors = result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`);
       throw new ValidationError(
         `Invalid logging configuration: ${errors.join(', ')}`,
         ErrorCode.INVALID_CONFIG

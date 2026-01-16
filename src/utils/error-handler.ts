@@ -11,6 +11,7 @@ import { retry, RetryOptions } from './retry';
  * await safeDownload(chapter, outputPath);
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Required for generic function wrapper
 export function withLogging<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   operationName: string
@@ -43,6 +44,7 @@ export function withLogging<T extends (...args: any[]) => Promise<any>>(
  * await resilientDownload(chapter, outputPath);
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Required for generic function wrapper
 export function withRetry<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   options: Partial<RetryOptions> = {}
@@ -65,6 +67,7 @@ export function withRetry<T extends (...args: any[]) => Promise<any>>(
  * await safeRetriedDownload(chapter, outputPath);
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Required for generic function wrapper
 export function withLoggingAndRetry<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   operationName: string,
@@ -85,6 +88,7 @@ export function withLoggingAndRetry<T extends (...args: any[]) => Promise<any>>(
  * );
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Required for generic function wrapper
 export function withErrorHandler<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   errorHandler: (error: unknown) => Error
@@ -163,6 +167,7 @@ export async function safeParallel<T>(
  * }
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Required for generic function wrapper
 export function wrapMethod<T extends (...args: any[]) => Promise<any>>(
   method: T,
   operationName: string

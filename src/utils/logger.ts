@@ -51,35 +51,35 @@ class Logger {
     this.initialized = true;
   }
 
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     this.ensureInitialized();
     if (this.level <= LogLevel.DEBUG) {
       console.log(chalk.gray(`[DEBUG] ${message}`), ...args);
     }
   }
 
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     this.ensureInitialized();
     if (this.level <= LogLevel.INFO) {
       console.log(chalk.blue(`[INFO] ${message}`), ...args);
     }
   }
 
-  success(message: string, ...args: any[]): void {
+  success(message: string, ...args: unknown[]): void {
     this.ensureInitialized();
     if (this.level <= LogLevel.INFO) {
       console.log(chalk.green(`[SUCCESS] ${message}`), ...args);
     }
   }
 
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     this.ensureInitialized();
     if (this.level <= LogLevel.WARN) {
       console.warn(chalk.yellow(`[WARN] ${message}`), ...args);
     }
   }
 
-  error(message: string, error?: Error | any, ...args: any[]): void {
+  error(message: string, error?: Error | unknown, ...args: unknown[]): void {
     this.ensureInitialized();
     if (this.level <= LogLevel.ERROR) {
       console.error(chalk.red(`[ERROR] ${message}`), ...args);

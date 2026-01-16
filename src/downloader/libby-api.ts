@@ -41,6 +41,8 @@ interface BIFData {
       }>;
     };
   };
+  // Libby's root state object - structure is proprietary and undocumented
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   root: any;
 }
 
@@ -67,8 +69,9 @@ export class LibbyAPI {
   private async injectParamInterceptor(): Promise<void> {
     const page = this.browserManager.getPage();
 
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     await page.evaluateOnNewDocument(() => {
-      // Hook JSON.parse to capture crypto parameters
+      // Hook JSON.parse to capture crypto parameters from Libby's internal API
       const oldParse = JSON.parse;
       (window as any).__odreadCmptParams = null;
 
@@ -84,6 +87,7 @@ export class LibbyAPI {
         return ret;
       };
     });
+    /* eslint-enable @typescript-eslint/no-explicit-any */
   }
 
   /**
@@ -93,6 +97,7 @@ export class LibbyAPI {
     const page = this.browserManager.getPage();
 
     try {
+      /* eslint-disable @typescript-eslint/no-explicit-any */
       // Wait for BIF object to be available
       await page.waitForFunction(() => (window as any).BIF !== undefined, {
         timeout: 30000,
@@ -100,6 +105,7 @@ export class LibbyAPI {
 
       const metadata = await page.evaluate(() => {
         const BIF = (window as any).BIF as BIFData;
+        /* eslint-enable @typescript-eslint/no-explicit-any */
 
         if (!BIF || !BIF.map) {
           return null;
@@ -160,6 +166,7 @@ export class LibbyAPI {
       // Inject the param interceptor
       await this.injectParamInterceptor();
 
+      /* eslint-disable @typescript-eslint/no-explicit-any */
       // Wait for both BIF and odreadCmptParams to be available
       await page.waitForFunction(
         () => (window as any).BIF !== undefined && (window as any).__odreadCmptParams !== null,
@@ -169,6 +176,7 @@ export class LibbyAPI {
       const chapters = await page.evaluate(() => {
         const BIF = (window as any).BIF as BIFData;
         const odreadCmptParams = (window as any).__odreadCmptParams as string[];
+        /* eslint-enable @typescript-eslint/no-explicit-any */
 
         if (!BIF || !odreadCmptParams) {
           return [];
@@ -234,7 +242,7 @@ export class LibbyAPI {
 
       const books = await page.evaluate(() => {
         const bookElements = document.querySelectorAll('[data-test-id="shelf-loan"]');
-        const books: any[] = [];
+        const books: Array<{ id: string; title: string; authors: string[] }> = [];
 
         bookElements.forEach((elem) => {
           try {
