@@ -257,23 +257,7 @@ Try running without headless mode (remove `--headless` flag).
 
 Ensure FFmpeg is installed and accessible in your PATH.
 
-## Comparison to Original LibbyRip
-
-| Feature                   | Original TamperMonkey | This CLI Tool         |
-| ------------------------- | --------------------- | --------------------- |
-| Platform                  | Browser extension     | Command-line          |
-| Download Speed            | Very fast             | Configurable          |
-| User Simulation           | None                  | Comprehensive         |
-| Rate Limiting             | None                  | Built-in              |
-| Detection Risk            | High                  | Lower (configurable)  |
-| Parallel Downloads        | Yes (risky)           | No (sequential only)  |
-| Random Delays             | Minimal (50-100ms)    | Realistic (2-20s)     |
-| Automatic Breaks          | No                    | Yes                   |
-| Session Management        | Browser cookies       | Persistent storage    |
-
 ## Contributing
-
-This is a fork/rewrite of [LibbyRip](https://github.com/PsychedelicPalimpsest/LibbyRip) by PsychedelicPalimpsest.
 
 Improvements and pull requests are welcome, especially for:
 
@@ -302,10 +286,9 @@ The developers are not responsible for:
 
 ## License
 
-MIT License (same as original LibbyRip)
+MIT License
 
 ## Acknowledgments
 
-- Original [LibbyRip](https://github.com/PsychedelicPalimpsest/LibbyRip) by PsychedelicPalimpsest
-- Inspired by the need for safer, more responsible downloading
 - Built with Puppeteer, FFmpeg, and Node.js
+- Designed with safety and user privacy in mind

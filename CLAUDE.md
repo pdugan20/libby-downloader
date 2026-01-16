@@ -228,10 +228,10 @@ Runs full validation suite before push.
 
 ## Resources
 
-- Original LibbyRip: https://github.com/PsychedelicPalimpsest/LibbyRip
 - Puppeteer Docs: https://pptr.dev
 - FFmpeg Docs: https://ffmpeg.org/documentation.html
 - Libby Web App: https://libbyapp.com
+- Node.js Docs: https://nodejs.org/docs/
 
 ## Contributing
 
