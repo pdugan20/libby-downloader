@@ -83,6 +83,14 @@ npm run format:check              # Check if code is formatted
 - Balanced (default): 4-12s delays, breaks every 5 chapters, max 2 books/hour
 - Aggressive: 2-6s delays, no breaks, max 5 books/hour (HIGH DETECTION RISK)
 
+**Stealth Approach (2026 Best Practices):**
+- Uses puppeteer-extra-plugin-stealth for basic evasion
+- **NO user agent randomization** - uses Puppeteer's default (consistency is key)
+- Randomizing user agents while keeping same session/IP/cookies is a red flag
+- Modern detection focuses on behavioral patterns, not headers
+- User agent automatically matches actual Chrome version
+- Enhanced browser args: disable automation flags, extensions, etc.
+
 ## Code Style
 
 **IMPORTANT formatting rules:**

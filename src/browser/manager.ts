@@ -6,7 +6,6 @@ import * as os from 'os';
 import { ensureDir } from '../utils/fs';
 import { logger } from '../utils/logger';
 import { SessionConfig } from '../types';
-import { getRandomUserAgent } from './stealth';
 
 // Add stealth plugin
 puppeteerExtra.use(StealthPlugin());
@@ -47,6 +46,11 @@ export class BrowserManager {
           '--disable-web-security',
           '--disable-dev-shm-usage',
           '--window-size=1920,1080',
+          '--exclude-switches=enable-automation',
+          '--disable-extensions',
+          '--disable-plugins-discovery',
+          '--disable-default-apps',
+          '--disable-component-extensions-with-background-pages',
         ],
         defaultViewport: {
           width: 1920,
@@ -56,8 +60,8 @@ export class BrowserManager {
 
       this.page = await this.browser.newPage();
 
-      // Set random user agent
-      await this.page.setUserAgent(getRandomUserAgent());
+      // Use Puppeteer's default user agent (matches actual Chrome version)
+      // This ensures consistency with browser fingerprints and headers
 
       // Set extra headers to look more like a real browser
       await this.page.setExtraHTTPHeaders({
