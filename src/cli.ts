@@ -10,6 +10,7 @@ import { logger, LogLevel } from './utils/logger';
 import { DownloadOrchestrator } from './core/orchestrator';
 import { LibbyError, AuthenticationError } from './core/errors';
 import { installSignalHandlers, registerCleanupHandler } from './core/cleanup';
+import { validateDownloadInputs, sanitizeInput } from './utils/validator';
 import chalk from 'chalk';
 import ora from 'ora';
 
@@ -121,16 +122,25 @@ program
   .option('--no-metadata', 'Do not embed metadata')
   .option('--headless', 'Run browser in headless mode', false)
   .action(async (bookId, options) => {
-    const mode = ['safe', 'balanced', 'aggressive'].includes(options.mode)
-      ? options.mode
-      : 'balanced';
-
     let orchestrator: DownloadOrchestrator | null = null;
 
     try {
+      // Sanitize and validate inputs
+      const sanitizedBookId = sanitizeInput(bookId);
+      const sanitizedMode = sanitizeInput(options.mode);
+
+      validateDownloadInputs({
+        bookId: sanitizedBookId,
+        outputDir: options.output,
+        mode: sanitizedMode,
+        merge: options.merge,
+        metadata: options.metadata,
+        headless: options.headless,
+      });
+
       // Create orchestrator with dependencies
       orchestrator = await DownloadOrchestrator.create(
-        mode as 'safe' | 'balanced' | 'aggressive',
+        sanitizedMode as 'safe' | 'balanced' | 'aggressive',
         options.headless
       );
 
@@ -140,9 +150,9 @@ program
       // Download book
       console.log(chalk.bold('\nDownloading chapters...'));
       const result = await orchestrator.downloadBook({
-        bookId,
+        bookId: sanitizedBookId,
         outputDir: options.output,
-        mode: mode as 'safe' | 'balanced' | 'aggressive',
+        mode: sanitizedMode as 'safe' | 'balanced' | 'aggressive',
         merge: options.merge,
         metadata: options.metadata,
         headless: options.headless,

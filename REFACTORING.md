@@ -234,24 +234,44 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ---
 
-#### 2.2 Add Input Validation ⬜
+#### 2.2 Add Input Validation ✅
 
 **File:** `src/utils/validator.ts`
 
 **Goal:** Validate all user inputs
 
 **Subtasks:**
-- [ ] Create validation utilities
-- [ ] Validate book IDs (alphanumeric + hyphens only)
-- [ ] Validate file paths
-- [ ] Validate mode enum
-- [ ] Validate output directory writability
-- [ ] Add unit tests
+- [x] Create validation utilities
+- [x] Validate book IDs (alphanumeric + hyphens only)
+- [x] Validate file paths
+- [x] Validate mode enum
+- [x] Validate output directory writability
+- [x] Add unit tests
 
 **Files to Modify:**
-- Create: `src/utils/validator.ts`
-- Modify: `src/cli.ts`
-- Create: `src/utils/__tests__/validator.test.ts`
+- Create: `src/utils/validator.ts` ✅
+- Modify: `src/cli.ts` ✅
+- Create: `src/utils/__tests__/validator.test.ts` ✅
+
+**Results:**
+- Created comprehensive validation utilities in src/utils/validator.ts
+- Validation functions:
+  - `validateBookId()`: Checks format (alphanumeric + hyphens), length (3-100 chars)
+  - `validateMode()`: Type guard for safe/balanced/aggressive
+  - `validateFilePath()`: Prevents path injection (null bytes, `..` traversal)
+  - `validateOutputDirectory()`: Async check for directory existence and writability
+  - `validateOutputDirectorySync()`: Sync version for CLI startup
+  - `validateDownloadInputs()`: Validates all download command inputs
+  - `sanitizeInput()`: Trims whitespace from user input
+- Integrated validation into cli.ts download command
+  - Sanitizes and validates all inputs before creating orchestrator
+  - Uses sanitized bookId and mode throughout
+- All validators throw ValidationError with appropriate error codes
+- Created comprehensive test suite (22 tests, all passing)
+- Security features:
+  - Rejects path traversal attempts (`../../../etc/passwd`)
+  - Rejects null byte injection (`path\0`)
+  - Validates parent directory writability when target doesn't exist
 
 ---
 
