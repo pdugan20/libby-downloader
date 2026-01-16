@@ -100,6 +100,6 @@ This is intentional. Use `--mode balanced` or `--mode aggressive` for faster spe
 
 ## Next Steps
 
-- Read the full [README](README-NEW.md) for detailed documentation
+- Read the full [README](README.md) for detailed documentation
 - Learn about [stealth configurations](config/stealth.json)
-- Understand the [risks and warnings](README-NEW.md#important-warnings)
+- Understand the [risks and warnings](README.md#important-warnings)
