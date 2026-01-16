@@ -118,7 +118,7 @@ export class LibbyAuth {
       }
 
       // Clear cookies
-      const cookiesPath = (this.browserManager as any).config.cookiesPath;
+      const cookiesPath = this.browserManager.getConfig().cookiesPath;
 
       if (existsSync(cookiesPath)) {
         await fs.unlink(cookiesPath);

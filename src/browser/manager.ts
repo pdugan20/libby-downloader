@@ -99,6 +99,13 @@ export class BrowserManager {
   }
 
   /**
+   * Get the session configuration
+   */
+  getConfig(): SessionConfig {
+    return this.config;
+  }
+
+  /**
    * Navigate to a URL
    */
   async goto(url: string): Promise<void> {
