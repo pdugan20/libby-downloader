@@ -54,28 +54,40 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ---
 
-#### 1.2 Create Custom Error Classes ⬜
+#### 1.2 Create Custom Error Classes ✅
 
 **File:** `src/core/errors.ts`
 
 **Goal:** Replace generic errors with typed, actionable error classes
 
 **Subtasks:**
-- [ ] Create error hierarchy
+- [x] Create error hierarchy
   - `LibbyError` (base)
   - `AuthenticationError`
   - `ValidationError`
   - `DownloadError`
   - `FFmpegError`
   - `NetworkError`
-- [ ] Add error codes
-- [ ] Add recovery hints
-- [ ] Update all throw statements
+  - `ExtractionError`
+  - `RateLimitError`
+- [x] Add error codes (enum with 20+ error codes)
+- [x] Add recovery hints
+- [x] Update orchestrator to use custom errors
+- [ ] Update all other service files
+- [ ] Create tests
 
 **Files to Modify:**
-- Create: `src/core/errors.ts`
-- Modify: All service files (auth, api, downloader, processor, embedder)
-- Create: `src/core/__tests__/errors.test.ts`
+- Create: `src/core/errors.ts` ✅
+- Modify: `src/core/orchestrator.ts` ✅
+- Modify: All service files (auth, api, downloader, processor, embedder) ⬜
+- Create: `src/core/__tests__/errors.test.ts` ⬜
+
+**Results:**
+- Created comprehensive error hierarchy with 7 error types
+- Added 20+ typed error codes organized by category
+- Each error includes recovery hints
+- Added helper functions: wrapError(), isRetryableError()
+- Orchestrator now throws typed errors instead of generic Error
 
 ---
 

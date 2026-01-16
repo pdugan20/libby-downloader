@@ -10,6 +10,7 @@ import { RateLimiter } from '../utils/rate-limiter';
 import { logger } from '../utils/logger';
 import { ensureDir, sanitizeFilename } from '../utils/fs';
 import { LibbyBook, LibbyChapter, DownloadProgress } from '../types';
+import { AuthenticationError, FFmpegError, ExtractionError, wrapError, ErrorCode } from './errors';
 
 export interface DownloadOptions {
   bookId: string;
@@ -146,7 +147,7 @@ export class DownloadOrchestrator {
   private async validateAuthentication(): Promise<void> {
     const isLoggedIn = await this.auth.isLoggedIn();
     if (!isLoggedIn) {
-      throw new Error('Not logged in. Please run: libby login');
+      throw new AuthenticationError('Not logged in');
     }
   }
 
@@ -156,7 +157,7 @@ export class DownloadOrchestrator {
   private async validateFFmpeg(): Promise<void> {
     const hasFFmpeg = await this.processor.checkFFmpeg();
     if (!hasFFmpeg) {
-      throw new Error('FFmpeg is required for merging chapters. Please install FFmpeg.');
+      throw new FFmpegError('FFmpeg is required for merging chapters');
     }
   }
 
@@ -164,34 +165,45 @@ export class DownloadOrchestrator {
    * Extract book metadata from Libby
    */
   private async extractBookMetadata(bookId: string): Promise<LibbyBook> {
-    logger.info('Opening book');
-    await this.api.openBook(bookId);
-    logger.success('Book opened');
+    try {
+      logger.info('Opening book');
+      await this.api.openBook(bookId);
+      logger.success('Book opened');
 
-    logger.info('Extracting metadata');
-    const bookMetadata = await this.api.getBookMetadata();
+      logger.info('Extracting metadata');
+      const bookMetadata = await this.api.getBookMetadata();
 
-    if (!bookMetadata) {
-      throw new Error('Failed to extract book metadata');
+      if (!bookMetadata) {
+        throw new ExtractionError(
+          'Failed to extract book metadata',
+          ErrorCode.METADATA_EXTRACTION_FAILED
+        );
+      }
+
+      logger.success(`Found: ${bookMetadata.title}`);
+      return bookMetadata;
+    } catch (error) {
+      throw wrapError(error, 'Extract book metadata');
     }
-
-    logger.success(`Found: ${bookMetadata.title}`);
-    return bookMetadata;
   }
 
   /**
    * Extract chapter information
    */
   private async extractChapters(): Promise<LibbyChapter[]> {
-    logger.info('Extracting chapters');
-    const chapters = await this.api.getChapters();
+    try {
+      logger.info('Extracting chapters');
+      const chapters = await this.api.getChapters();
 
-    if (chapters.length === 0) {
-      throw new Error('No chapters found');
+      if (chapters.length === 0) {
+        throw new ExtractionError('No chapters found', ErrorCode.NO_CHAPTERS_FOUND);
+      }
+
+      logger.success(`Found ${chapters.length} chapters`);
+      return chapters;
+    } catch (error) {
+      throw wrapError(error, 'Extract chapters');
     }
-
-    logger.success(`Found ${chapters.length} chapters`);
-    return chapters;
   }
 
   /**
