@@ -1,7 +1,7 @@
 # Libby Downloader
 
 [![CI](https://github.com/pdugan20/libby-downloader/actions/workflows/ci.yml/badge.svg)](https://github.com/pdugan20/libby-downloader/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 
 A command-line tool for downloading audiobooks from Libby with realistic user simulation to minimize detection risk.
@@ -286,7 +286,7 @@ The developers are not responsible for:
 
 ## License
 
-MIT License
+[MIT License](LICENSE) - See LICENSE file for full text
 
 ## Acknowledgments
 

@@ -1,251 +1,180 @@
 # Libby Downloader - Development Guide
 
-This document provides context for AI assistants (Claude) working on this codebase.
+TypeScript CLI tool for downloading audiobooks from Libby with realistic user simulation to minimize detection risk.
 
-## Project Overview
+## Common Commands
 
-A TypeScript CLI tool for downloading audiobooks from Libby with realistic user simulation to minimize detection risk. Built as a safer, more responsible alternative to the original TamperMonkey script.
+```bash
+# Development
+npm run dev -- login              # Test login flow
+npm run dev -- list               # List borrowed books
+npm run dev -- download <id>      # Download book (ALWAYS use --mode safe for testing!)
+
+# Testing & Validation
+npm test                          # Run Jest tests
+npm run test:coverage             # Run tests with coverage report
+npm run check-all                 # Full validation: typecheck + lint + format + test
+
+# Building
+npm run build                     # Compile TypeScript to dist/
+npm run typecheck                 # Type check without emitting files
+
+# Code Quality
+npm run lint                      # Check code with ESLint
+npm run lint:fix                  # Auto-fix linting issues
+npm run format                    # Format code with Prettier
+npm run format:check              # Check if code is formatted
+```
+
+## Core Files
+
+**Entry Points:**
+- `src/cli.ts` - Main CLI interface (Commander.js)
+- `src/index.ts` - Library exports
+
+**Key Modules:**
+- `src/auth/libby-auth.ts` - Manual login, cookie persistence
+- `src/browser/manager.ts` - Puppeteer browser lifecycle
+- `src/downloader/libby-api.ts` - **CRITICAL**: Extracts data via JSON.parse hooks to capture BIF object and odreadCmptParams
+- `src/downloader/chapter-downloader.ts` - Sequential downloads with rate limiting
+- `src/utils/rate-limiter.ts` - Three modes: safe (8-20s), balanced (4-12s), aggressive (2-6s)
+
+**Configuration:**
+- `config/stealth.json` - Rate limiting presets
+- `eslint.config.js` - ESLint v9 flat config
+- `jest.config.js` - Test configuration
+- `.husky/` - Git hooks (pre-commit: lint-staged, pre-push: check-all)
+
+## CRITICAL Rules
+
+**NEVER commit without passing validation:**
+- Pre-commit hook auto-formats and lints staged files
+- Pre-push hook runs full `check-all` suite
+- If hooks fail, fix issues before committing
+
+**NEVER use parallel downloads:**
+- Sequential downloads only (detection risk)
+- Rate limiter enforces delays between chapters
+- Users can choose safe/balanced/aggressive modes
+
+**NEVER skip user simulation:**
+- Mouse movements, scrolling, random delays are intentional
+- Sequential pattern mimics human behavior
+- Parallel requests = instant detection
+
+**IMPORTANT: TypeScript `any` usage:**
+- `any` types are ALLOWED in `page.evaluate()` contexts (browser environment)
+- `any` types are ALLOWED in logger variadic parameters
+- These ESLint warnings are expected and should NOT be "fixed"
 
 ## Architecture
 
-### Core Modules
+**How it works:**
+1. Puppeteer launches real Chrome with stealth plugins
+2. User logs in manually (browser window opens)
+3. Cookies saved to `~/.libby-downloader/cookies.json`
+4. On book page, hook `JSON.parse` to capture `odreadCmptParams` (crypto keys)
+5. Extract `BIF` object (book metadata, chapter URLs)
+6. Download chapters sequentially with delays
+7. FFmpeg merges chapters, adds metadata/chapter markers
 
-1. **auth/** - Authentication and session management
-   - `libby-auth.ts` - Manual login flow, cookie persistence
-
-2. **browser/** - Puppeteer automation with stealth
-   - `manager.ts` - Browser lifecycle, session management
-   - `stealth.ts` - User behavior simulation (mouse, scrolling, delays)
-
-3. **downloader/** - Libby API interaction and chapter downloading
-   - `libby-api.ts` - Data extraction via JSON.parse hooks, BIF object access
-   - `chapter-downloader.ts` - Sequential downloads with rate limiting
-
-4. **processor/** - Audio processing
-   - `ffmpeg-processor.ts` - Chapter merging, metadata, chapter markers
-
-5. **metadata/** - ID3 tag embedding
-   - `embedder.ts` - Cover art, metadata embedding with node-id3
-
-6. **utils/** - Shared utilities
-   - `delay.ts` - Random delays, sleep functions
-   - `fs.ts` - File operations, sanitization
-   - `logger.ts` - Structured logging
-   - `rate-limiter.ts` - Three-mode rate limiting (safe/balanced/aggressive)
-
-7. **types/** - TypeScript definitions
-   - Shared interfaces for books, chapters, configs
-
-8. **cli.ts** - Main CLI entry point using Commander.js
-
-## Key Technical Decisions
-
-### Why Puppeteer?
-
-- Real browser context prevents detection
-- Access to Libby's internal objects (BIF, odreadCmptParams)
-- Cookie persistence for session reuse
-- Stealth plugins for anti-detection
-
-### Why Sequential Downloads?
-
-- Parallel downloads are easily detected (original script's issue)
-- Humans read/listen sequentially, not all-at-once
-- Variable timing between chapters mimics real behavior
-
-### Rate Limiting Strategy
-
-- **Safe mode**: 8-20s delays, breaks every 3 chapters (1 book/hour max)
-- **Balanced mode**: 4-12s delays, breaks every 5 chapters (2 books/hour)
-- **Aggressive mode**: 2-6s delays, minimal breaks (5 books/hour) - HIGH RISK
-
-### Why Not Use Libby's API Directly?
-
-- No documented public API
-- Authentication is complex
-- TamperMonkey approach (hooking internal data) is proven
-- Browser context provides authenticated session automatically
-
-## Code Patterns
-
-### Error Handling
-
-- Use try/catch with logger.error()
-- Clean up resources in finally blocks
-- Provide helpful error messages to CLI users
-
-### Async Operations
-
-- All I/O operations are async
-- Use await for sequential operations
-- Rate limiter enforces delays between operations
-
-### Type Safety
-
-- Strict TypeScript mode enabled
-- Explicit interfaces for all data structures
-- No `any` types except for page.evaluate() contexts
-
-## Development Workflow
-
-### Running Locally
-
-```bash
-npm run dev -- login              # Test login flow
-npm run dev -- list               # Test book listing
-npm run dev -- download <id>      # Test download (use safe mode!)
-```
-
-### Before Committing
-
-```bash
-npm run check-all                 # Type check + lint + format + test
-```
-
-### Pre-commit Hook
-
-Automatically formats and lints staged files.
-
-### Pre-push Hook
-
-Runs full validation suite before push.
-
-## Testing Strategy
-
-### Unit Tests
-
-- Focus on pure functions (utils/delay.ts, utils/fs.ts)
-- Mock external dependencies (Puppeteer, FFmpeg)
-
-### Integration Tests
-
-- Test rate limiter behavior
-- Test metadata embedding with sample files
-
-### Manual Testing
-
-- Always test downloads in safe mode first
-- Use test library card if possible
-- Monitor for detection/bans
-
-## Important Constraints
-
-### Security & Ethics
-
-- Tool is for educational purposes only
-- Users accept all responsibility for ToS violations
-- Emphasize detection risks in all documentation
-- No bypassing of DRM (only downloading already-accessible content)
-
-### Performance
-
-- Sequential downloads are intentionally slow
-- Rate limiting is critical for detection avoidance
-- FFmpeg operations can be memory-intensive
-
-### Dependencies
-
-- Requires FFmpeg installed on system (not bundled)
-- Large Puppeteer install (~300MB with Chromium)
-- Node-ID3 for metadata (simpler than FFmpeg metadata)
-
-## Common Issues
-
-### "Not logged in" errors
-
-- Cookie expiration - re-run login
-- Check ~/.libby-downloader/cookies.json exists
-
-### TypeScript errors in page.evaluate()
-
-- page.evaluate() runs in browser context (DOM types)
-- Use `(window as any)` for custom properties
-- Cast functions to `any` when needed for flexibility
-
-### FFmpeg not found
-
-- User must install separately (Homebrew, apt, etc.)
-- Check with `ffmpeg -version` before processing
-
-### Rate limit warnings
-
-- User tried to download too fast
-- Enforce cooldown periods
-- Suggest safe mode
+**Rate Limiting:**
+- Safe: 8-20s delays, breaks every 3 chapters, max 1 book/hour
+- Balanced (default): 4-12s delays, breaks every 5 chapters, max 2 books/hour
+- Aggressive: 2-6s delays, no breaks, max 5 books/hour (HIGH DETECTION RISK)
 
 ## Code Style
 
-### Formatting
+**IMPORTANT formatting rules:**
+- Prettier: single quotes, 100 char width, 2-space indent
+- ESLint: TypeScript recommended rules + Prettier integration
+- All staged files auto-formatted on commit
 
-- Prettier with single quotes, 100 char width
-- 2-space indentation
-- Trailing commas (ES5 style)
+**Naming:**
+- PascalCase: classes
+- camelCase: functions, variables
+- SCREAMING_SNAKE_CASE: constants
 
-### Naming
+**Error handling:**
+- Use try/catch with `logger.error()`
+- Clean up resources in finally blocks
+- Unused error variables: use `catch { }` without parameter
 
-- PascalCase for classes
-- camelCase for functions/variables
-- SCREAMING_SNAKE_CASE for constants
-- Descriptive names over brevity
+## Testing
 
-### Comments
+**Unit tests location:** `src/utils/__tests__/`
 
-- Explain "why", not "what"
-- TSDoc for public APIs
-- Inline comments for tricky logic only
+**Current coverage:** Focus on pure utility functions
+- `delay.test.ts` - Timing utilities
+- `fs.test.ts` - File operations
 
-## Future Improvements
+**IMPORTANT: Don't test against real Libby:**
+- Use mocks for Puppeteer, FFmpeg
+- Test with safe mode only if using real endpoints
+- Monitor for detection/bans
 
-### Potential Features
+## Repository Etiquette
 
-- Resume interrupted downloads
-- Multiple library card support
-- Download queue management
-- Better chapter title detection
-- M4B output format option
+**Branch strategy:**
+- Main branch: `main`
+- Feature branches: `feature/descriptive-name`
+- Bug fixes: `fix/issue-description`
 
-### Detection Avoidance Enhancements
+**Commit messages:**
+- Descriptive, present tense
+- Multi-line for complex changes
+- No emoji (per user preferences)
 
-- ML-based timing patterns
-- Adaptive rate limiting based on success
-- Session replay from real user behavior
-- Proxy rotation support
+**Pull requests:**
+- All checks must pass (GitHub Actions CI)
+- Tests run on Node 18.x, 20.x, 22.x
+- Coverage thresholds: 50% branches, 60% statements
 
-## Maintenance Notes
+## Common Issues
 
-### When Libby Changes
+**"Not logged in" errors:**
+- Cookie expired - run `npm run dev -- login`
+- Check `~/.libby-downloader/cookies.json` exists
 
-- Monitor `BIF` object structure (core data source)
-- Check `odreadCmptParams` hook still works
-- Update selectors for shelf/book pages
-- Test login flow for changes
+**TypeScript errors in page.evaluate():**
+- This runs in browser context - `(window as any)` is correct
+- Don't try to "fix" these with stricter types
 
-### Dependency Updates
+**ESLint warnings about `any`:**
+- Expected in page.evaluate() and logger functions
+- These warnings are acceptable, don't suppress them
 
-- Puppeteer: Check for breaking changes in page API
-- Node-ID3: Verify metadata compatibility
-- FFmpeg: Test chapter merging still works
+**FFmpeg not found:**
+- User must install: `brew install ffmpeg` (macOS) or `apt install ffmpeg` (Linux)
+- Required for chapter merging
+
+## Dependencies
+
+**IMPORTANT external requirements:**
+- Node.js 18+ (tested on 18.x, 20.x, 22.x)
+- FFmpeg (not bundled, must be installed separately)
+- Chromium (bundled with Puppeteer, ~300MB)
+
+**Key packages:**
+- `puppeteer-extra` + `puppeteer-extra-plugin-stealth` for detection avoidance
+- `fluent-ffmpeg` for audio processing
+- `node-id3` for metadata embedding
+- `commander` for CLI
+- `chalk` + `ora` for terminal UI
+
+## When Libby Changes
+
+**CRITICAL monitoring points:**
+- `BIF` object structure (contains book/chapter metadata)
+- `odreadCmptParams` availability (crypto keys for chapter URLs)
+- Shelf page selectors: `[data-test-id="shelf-loan"]`
+- Login flow changes
+
+If downloads suddenly fail, check browser console for BIF object changes.
 
 ## Resources
 
-- Puppeteer Docs: https://pptr.dev
-- FFmpeg Docs: https://ffmpeg.org/documentation.html
-- Libby Web App: https://libbyapp.com
-- Node.js Docs: https://nodejs.org/docs/
-
-## Contributing
-
-When adding new features:
-
-1. Create feature branch from main
-2. Write tests first (TDD when possible)
-3. Implement feature
-4. Update documentation
-5. Run `npm run check-all`
-6. Create pull request with clear description
-
-## Support and Issues
-
-- GitHub Issues: For bug reports and feature requests
-- Include: OS, Node version, error logs, steps to reproduce
-- Privacy: Never share library card details or personal info
+- Puppeteer: https://pptr.dev
+- FFmpeg: https://ffmpeg.org/documentation.html
+- Libby: https://libbyapp.com
+- Node.js: https://nodejs.org/docs/
