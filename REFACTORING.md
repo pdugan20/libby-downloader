@@ -1,0 +1,569 @@
+# Libby Downloader - Production Readiness Refactoring
+
+**Status:** 🟡 In Progress
+**Started:** 2026-01-16
+**Target Completion:** TBD
+
+## Overview
+
+This document tracks the refactoring effort to transform libby-downloader from a functional CLI tool into a production-ready, scalable application with proper error handling, testing, and architectural patterns.
+
+## Progress Summary
+
+- **Total Phases:** 5
+- **Completed Phases:** 0
+- **Total Tasks:** 15
+- **Completed Tasks:** 0
+- **Overall Progress:** 0%
+
+---
+
+## Phase 1: Core Architecture & Error Handling (Critical) 🔴
+
+**Priority:** Critical
+**Status:** ⬜ Not Started
+**Estimated Effort:** High
+
+### Tasks
+
+#### 1.1 Create Download Orchestrator ⬜
+
+**File:** `src/core/orchestrator.ts`
+
+**Goal:** Extract 145-line download logic from cli.ts into reusable class
+
+**Subtasks:**
+- [ ] Create `DownloadOrchestrator` class
+- [ ] Move download flow from cli.ts
+- [ ] Add dependency injection
+- [ ] Return structured results (not process.exit)
+- [ ] Update cli.ts to use orchestrator
+- [ ] Add unit tests
+
+**Files to Modify:**
+- Create: `src/core/orchestrator.ts`
+- Modify: `src/cli.ts`
+- Create: `src/core/__tests__/orchestrator.test.ts`
+
+---
+
+#### 1.2 Create Custom Error Classes ⬜
+
+**File:** `src/core/errors.ts`
+
+**Goal:** Replace generic errors with typed, actionable error classes
+
+**Subtasks:**
+- [ ] Create error hierarchy
+  - `LibbyError` (base)
+  - `AuthenticationError`
+  - `ValidationError`
+  - `DownloadError`
+  - `FFmpegError`
+  - `NetworkError`
+- [ ] Add error codes
+- [ ] Add recovery hints
+- [ ] Update all throw statements
+
+**Files to Modify:**
+- Create: `src/core/errors.ts`
+- Modify: All service files (auth, api, downloader, processor, embedder)
+- Create: `src/core/__tests__/errors.test.ts`
+
+---
+
+#### 1.3 Replace process.exit() Calls ⬜
+
+**Goal:** Remove all 9 process.exit() calls, throw errors instead
+
+**Subtasks:**
+- [ ] Replace process.exit(1) with throw statements in cli.ts
+- [ ] Add try/catch at top level of CLI commands
+- [ ] Log errors before exiting
+- [ ] Add exit code enum (0=success, 1=error, 2=validation)
+
+**Files to Modify:**
+- Modify: `src/cli.ts` (9 occurrences)
+
+---
+
+#### 1.4 Add Retry Logic with Exponential Backoff ⬜
+
+**File:** `src/utils/retry.ts`
+
+**Goal:** Gracefully handle transient failures
+
+**Subtasks:**
+- [ ] Create `retry()` utility function
+- [ ] Add exponential backoff
+- [ ] Add jitter to prevent thundering herd
+- [ ] Integrate into chapter-downloader.ts
+- [ ] Add retry configuration to stealth config
+- [ ] Add unit tests
+
+**Files to Modify:**
+- Create: `src/utils/retry.ts`
+- Modify: `src/downloader/chapter-downloader.ts`
+- Modify: `config/stealth.json`
+- Create: `src/utils/__tests__/retry.test.ts`
+
+---
+
+#### 1.5 Implement Graceful Shutdown ⬜
+
+**Goal:** Clean up resources on SIGINT/SIGTERM
+
+**Subtasks:**
+- [ ] Add signal handlers in cli.ts
+- [ ] Create cleanup registry
+- [ ] Close browser on shutdown
+- [ ] Save partial download state
+- [ ] Add timeout for shutdown (max 10s)
+
+**Files to Modify:**
+- Modify: `src/cli.ts`
+- Create: `src/core/cleanup.ts`
+
+---
+
+## Phase 2: Configuration & Validation 🟡
+
+**Priority:** High
+**Status:** ⬜ Not Started
+**Estimated Effort:** Medium
+
+### Tasks
+
+#### 2.1 Create Centralized Config Class ⬜
+
+**File:** `src/core/config.ts`
+
+**Goal:** Single source of truth for all configuration
+
+**Subtasks:**
+- [ ] Create `Config` class
+- [ ] Support multiple config sources (CLI > env > file > defaults)
+- [ ] Add config validation with Zod
+- [ ] Load .env file
+- [ ] Add config schema
+- [ ] Add unit tests
+
+**Files to Modify:**
+- Create: `src/core/config.ts`
+- Create: `.env.example`
+- Modify: All files that read config
+- Create: `src/core/__tests__/config.test.ts`
+
+---
+
+#### 2.2 Add Input Validation ⬜
+
+**File:** `src/utils/validator.ts`
+
+**Goal:** Validate all user inputs
+
+**Subtasks:**
+- [ ] Create validation utilities
+- [ ] Validate book IDs (alphanumeric + hyphens only)
+- [ ] Validate file paths
+- [ ] Validate mode enum
+- [ ] Validate output directory writability
+- [ ] Add unit tests
+
+**Files to Modify:**
+- Create: `src/utils/validator.ts`
+- Modify: `src/cli.ts`
+- Create: `src/utils/__tests__/validator.test.ts`
+
+---
+
+#### 2.3 Add Config File Validation ⬜
+
+**Goal:** Validate stealth.json at load time
+
+**Subtasks:**
+- [ ] Add Zod schema for stealth config
+- [ ] Validate on load in rate-limiter.ts
+- [ ] Provide helpful error messages for invalid config
+- [ ] Add unit tests
+
+**Files to Modify:**
+- Modify: `src/utils/rate-limiter.ts`
+- Create: `src/types/schemas.ts`
+
+---
+
+## Phase 3: Type Safety & Code Quality 🟢
+
+**Priority:** Medium
+**Status:** ⬜ Not Started
+**Estimated Effort:** Medium
+
+### Tasks
+
+#### 3.1 Standardize File System Imports ⬜
+
+**Goal:** Consistent fs import pattern across codebase
+
+**Subtasks:**
+- [ ] Change all to: `import { promises as fs, existsSync } from 'fs'`
+- [ ] Remove dynamic `await import('fs/promises')`
+- [ ] Update all 10+ files with fs imports
+- [ ] Verify builds
+
+**Files to Modify:**
+- Modify: `src/cli.ts`, `src/auth/libby-auth.ts`, `src/browser/manager.ts`, `src/downloader/chapter-downloader.ts`, `src/metadata/embedder.ts`, `src/processor/ffmpeg-processor.ts`, `src/utils/fs.ts`
+
+---
+
+#### 3.2 Remove Type Safety Violations ⬜
+
+**Goal:** Remove all `any` casts, add proper getters
+
+**Subtasks:**
+- [ ] Add `getConfig()` to BrowserManager
+- [ ] Remove `(this.browserManager as any).config.cookiesPath` cast
+- [ ] Fix all TypeScript any violations (non-browser context)
+- [ ] Run strict type checking
+
+**Files to Modify:**
+- Modify: `src/browser/manager.ts`
+- Modify: `src/auth/libby-auth.ts`
+
+---
+
+#### 3.3 Create Error Handling Decorator ⬜
+
+**File:** `src/utils/decorators.ts`
+
+**Goal:** Reduce 54 duplicate try/catch blocks
+
+**Subtasks:**
+- [ ] Create `@LogErrors` decorator
+- [ ] Create `@RetryOnError` decorator
+- [ ] Apply to service methods
+- [ ] Add unit tests
+
+**Files to Modify:**
+- Create: `src/utils/decorators.ts`
+- Modify: Service files (apply decorators)
+
+---
+
+## Phase 4: State Management & Resilience 🟢
+
+**Priority:** Medium
+**Status:** ⬜ Not Started
+**Estimated Effort:** Medium
+
+### Tasks
+
+#### 4.1 Implement Download State Persistence ⬜
+
+**File:** `src/core/state-manager.ts`
+
+**Goal:** Enable resume functionality
+
+**Subtasks:**
+- [ ] Create `StateManager` class
+- [ ] Save state after each chapter download
+- [ ] Load state on startup
+- [ ] Wire up to existing `resumeDownload()` method
+- [ ] Add CLI flag `--resume`
+- [ ] Add unit tests
+
+**Files to Modify:**
+- Create: `src/core/state-manager.ts`
+- Modify: `src/downloader/chapter-downloader.ts`
+- Modify: `src/cli.ts`
+- Create: `src/core/__tests__/state-manager.test.ts`
+
+---
+
+#### 4.2 Replace Callbacks with Event Emitters ⬜
+
+**Goal:** Better progress tracking and extensibility
+
+**Subtasks:**
+- [ ] Extend `ChapterDownloader` from EventEmitter
+- [ ] Add events: chapter:start, chapter:complete, chapter:error, break:start, break:end
+- [ ] Replace onProgress callback
+- [ ] Update cli.ts to listen to events
+- [ ] Add unit tests
+
+**Files to Modify:**
+- Modify: `src/downloader/chapter-downloader.ts`
+- Modify: `src/cli.ts`
+- Modify: `src/core/orchestrator.ts`
+
+---
+
+#### 4.3 Add Environment-Based Logging ⬜
+
+**Goal:** Control log levels via config
+
+**Subtasks:**
+- [ ] Read LOG_LEVEL from environment
+- [ ] Default to 'info' in production
+- [ ] Add to Config class
+- [ ] Update logger initialization
+- [ ] Update README with LOG_LEVEL docs
+
+**Files to Modify:**
+- Modify: `src/utils/logger.ts`
+- Modify: `src/core/config.ts`
+- Modify: `README.md`
+
+---
+
+## Phase 5: Testing & Project Structure 🟢
+
+**Priority:** Low
+**Status:** ⬜ Not Started
+**Estimated Effort:** High
+
+### Tasks
+
+#### 5.1 Reorganize Project Structure ⬜
+
+**Goal:** Clearer separation of concerns
+
+**Subtasks:**
+- [ ] Create `src/core/` directory
+- [ ] Create `src/services/` directory
+- [ ] Rename files:
+  - `libby-auth.ts` → `services/auth.service.ts`
+  - `libby-api.ts` → `services/api.service.ts`
+  - `chapter-downloader.ts` → `services/download.service.ts`
+  - `ffmpeg-processor.ts` → `services/ffmpeg.service.ts`
+  - `embedder.ts` → `services/metadata.service.ts`
+- [ ] Update all imports
+- [ ] Update tsconfig paths if needed
+
+**Files to Modify:**
+- Rename: 5 service files
+- Modify: All files with imports
+- Modify: `tsconfig.json`
+
+---
+
+#### 5.2 Add Critical Unit Tests ⬜
+
+**Goal:** Increase test coverage from ~5% to 60%+
+
+**Subtasks:**
+- [ ] Test `libby-api.ts` - BIF extraction, chapter URL building
+- [ ] Test `rate-limiter.ts` - timing, breaks, limits
+- [ ] Test `chapter-downloader.ts` - download flow (mocked)
+- [ ] Test `orchestrator.ts` - end-to-end flow (mocked)
+- [ ] Test error handling and retry logic
+- [ ] Update coverage thresholds in jest.config.js
+
+**Files to Create:**
+- `src/services/__tests__/api.service.test.ts`
+- `src/services/__tests__/download.service.test.ts`
+- `src/utils/__tests__/rate-limiter.test.ts`
+- `src/core/__tests__/orchestrator.test.ts`
+
+**Files to Modify:**
+- Modify: `jest.config.js` (increase coverage thresholds)
+
+---
+
+#### 5.3 Add Integration Tests ⬜
+
+**Goal:** Test real flows without hitting Libby servers
+
+**Subtasks:**
+- [ ] Mock Puppeteer browser
+- [ ] Mock Libby pages with realistic BIF data
+- [ ] Test login flow
+- [ ] Test book listing
+- [ ] Test chapter extraction
+- [ ] Test download orchestration
+
+**Files to Create:**
+- `src/__tests__/integration/login.test.ts`
+- `src/__tests__/integration/download.test.ts`
+- `src/__tests__/fixtures/mock-bif-data.json`
+
+---
+
+#### 5.4 Create Programmatic API (index.ts) ⬜
+
+**File:** `src/index.ts`
+
+**Goal:** Enable library usage
+
+**Subtasks:**
+- [ ] Export main classes
+- [ ] Export types
+- [ ] Export utilities
+- [ ] Add JSDoc documentation
+- [ ] Create usage examples in README
+- [ ] Add "Usage as Library" section to README
+
+**Files to Modify:**
+- Modify: `src/index.ts`
+- Modify: `README.md`
+- Create: `examples/programmatic-usage.ts`
+
+---
+
+#### 5.5 Add Dependency Injection Container ⬜
+
+**File:** `src/core/container.ts`
+
+**Goal:** Proper DI for testability
+
+**Subtasks:**
+- [ ] Choose DI library (tsyringe or InversifyJS)
+- [ ] Create container
+- [ ] Register all services
+- [ ] Update orchestrator to use DI
+- [ ] Update tests to use container
+
+**Files to Modify:**
+- Create: `src/core/container.ts`
+- Modify: All service files
+- Modify: `src/cli.ts`
+
+---
+
+## Metrics
+
+### Code Quality Metrics
+
+| Metric | Before | Target | Current |
+|--------|--------|--------|---------|
+| Test Coverage | ~5% | 60%+ | ~5% |
+| Lines of Code | 2,064 | ~2,500 | 2,064 |
+| Cyclomatic Complexity (cli.ts) | High | Low | High |
+| process.exit() calls | 9 | 0 | 9 |
+| try/catch blocks | 54 | ~20 | 54 |
+| Type safety violations | ~10 | 0 | ~10 |
+
+### Architecture Metrics
+
+| Metric | Before | Target | Current |
+|--------|--------|--------|---------|
+| Separation of Concerns | Poor | Good | Poor |
+| Reusability (Library API) | No | Yes | No |
+| Error Recovery | None | Full | None |
+| State Persistence | No | Yes | No |
+| Config Management | Fragmented | Centralized | Fragmented |
+
+---
+
+## Testing Strategy
+
+### Unit Tests (Target: 60% coverage)
+- ✅ Utils (delay, fs) - Already done
+- ⬜ API service (BIF extraction, URL building)
+- ⬜ Rate limiter (timing, breaks)
+- ⬜ Download service (orchestration)
+- ⬜ Retry logic
+- ⬜ Config validation
+- ⬜ Error classes
+
+### Integration Tests (Target: 5 scenarios)
+- ⬜ Login flow (mocked browser)
+- ⬜ List books (mocked API)
+- ⬜ Download book (mocked network)
+- ⬜ Resume download
+- ⬜ Error recovery
+
+### E2E Tests (Target: 1 scenario)
+- ⬜ Full download flow with test account (manual)
+
+---
+
+## Risk Assessment
+
+### High Risk Changes
+- **Phase 1.1:** Orchestrator extraction (breaking changes to internal API)
+- **Phase 5.1:** Project restructure (many import changes)
+- **Phase 5.5:** DI container (architectural shift)
+
+### Low Risk Changes
+- **Phase 2.2:** Input validation (additive)
+- **Phase 3.1:** FS import standardization (mechanical)
+- **Phase 4.3:** Environment logging (configuration)
+
+### Mitigation Strategy
+1. Complete each phase fully before moving to next
+2. Run full test suite after each task
+3. Commit after each completed task
+4. Tag releases for rollback capability
+5. Test CLI commands manually after Phase 1
+
+---
+
+## Success Criteria
+
+### Phase 1 Complete When:
+- ✅ All process.exit() removed
+- ✅ Orchestrator class implemented
+- ✅ Custom errors throughout
+- ✅ Retry logic working
+- ✅ Graceful shutdown implemented
+- ✅ All tests passing
+- ✅ CLI still functional
+
+### Phase 2 Complete When:
+- ✅ Config class implemented
+- ✅ All inputs validated
+- ✅ Config file validated
+- ✅ .env support added
+- ✅ All tests passing
+
+### Phase 3 Complete When:
+- ✅ No type safety violations
+- ✅ Consistent fs imports
+- ✅ Error decorator implemented
+- ✅ All tests passing
+
+### Phase 4 Complete When:
+- ✅ State persistence working
+- ✅ Resume functionality working
+- ✅ Event system implemented
+- ✅ Environment logging working
+- ✅ All tests passing
+
+### Phase 5 Complete When:
+- ✅ Project restructured
+- ✅ Test coverage >60%
+- ✅ Integration tests passing
+- ✅ Programmatic API documented
+- ✅ DI container implemented
+- ✅ All tests passing
+
+### Overall Complete When:
+- ✅ All 5 phases complete
+- ✅ Test coverage >60%
+- ✅ Zero TypeScript errors
+- ✅ Zero ESLint errors
+- ✅ CI passing
+- ✅ README updated
+- ✅ CLAUDE.md updated
+- ✅ Version bumped to 2.0.0
+
+---
+
+## Notes
+
+- Keep existing functionality working throughout refactor
+- Commit after each completed task
+- Update this document as we progress
+- Mark tasks with ✅ when complete
+- Add notes section for each phase with learnings/issues
+
+---
+
+## Change Log
+
+### 2026-01-16
+- Created refactoring plan
+- Organized into 5 phases
+- Defined 15 major tasks
+- Established success criteria
