@@ -9,6 +9,7 @@ import { LibbyAPI } from './downloader/libby-api';
 import { logger, LogLevel } from './utils/logger';
 import { DownloadOrchestrator } from './core/orchestrator';
 import { LibbyError, AuthenticationError } from './core/errors';
+import { installSignalHandlers, registerCleanupHandler } from './core/cleanup';
 import chalk from 'chalk';
 import ora from 'ora';
 
@@ -26,6 +27,9 @@ function handleCliError(error: unknown, context: string): never {
   process.exit(1);
 }
 
+// Install signal handlers for graceful shutdown
+installSignalHandlers();
+
 const program = new Command();
 
 program
@@ -40,6 +44,7 @@ program
   .option('--headless', 'Run browser in headless mode', false)
   .action(async (options) => {
     const browserManager = new BrowserManager({ headless: options.headless });
+    registerCleanupHandler(() => browserManager.close());
 
     try {
       await browserManager.launch();
@@ -67,6 +72,7 @@ program
   .option('--headless', 'Run browser in headless mode', false)
   .action(async (options) => {
     const browserManager = new BrowserManager({ headless: options.headless });
+    registerCleanupHandler(() => browserManager.close());
 
     try {
       await browserManager.launch();
@@ -128,6 +134,9 @@ program
         options.headless
       );
 
+      // Register cleanup handler
+      registerCleanupHandler(() => orchestrator?.cleanup());
+
       // Download book
       console.log(chalk.bold('\nDownloading chapters...'));
       const result = await orchestrator.downloadBook({
@@ -172,6 +181,7 @@ program
   .option('--headless', 'Run browser in headless mode', false)
   .action(async (options) => {
     const browserManager = new BrowserManager({ headless: options.headless });
+    registerCleanupHandler(() => browserManager.close());
 
     try {
       await browserManager.launch();

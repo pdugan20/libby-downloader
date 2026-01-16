@@ -11,18 +11,19 @@ This document tracks the refactoring effort to transform libby-downloader from a
 ## Progress Summary
 
 - **Total Phases:** 5
-- **Completed Phases:** 0
+- **Completed Phases:** 1 (Phase 1 ✅)
 - **Total Tasks:** 15
-- **Completed Tasks:** 0
-- **Overall Progress:** 0%
+- **Completed Tasks:** 5 (Phase 1: all 5 tasks complete)
+- **Overall Progress:** 33% (1 of 5 phases complete)
 
 ---
 
-## Phase 1: Core Architecture & Error Handling (Critical) 🔴
+## Phase 1: Core Architecture & Error Handling (Critical) ✅
 
 **Priority:** Critical
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 **Estimated Effort:** High
+**Completion Date:** 2026-01-16
 
 ### Tasks
 
@@ -152,20 +153,35 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ---
 
-#### 1.5 Implement Graceful Shutdown ⬜
+#### 1.5 Implement Graceful Shutdown ✅
 
 **Goal:** Clean up resources on SIGINT/SIGTERM
 
 **Subtasks:**
-- [ ] Add signal handlers in cli.ts
-- [ ] Create cleanup registry
-- [ ] Close browser on shutdown
-- [ ] Save partial download state
-- [ ] Add timeout for shutdown (max 10s)
+- [x] Add signal handlers in cli.ts
+- [x] Create cleanup registry
+- [x] Close browser on shutdown
+- [x] Register cleanup handlers in all commands
+- [x] Add timeout for shutdown (max 10s)
+- [ ] Save partial download state (deferred to Phase 4.1)
 
 **Files to Modify:**
-- Modify: `src/cli.ts`
-- Create: `src/core/cleanup.ts`
+- Modify: `src/cli.ts` ✅
+- Create: `src/core/cleanup.ts` ✅
+
+**Results:**
+- Created `CleanupRegistry` class in src/core/cleanup.ts
+- Handles SIGINT (Ctrl+C), SIGTERM, uncaughtException, unhandledRejection
+- 10-second timeout for cleanup operations (forces exit if exceeded)
+- Runs all cleanup handlers in parallel for fast shutdown
+- Installed signal handlers at app start via installSignalHandlers()
+- Registered cleanup handlers in all CLI commands:
+  - login: browserManager.close()
+  - list: browserManager.close()
+  - download: orchestrator.cleanup()
+  - logout: browserManager.close()
+- Graceful shutdown now closes browser and cleans up resources properly
+- Can be safely interrupted with Ctrl+C during long downloads
 
 ---
 
