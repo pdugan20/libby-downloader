@@ -1,6 +1,7 @@
 import { Browser, Page } from 'puppeteer';
 import puppeteerExtra from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { promises as fs, existsSync } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { ensureDir } from '../utils/fs';
@@ -112,7 +113,6 @@ export class BrowserManager {
   async saveCookies(): Promise<void> {
     const page = this.getPage();
     const cookies = await page.cookies();
-    const fs = await import('fs/promises');
     await fs.writeFile(this.config.cookiesPath, JSON.stringify(cookies, null, 2));
     logger.debug('Cookies saved');
   }
@@ -122,9 +122,6 @@ export class BrowserManager {
    */
   async loadCookies(): Promise<void> {
     try {
-      const fs = await import('fs/promises');
-      const { existsSync } = await import('fs');
-
       if (existsSync(this.config.cookiesPath)) {
         const cookiesString = await fs.readFile(this.config.cookiesPath, 'utf-8');
         const cookies = JSON.parse(cookiesString);

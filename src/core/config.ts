@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import * as fs from 'fs';
+import { readFileSync } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { config as loadEnv } from 'dotenv';
@@ -117,7 +117,7 @@ export class Config {
   private loadStealthConfig(): z.infer<typeof StealthConfigFileSchema> {
     try {
       const configPath = path.join(__dirname, '../../config/stealth.json');
-      const configData = fs.readFileSync(configPath, 'utf-8');
+      const configData = readFileSync(configPath, 'utf-8');
       const parsed = JSON.parse(configData);
 
       const result = StealthConfigFileSchema.safeParse(parsed);

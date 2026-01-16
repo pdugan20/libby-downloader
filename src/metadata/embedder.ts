@@ -1,5 +1,5 @@
 import NodeID3 from 'node-id3';
-import * as fs from 'fs/promises';
+import { promises as fs } from 'fs';
 import { AudioMetadata, LibbyBook } from '../types';
 import { logger } from '../utils/logger';
 

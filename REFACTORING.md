@@ -316,18 +316,35 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ### Tasks
 
-#### 3.1 Standardize File System Imports ⬜
+#### 3.1 Standardize File System Imports ✅
 
 **Goal:** Consistent fs import pattern across codebase
 
 **Subtasks:**
-- [ ] Change all to: `import { promises as fs, existsSync } from 'fs'`
-- [ ] Remove dynamic `await import('fs/promises')`
-- [ ] Update all 10+ files with fs imports
-- [ ] Verify builds
+- [x] Change all to: `import { promises as fs, existsSync } from 'fs'`
+- [x] Remove dynamic `await import('fs/promises')`
+- [x] Update all 10+ files with fs imports
+- [x] Verify builds
 
 **Files to Modify:**
-- Modify: `src/cli.ts`, `src/auth/libby-auth.ts`, `src/browser/manager.ts`, `src/downloader/chapter-downloader.ts`, `src/metadata/embedder.ts`, `src/processor/ffmpeg-processor.ts`, `src/utils/fs.ts`
+- Modify: `src/auth/libby-auth.ts` ✅
+- Modify: `src/browser/manager.ts` ✅
+- Modify: `src/core/config.ts` ✅
+- Modify: `src/downloader/chapter-downloader.ts` ✅
+- Modify: `src/metadata/embedder.ts` ✅
+- Modify: `src/processor/ffmpeg-processor.ts` ✅
+- Modify: `src/utils/fs.ts` ✅
+- Modify: `src/utils/validator.ts` ✅
+
+**Results:**
+- Standardized all fs imports across 8 files
+- Pattern: `import { promises as fs, existsSync } from 'fs'`
+- Sync methods imported as needed: `readFileSync`, `statSync`, `accessSync`, `constants`
+- Removed 4 dynamic imports (`await import('fs')` and `await import('fs/promises')`)
+  - browser/manager.ts: Removed 2 dynamic imports in saveCookies/loadCookies
+  - auth/libby-auth.ts: Removed 2 dynamic imports in logout
+- All files now use consistent static imports
+- Builds successfully, all 44 tests passing
 
 ---
 

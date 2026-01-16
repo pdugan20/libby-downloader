@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import { promises as fs, statSync, accessSync, constants } from 'fs';
 import * as path from 'path';
 import { ValidationError, ErrorCode } from '../core/errors';
 
@@ -94,7 +94,7 @@ export async function validateOutputDirectory(dirPath: string): Promise<void> {
 
   try {
     // Check if path exists
-    const stats = await fs.promises.stat(dirPath);
+    const stats = await fs.stat(dirPath);
 
     // Check if it's a directory
     if (!stats.isDirectory()) {
@@ -105,7 +105,7 @@ export async function validateOutputDirectory(dirPath: string): Promise<void> {
     }
 
     // Check if directory is writable
-    await fs.promises.access(dirPath, fs.constants.W_OK);
+    await fs.access(dirPath, constants.W_OK);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       // Directory doesn't exist - that's okay, we'll create it
@@ -113,7 +113,7 @@ export async function validateOutputDirectory(dirPath: string): Promise<void> {
       const parentDir = path.dirname(dirPath);
 
       try {
-        await fs.promises.access(parentDir, fs.constants.W_OK);
+        await fs.access(parentDir, constants.W_OK);
       } catch {
         throw new ValidationError(
           `Cannot create output directory (parent directory not writable): ${parentDir}`,
@@ -146,7 +146,7 @@ export function validateOutputDirectorySync(dirPath: string): void {
 
   try {
     // Check if path exists
-    const stats = fs.statSync(dirPath);
+    const stats = statSync(dirPath);
 
     // Check if it's a directory
     if (!stats.isDirectory()) {
@@ -157,7 +157,7 @@ export function validateOutputDirectorySync(dirPath: string): void {
     }
 
     // Check if directory is writable
-    fs.accessSync(dirPath, fs.constants.W_OK);
+    accessSync(dirPath, constants.W_OK);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       // Directory doesn't exist - that's okay, we'll create it
@@ -165,7 +165,7 @@ export function validateOutputDirectorySync(dirPath: string): void {
       const parentDir = path.dirname(dirPath);
 
       try {
-        fs.accessSync(parentDir, fs.constants.W_OK);
+        accessSync(parentDir, constants.W_OK);
       } catch {
         throw new ValidationError(
           `Cannot create output directory (parent directory not writable): ${parentDir}`,

@@ -1,4 +1,5 @@
 import { BrowserManager } from '../browser/manager';
+import { promises as fs, existsSync } from 'fs';
 import { logger } from '../utils/logger';
 import { sleep } from '../utils/delay';
 
@@ -117,8 +118,6 @@ export class LibbyAuth {
       }
 
       // Clear cookies
-      const fs = await import('fs/promises');
-      const { existsSync } = await import('fs');
       const cookiesPath = (this.browserManager as any).config.cookiesPath;
 
       if (existsSync(cookiesPath)) {

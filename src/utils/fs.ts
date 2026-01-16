@@ -1,6 +1,5 @@
-import * as fs from 'fs/promises';
+import { promises as fs, existsSync } from 'fs';
 import * as path from 'path';
-import { existsSync } from 'fs';
 
 /**
  * Ensure a directory exists, create it if it doesn't
