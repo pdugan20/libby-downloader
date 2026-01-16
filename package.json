@@ -46,7 +46,8 @@
     "ora": "^9.0.0",
     "puppeteer": "^24.35.0",
     "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@types/fluent-ffmpeg": "^2.1.28",

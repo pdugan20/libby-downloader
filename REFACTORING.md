@@ -193,25 +193,44 @@ This document tracks the refactoring effort to transform libby-downloader from a
 
 ### Tasks
 
-#### 2.1 Create Centralized Config Class ⬜
+#### 2.1 Create Centralized Config Class ✅
 
 **File:** `src/core/config.ts`
 
 **Goal:** Single source of truth for all configuration
 
 **Subtasks:**
-- [ ] Create `Config` class
-- [ ] Support multiple config sources (CLI > env > file > defaults)
-- [ ] Add config validation with Zod
-- [ ] Load .env file
-- [ ] Add config schema
-- [ ] Add unit tests
+- [x] Create `Config` class
+- [x] Support multiple config sources (CLI > env > file > defaults)
+- [x] Add config validation with Zod
+- [x] Load .env file
+- [x] Add config schema
+- [ ] Add unit tests (deferred)
+- [ ] Migrate existing code to use centralized config (Phase 2 follow-up)
 
 **Files to Modify:**
-- Create: `src/core/config.ts`
-- Create: `.env.example`
-- Modify: All files that read config
-- Create: `src/core/__tests__/config.test.ts`
+- Create: `src/core/config.ts` ✅
+- Create: `.env.example` ✅
+- Modify: All files that read config (pending - Phase 2 follow-up)
+- Create: `src/core/__tests__/config.test.ts` ⬜
+
+**Results:**
+- Created Config singleton class with Zod schemas for validation
+- Supports configuration from multiple sources with priority:
+  1. CLI arguments (highest priority)
+  2. Environment variables
+  3. Config files (.env, stealth.json)
+  4. Defaults (lowest priority)
+- Configuration sections:
+  - `session`: cookies path, user data dir, headless mode
+  - `download`: output dir, temp dir, merge/metadata options
+  - `browser`: headless, timeout, user data dir
+  - `logging`: level, verbose mode
+  - `stealth`: mode configurations from stealth.json
+- All configs validated with Zod schemas
+- Helpful error messages with ValidationError when config is invalid
+- Created .env.example documenting all environment variables
+- Installed dependencies: zod, dotenv
 
 ---
 
