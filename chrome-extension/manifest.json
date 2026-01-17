@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Libby Downloader V2",
+  "version": "2.0.0",
+  "description": "One-click audiobook downloads from Libby",
+
+  "permissions": [
+    "downloads",
+    "storage",
+    "scripting"
+  ],
+
+  "host_permissions": [
+    "*://*.libbyapp.com/*",
+    "*://*.listen.libbyapp.com/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.libbyapp.com/open/loan/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.listen.libbyapp.com/*"],
+      "js": ["iframe-extractor.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

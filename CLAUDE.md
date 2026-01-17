@@ -1,14 +1,14 @@
 # Libby Downloader - Development Guide
 
-TypeScript CLI tool for downloading audiobooks from Libby with realistic user simulation to minimize detection risk.
+TypeScript CLI tool for managing audiobooks downloaded from Libby via Chrome extension.
 
 ## Common Commands
 
 ```bash
 # Development
-npm run dev -- login              # Test login flow
-npm run dev -- list               # List borrowed books
-npm run dev -- download <id>      # Download book (ALWAYS use --mode safe for testing!)
+npm run dev                       # Run interactive CLI
+npm run dev -- list               # List downloaded books
+npm run dev -- tag                # Tag MP3 files
 
 # Testing & Validation
 npm test                          # Run Jest tests
@@ -29,18 +29,28 @@ npm run format:check              # Check if code is formatted
 ## Core Files
 
 **Entry Points:**
+
 - `src/cli.ts` - Main CLI interface (Commander.js)
 - `src/index.ts` - Library exports
 
 **Key Modules:**
-- `src/auth/libby-auth.ts` - Manual login, cookie persistence
-- `src/browser/manager.ts` - Puppeteer browser lifecycle
-- `src/downloader/libby-api.ts` - **CRITICAL**: Extracts data via JSON.parse hooks to capture BIF object and odreadCmptParams
-- `src/downloader/chapter-downloader.ts` - Sequential downloads with rate limiting
-- `src/utils/rate-limiter.ts` - Three modes: safe (8-20s), balanced (4-12s), aggressive (2-6s)
+
+- `src/commands/interactive.ts` - Interactive menu system
+- `src/commands/list.ts` - List downloaded books
+- `src/commands/tag.ts` - Tag MP3 files with metadata
+- `src/metadata/embedder.ts` - ID3 tag embedding
+- `src/utils/books.ts` - Book discovery and status checking
+- `src/utils/logger.ts` - Logging utilities
+
+**Chrome Extension:**
+
+- `chrome-extension/manifest.json` - Extension configuration
+- `chrome-extension/content.js` - Injects download button
+- `chrome-extension/iframe-extractor.js` - Extracts BIF object and crypto params
+- `chrome-extension/background.js` - Service worker for downloads
 
 **Configuration:**
-- `config/stealth.json` - Rate limiting presets
+
 - `eslint.config.js` - ESLint v9 flat config
 - `jest.config.js` - Test configuration
 - `.husky/` - Git hooks (pre-commit: lint-staged, pre-push: check-all)
@@ -48,62 +58,58 @@ npm run format:check              # Check if code is formatted
 ## CRITICAL Rules
 
 **NEVER commit without passing validation:**
+
 - Pre-commit hook auto-formats and lints staged files
 - Pre-push hook runs full `check-all` suite
 - If hooks fail, fix issues before committing
 
-**NEVER use parallel downloads:**
-- Sequential downloads only (detection risk)
-- Rate limiter enforces delays between chapters
-- Users can choose safe/balanced/aggressive modes
-
-**NEVER skip user simulation:**
-- Mouse movements, scrolling, random delays are intentional
-- Sequential pattern mimics human behavior
-- Parallel requests = instant detection
-
 **IMPORTANT: TypeScript `any` usage:**
-- `any` types are ALLOWED in `page.evaluate()` contexts (browser environment)
+
 - `any` types are ALLOWED in logger variadic parameters
 - These ESLint warnings are expected and should NOT be "fixed"
 
 ## Architecture
 
 **How it works:**
-1. Puppeteer launches real Chrome with stealth plugins
-2. User logs in manually (browser window opens)
-3. Cookies saved to `~/.libby-downloader/cookies.json`
-4. On book page, hook `JSON.parse` to capture `odreadCmptParams` (crypto keys)
-5. Extract `BIF` object (book metadata, chapter URLs)
-6. Download chapters sequentially with delays
-7. FFmpeg merges chapters, adds metadata/chapter markers
 
-**Rate Limiting:**
-- Safe: 8-20s delays, breaks every 3 chapters, max 1 book/hour
-- Balanced (default): 4-12s delays, breaks every 5 chapters, max 2 books/hour
-- Aggressive: 2-6s delays, no breaks, max 5 books/hour (HIGH DETECTION RISK)
+1. **Chrome Extension Downloads:**
+   - User clicks extension button on Libby audiobook page
+   - Extension extracts BIF object (book metadata) from page
+   - Extension hooks JSON.parse to capture odreadCmptParams (crypto keys)
+   - Extension downloads chapters sequentially via chrome.downloads API
+   - 500ms delays between chapters (rate limiting)
+   - Saves metadata.json alongside MP3 files
 
-**Stealth Approach (2026 Best Practices):**
-- Uses puppeteer-extra-plugin-stealth for basic evasion
-- **NO user agent randomization** - uses Puppeteer's default (consistency is key)
-- Randomizing user agents while keeping same session/IP/cookies is a red flag
-- Modern detection focuses on behavioral patterns, not headers
-- User agent automatically matches actual Chrome version
-- Enhanced browser args: disable automation flags, extensions, etc.
+2. **CLI Tags (Optional):**
+   - CLI auto-discovers books in `~/Downloads/libby-downloads/`
+   - Reads metadata.json from book folders
+   - Embeds ID3 tags into MP3 files (title, author, narrator, cover art)
+   - Shows book status (tagged/untagged)
+
+**Key Points:**
+
+- Extension handles ALL downloading (no CLI download functionality)
+- CLI is ONLY for tagging and listing books
+- No browser automation
+- No rate limiting in CLI (extension handles that)
+- Downloads happen in user's real browser session (zero bot detection)
 
 ## Code Style
 
 **IMPORTANT formatting rules:**
+
 - Prettier: single quotes, 100 char width, 2-space indent
 - ESLint: TypeScript recommended rules + Prettier integration
 - All staged files auto-formatted on commit
 
 **Naming:**
+
 - PascalCase: classes
 - camelCase: functions, variables
 - SCREAMING_SNAKE_CASE: constants
 
 **Error handling:**
+
 - Use try/catch with `logger.error()`
 - Clean up resources in finally blocks
 - Unused error variables: use `catch { }` without parameter
@@ -113,67 +119,65 @@ npm run format:check              # Check if code is formatted
 **Unit tests location:** `src/utils/__tests__/`
 
 **Current coverage:** Focus on pure utility functions
-- `delay.test.ts` - Timing utilities
+
 - `fs.test.ts` - File operations
 
 **IMPORTANT: Don't test against real Libby:**
-- Use mocks for Puppeteer, FFmpeg
-- Test with safe mode only if using real endpoints
-- Monitor for detection/bans
+
+- Use mocks for external dependencies
+- Test with safe data only
 
 ## Repository Etiquette
 
 **Branch strategy:**
+
 - Main branch: `main`
 - Feature branches: `feature/descriptive-name`
 - Bug fixes: `fix/issue-description`
 
 **Commit messages:**
+
 - Descriptive, present tense
 - Multi-line for complex changes
 - No emoji (per user preferences)
 
 **Pull requests:**
+
 - All checks must pass (GitHub Actions CI)
 - Tests run on Node 18.x, 20.x, 22.x
 - Coverage thresholds: 50% branches, 60% statements
 
 ## Common Issues
 
-**"Not logged in" errors:**
-- Cookie expired - run `npm run dev -- login`
-- Check `~/.libby-downloader/cookies.json` exists
+**TypeScript errors:**
 
-**TypeScript errors in page.evaluate():**
-- This runs in browser context - `(window as any)` is correct
-- Don't try to "fix" these with stricter types
+- Make sure all imports reference existing files
+- Check that exported types match actual exports
+- Run `npm run typecheck` to verify
 
 **ESLint warnings about `any`:**
-- Expected in page.evaluate() and logger functions
-- These warnings are acceptable, don't suppress them
 
-**FFmpeg not found:**
-- User must install: `brew install ffmpeg` (macOS) or `apt install ffmpeg` (Linux)
-- Required for chapter merging
+- Expected in logger functions
+- These warnings are acceptable, don't suppress them
 
 ## Dependencies
 
 **IMPORTANT external requirements:**
+
 - Node.js 18+ (tested on 18.x, 20.x, 22.x)
-- FFmpeg (not bundled, must be installed separately)
-- Chromium (bundled with Puppeteer, ~300MB)
+- Chrome browser (for extension)
 
 **Key packages:**
-- `puppeteer-extra` + `puppeteer-extra-plugin-stealth` for detection avoidance
-- `fluent-ffmpeg` for audio processing
+
 - `node-id3` for metadata embedding
 - `commander` for CLI
-- `chalk` + `ora` for terminal UI
+- `chalk` for terminal UI
+- `inquirer` for interactive prompts
 
 **Dependency management:**
+
 - Dependabot configured in `.github/dependabot.yml`
 - Runs weekly checks every Monday
-- Groups related packages (TypeScript ESLint, Jest, Puppeteer, ESLint)
 - Creates PRs automatically for updates
 - Check security: `npm audit`
 - Check outdated: `npm outdated`
@@ -181,16 +185,51 @@ npm run format:check              # Check if code is formatted
 ## When Libby Changes
 
 **CRITICAL monitoring points:**
+
 - `BIF` object structure (contains book/chapter metadata)
 - `odreadCmptParams` availability (crypto keys for chapter URLs)
-- Shelf page selectors: `[data-test-id="shelf-loan"]`
-- Login flow changes
+- Extension button injection on audiobook pages
 
-If downloads suddenly fail, check browser console for BIF object changes.
+If downloads suddenly fail, check Chrome DevTools console for BIF object changes.
+
+## CLI Commands
+
+**Available Commands:**
+
+- `libby` - Interactive menu (tag files, list books, view details)
+- `libby list` - List all downloaded books with status
+- `libby tag [folder]` - Tag MP3 files with metadata (interactive if no folder)
+
+**Command Options:**
+
+- `-v, --verbose` - Enable verbose logging
+- `--title <title>` - Override book title (tag command)
+- `--author <author>` - Override author (tag command)
+- `--narrator <narrator>` - Override narrator (tag command)
+- `--cover-url <url>` - Override cover art URL (tag command)
+
+## Project Structure
+
+```
+libby-downloader/
+├── src/
+│   ├── commands/       # CLI command handlers (interactive, list, tag)
+│   ├── metadata/       # ID3 tag embedding
+│   ├── utils/          # Utilities (logging, book discovery, etc.)
+│   ├── types/          # TypeScript type definitions
+│   ├── cli.ts          # Main CLI interface
+│   └── index.ts        # Library exports
+├── chrome-extension/   # Chrome extension for downloading
+│   ├── manifest.json
+│   ├── content.js
+│   ├── iframe-extractor.js
+│   └── background.js
+└── package.json
+```
 
 ## Resources
 
-- Puppeteer: https://pptr.dev
-- FFmpeg: https://ffmpeg.org/documentation.html
-- Libby: https://libbyapp.com
+- Chrome Extensions: https://developer.chrome.com/docs/extensions/
 - Node.js: https://nodejs.org/docs/
+- Libby: https://libbyapp.com
+- node-id3: https://github.com/Zazama/node-id3

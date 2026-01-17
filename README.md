@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 
-A command-line tool for downloading audiobooks from Libby with realistic user simulation to minimize detection risk.
+Download audiobooks from Libby to your computer for offline listening.
 
 ## Important Warnings
 
@@ -12,46 +12,32 @@ A command-line tool for downloading audiobooks from Libby with realistic user si
 
 - This tool is for **educational purposes only**
 - Downloading audiobooks may **violate your library's terms of service**
-- **Library cards can be banned** for automated downloading
+- **Library cards can be banned** for policy violations
 - Use at your own risk and accept full responsibility
 
-**This tool simulates human behavior to reduce detection risk, but cannot guarantee safety.**
+**This tool helps you manage borrowed audiobooks, but users must comply with all library policies.**
 
 ## Features
 
-- **Realistic User Simulation**: Random delays, mouse movements, and breaks to mimic human behavior
-- **Three Speed Modes**: Safe (slowest, safest), Balanced, and Aggressive (fastest, riskiest)
-- **Rate Limiting**: Configurable limits on books per hour and chapters per session
-- **Session Management**: Persistent login with cookie storage
-- **Audio Processing**: Merge chapters, embed metadata, add chapter markers
-- **Progress Tracking**: Real-time download progress and status
+- **One-Click Downloads**: Chrome extension downloads chapters directly in browser
+- **Zero Bot Detection**: Runs in your real browser session (no automation)
+- **Interactive CLI**: Auto-discovers books, shows status, easy tagging
+- **Metadata Embedding**: Add title, author, narrator, cover art to MP3 files
+- **Smart Auto-Detection**: No need to type file paths or book IDs
+- **Progress Tracking**: Real-time download progress in extension button
 
-## Prerequisites
+## Quick Start
 
-- **Node.js** 18+ (for running the tool)
-- **FFmpeg** (for merging chapters and adding metadata)
-- **Valid Libby account** with active library card
+### 1. Install Chrome Extension (One-Time Setup)
 
-### Install FFmpeg
+1. Open Chrome and navigate to: `chrome://extensions/`
+2. Enable "Developer mode" (top-right toggle)
+3. Click "Load unpacked"
+4. Select this folder: `libby-downloader/chrome-extension`
 
-macOS:
+### 2. Install CLI Tool (Optional - For Tagging)
 
-```bash
-brew install ffmpeg
-```
-
-Ubuntu/Debian:
-
-```bash
-sudo apt update
-sudo apt install ffmpeg
-```
-
-Windows:
-
-Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add to PATH
-
-## Installation
+The CLI is optional and only needed if you want to add metadata to your MP3 files.
 
 ```bash
 # Clone the repository
@@ -64,178 +50,105 @@ npm install
 # Build the project
 npm run build
 
-# Link globally (optional)
+# Link globally
 npm link
 ```
 
-## Usage
+### 3. Download Audiobooks
 
-### 1. Login to Libby
+**Download:**
 
-First, log in to your Libby account. The browser will open for manual login:
+1. Open audiobook in Libby (Chrome)
+2. Click "📥 Download Audiobook" button (top-right)
+3. Wait for downloads to complete
+
+Files save to: `~/Downloads/libby-downloads/[Book Title]/`
+
+**Tag MP3s (Add Metadata) - Optional:**
 
 ```bash
-libby login
+libby
+# Select "Tag MP3 files"
+# Choose book from list
+# Done - metadata embedded!
 ```
 
-This uses **manual login** to avoid detection. A browser window will open - log in normally, then close the browser. Your session will be saved for future use.
+This adds title, author, narrator, cover art, and track numbers to each MP3 file.
 
-### 2. List Your Borrowed Books
+## CLI Commands
+
+### Interactive Menu (Recommended)
 
 ```bash
+libby
+# Shows menu:
+# - Tag MP3 files (add metadata)
+# - List all downloaded books
+# - View book details
+# - Merge chapters (coming soon)
+```
+
+### Tag Command
+
+```bash
+# Interactive tagging (shows list of books)
+libby tag
+
+# Tag specific folder
+libby tag ~/Downloads/libby-downloads/How\ Not\ to\ Die/
+
+# Tag with manual overrides
+libby tag ~/path/to/folder/ \
+  --title "Book Title" \
+  --author "Author Name" \
+  --narrator "Narrator" \
+  --cover-url "https://..."
+```
+
+**What gets embedded:**
+
+- Album: Book title
+- Artist: Author(s)
+- Performer: Narrator
+- Track Number: Chapter number
+- Cover Art: Book cover image
+- Description: Book description
+
+### List Command
+
+```bash
+# Show all downloaded books with status
 libby list
 ```
 
-This shows all audiobooks you currently have borrowed, with their IDs.
-
-### 3. Download an Audiobook
-
-```bash
-# Download with default settings (balanced mode)
-libby download <book-id>
-
-# Download in safe mode (slowest, safest)
-libby download <book-id> --mode safe
-
-# Download in aggressive mode (fastest, riskiest)
-libby download <book-id> --mode aggressive
-
-# Specify output directory
-libby download <book-id> -o ~/MyAudiobooks
-
-# Download without merging chapters
-libby download <book-id> --no-merge
-
-# Download without embedding metadata
-libby download <book-id> --no-metadata
-```
-
-### 4. Logout
-
-```bash
-libby logout
-```
-
-## Download Modes
-
-### Safe Mode
-
-- 8-20 seconds between chapters
-- Automatic breaks every 3 chapters (30-90 seconds)
-- Mouse movements and random scrolling enabled
-- Max 1 book per hour
-- **Slowest but safest**
-
-```bash
-libby download <book-id> --mode safe
-```
-
-### Balanced Mode (Default)
-
-- 4-12 seconds between chapters
-- Automatic breaks every 5 chapters (15-45 seconds)
-- Mouse movements enabled
-- Max 2 books per hour
-- **Good balance of speed and safety**
-
-```bash
-libby download <book-id> --mode balanced
-```
-
-### Aggressive Mode
-
-- 2-6 seconds between chapters
-- No automatic breaks
-- No mouse movements or scrolling
-- Max 5 books per hour
-- **Fastest but highest detection risk**
-
-```bash
-libby download <book-id> --mode aggressive
-```
+Shows which books are tagged/untagged, merged/not merged.
 
 ## How It Works
 
-This tool improves on the original TamperMonkey script by:
+**Chrome Extension:**
 
-1. **Sequential Downloads**: Downloads chapters one at a time, not in parallel
-2. **Random Delays**: Adds realistic, variable delays between requests
-3. **User Simulation**: Simulates mouse movements, scrolling, and reading time
-4. **Automatic Breaks**: Takes occasional breaks to mimic human behavior
-5. **Rate Limiting**: Enforces limits on downloads per hour
+- Runs in your real browser (zero bot detection)
+- Extracts metadata from Libby's internal BIF object
+- Captures crypto parameters via JSON.parse hook
+- Downloads chapters directly via `chrome.downloads` API
+- Sequential downloads with 500ms delays (rate limiting)
+- Saves metadata.json alongside MP3 files
 
-### Technical Details
+**CLI Tool (Optional):**
 
-- Uses Puppeteer with stealth plugins to control a real Chrome browser
-- Intercepts Libby's internal data structures (same as TamperMonkey script)
-- Extracts cryptographic parameters from JSON.parse hooks
-- Downloads MP3 files using authenticated session
-- Processes audio with FFmpeg (merging, metadata, chapters)
-
-## Configuration
-
-You can customize behavior by creating a `.env` file or setting environment variables:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` to change defaults:
-
-```bash
-# Output directory for downloaded audiobooks
-OUTPUT_DIR=~/Downloads/Libby
-
-# Default download mode (safe, balanced, aggressive)
-DOWNLOAD_MODE=balanced
-
-# Run browser in headless mode (true/false)
-HEADLESS=false
-
-# Log level (debug, info, warn, error, silent)
-LOG_LEVEL=info
-LIBBY_LOG_LEVEL=info  # Alternative environment variable
-```
-
-### Log Levels
-
-Control the amount of logging output:
-
-- `debug` - Verbose logging for debugging (shows all messages)
-- `info` - Normal logging (default)
-- `warn` - Only warnings and errors
-- `error` - Only errors
-- `silent` - No logging output
-
-Set via environment variable:
-
-```bash
-# Using LIBBY_LOG_LEVEL
-LIBBY_LOG_LEVEL=debug libby download <book-id>
-
-# Or using LOG_LEVEL
-LOG_LEVEL=debug libby download <book-id>
-
-# Or in .env file
-echo "LIBBY_LOG_LEVEL=debug" >> .env
-```
+- Auto-discovers books in `~/Downloads/libby-downloads/`
+- Reads metadata.json from book folders
+- Embeds ID3 tags into MP3 files (title, author, cover art)
+- Shows book status (tagged/untagged, merged/not merged)
+- Interactive menus for easy navigation
 
 ## Advanced Usage
 
-### Running in Headless Mode
-
-Run browser in the background (no visible window):
-
-```bash
-libby download <book-id> --headless
-```
-
 ### Verbose Logging
 
-Enable detailed logs for debugging:
-
 ```bash
-libby download <book-id> -v
+libby -v list
+libby -v tag
 ```
 
 ### Development Mode
@@ -243,177 +156,66 @@ libby download <book-id> -v
 Run without building:
 
 ```bash
-npm run dev -- download <book-id>
+npm run dev -- list
+npm run dev -- tag
 ```
-
-## Usage as Library
-
-You can use Libby Downloader programmatically in your own Node.js or TypeScript applications.
-
-### Installation
-
-```bash
-npm install libby-downloader
-# or
-yarn add libby-downloader
-```
-
-### Basic Example
-
-```typescript
-import { DownloadOrchestrator } from 'libby-downloader';
-
-async function downloadBook() {
-  // Create orchestrator
-  const orchestrator = await DownloadOrchestrator.create('balanced', false);
-
-  try {
-    // Download book
-    const result = await orchestrator.downloadBook({
-      bookId: 'your-book-id',
-      outputDir: './downloads',
-      mode: 'balanced',
-      merge: true,
-      metadata: true,
-      headless: false,
-      onProgress: (progress) => {
-        console.log(`${progress.downloadedChapters}/${progress.totalChapters}`);
-      },
-    });
-
-    if (result.success) {
-      console.log(`Downloaded: ${result.outputPath}`);
-    }
-  } finally {
-    await orchestrator.cleanup();
-  }
-}
-```
-
-### Event-Based Progress Tracking
-
-```typescript
-import { ChapterDownloader, BrowserManager, RateLimiter } from 'libby-downloader';
-
-const browserManager = new BrowserManager({ headless: false });
-await browserManager.launch();
-
-const downloader = new ChapterDownloader(
-  browserManager,
-  new RateLimiter('balanced')
-);
-
-// Listen to events
-downloader.on('chapter:start', (event) => {
-  console.log(`Starting: ${event.chapterTitle}`);
-});
-
-downloader.on('chapter:complete', (event) => {
-  console.log(`Completed: ${event.chapterTitle}`);
-});
-
-downloader.on('chapter:error', (event) => {
-  console.error(`Error: ${event.error.message}`);
-});
-
-// Download chapters
-await downloader.downloadChapters(chapters, './output', 'Book Title');
-```
-
-### Resume Interrupted Downloads
-
-```typescript
-const orchestrator = await DownloadOrchestrator.create('safe', false);
-
-await orchestrator.downloadBook({
-  bookId: 'your-book-id',
-  outputDir: './downloads',
-  mode: 'safe',
-  merge: true,
-  metadata: true,
-  headless: false,
-  resume: true, // Enable resume
-});
-```
-
-### Custom Error Handling
-
-```typescript
-import { DownloadOrchestrator, LibbyError, AuthenticationError } from 'libby-downloader';
-
-const result = await orchestrator.downloadBook({...});
-
-if (!result.success) {
-  if (result.error instanceof AuthenticationError) {
-    console.error('Please login first');
-  } else if (result.error instanceof LibbyError) {
-    console.error(`Libby error: ${result.error.toDisplayString()}`);
-  } else {
-    console.error(`Unknown error: ${result.error}`);
-  }
-}
-```
-
-### Available Exports
-
-See [examples/programmatic-usage.ts](examples/programmatic-usage.ts) for comprehensive usage examples including:
-
-- Simple downloads with DownloadOrchestrator
-- Event-based progress tracking
-- Resume functionality
-- Custom logging levels
-- Error handling patterns
-
-Full API documentation is available in the TypeScript definitions exported from `src/index.ts`.
 
 ## Project Structure
 
 ```
 libby-downloader/
 ├── src/
-│   ├── auth/           # Login and session management
-│   ├── browser/        # Puppeteer automation and stealth
-│   ├── downloader/     # Libby API and chapter downloading
+│   ├── commands/       # CLI command handlers (interactive, list, tag)
 │   ├── metadata/       # ID3 tag embedding
-│   ├── processor/      # FFmpeg integration
-│   ├── utils/          # Utilities (logging, delays, etc.)
+│   ├── utils/          # Utilities (logging, book discovery, etc.)
 │   ├── types/          # TypeScript type definitions
 │   └── cli.ts          # Main CLI interface
-├── config/
-│   └── stealth.json    # Stealth mode configurations
+├── chrome-extension/   # Chrome extension for downloading
+│   ├── manifest.json
+│   ├── content.js
+│   ├── iframe-extractor.js
+│   └── background.js
 └── package.json
 ```
 
 ## Troubleshooting
 
-### "Not logged in" error
+### Extension button doesn't appear
 
-Run `libby login` again. Your session may have expired.
+- Make sure you're on an audiobook player page (URL: `/open/loan/...`)
+- Not the shelf or book details page
+- Refresh the page
+- Check extension is enabled at `chrome://extensions/`
 
-### "FFmpeg not found" error
+### Downloads fail or stop partway
 
-Install FFmpeg (see Prerequisites above).
+- Chrome will retry automatically
+- Check `chrome://downloads/` for details
+- You can resume failed downloads manually from Chrome's download manager
 
-### Downloads are very slow
+### Tagging fails
 
-This is intentional for safety. Use `--mode aggressive` for faster downloads (higher risk).
+- Make sure `metadata.json` exists in book folder
+- Re-download book if metadata is missing
+- Check that MP3 files exist (chapter-001.mp3, etc.)
 
-### Browser doesn't open
+### "Command not found: libby"
 
-Try running without headless mode (remove `--headless` flag).
+The CLI is optional - only needed for tagging. If you want to install it:
 
-### Chapters won't merge
-
-Ensure FFmpeg is installed and accessible in your PATH.
+```bash
+# Run from project directory:
+npm link
+```
 
 ## Contributing
 
 Improvements and pull requests are welcome, especially for:
 
-- Better stealth techniques
 - Additional metadata options
-- Error handling and retry logic
+- Error handling improvements
 - Cross-platform compatibility
+- UI/UX enhancements
 
 ## Legal Disclaimer
 
@@ -423,3 +225,11 @@ This tool is provided for **educational purposes only**. Users are responsible f
 - Respecting copyright and licensing agreements
 - Understanding local laws regarding digital content
 - Any consequences from using this tool
+
+## License
+
+MIT - See LICENSE.txt
+
+## Acknowledgments
+
+Inspired by the original Libby Downloader TamperMonkey script. This version improves safety by using a Chrome extension that runs in your real browser session instead of browser automation.

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Libby Downloader</title>
+  <style>
+    body {
+      width: 300px;
+      padding: 16px;
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0 0 12px 0;
+      color: #1976D2;
+    }
+
+    .info {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .section {
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .value {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .button {
+      width: 100%;
+      padding: 10px;
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .button:hover {
+      background: #1976D2;
+    }
+
+    .button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .status {
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+
+    .status.success {
+      background: #E8F5E9;
+      color: #2E7D32;
+    }
+
+    .status.error {
+      background: #FFEBEE;
+      color: #C62828;
+    }
+
+    .status.info {
+      background: #E3F2FD;
+      color: #1565C0;
+    }
+
+    a {
+      color: #2196F3;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>📥 Libby Downloader</h1>
+
+  <div class="info">
+    Download audiobooks from Libby in one click.
+  </div>
+
+  <div class="section">
+    <div class="label">How to Use:</div>
+    <div class="value">
+      1. Open an audiobook in Libby<br>
+      2. Play for 5 seconds<br>
+      3. Click the download button on the page
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">Downloads go to:</div>
+    <div class="value">
+      <code>~/Downloads/libby-downloads/</code>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">Rate Limiting:</div>
+    <div class="value">
+      Chapters download with 4-12 second delays to avoid detection.
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

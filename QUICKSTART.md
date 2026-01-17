@@ -2,145 +2,192 @@
 
 Get started with Libby Downloader in 5 minutes.
 
-## Prerequisites
+## Setup (5 minutes)
 
-Before starting, verify you have:
+### 1. Install Chrome Extension
 
-**1. Node.js 18+**
+1. Open Chrome and navigate to `chrome://extensions/`
+2. Enable "Developer mode" (top-right toggle)
+3. Click "Load unpacked"
+4. Select the `chrome-extension/` folder from this repository
+5. Done!
 
-```bash
-node --version  # Should show v18.0.0 or higher
-```
+### 2. Install CLI (Optional)
 
-**2. FFmpeg**
-
-```bash
-ffmpeg -version  # Should show installed version
-```
-
-If missing:
-
-- **macOS**: `brew install ffmpeg`
-- **Ubuntu/Debian**: `sudo apt install ffmpeg`
-- **Windows**: Download from [ffmpeg.org](https://ffmpeg.org/download.html)
-
-## Installation
+The CLI is optional and only needed if you want to add metadata to your MP3 files.
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/pdugan20/libby-downloader.git
 cd libby-downloader
 
-# 2. Install dependencies
+# Install dependencies
 npm install
 
-# 3. Build the project
+# Build the project
 npm run build
 
-# 4. Link globally (makes 'libby' command available)
+# Link globally (makes 'libby' command available)
 npm link
 ```
 
-## Verify Installation
-
-Check that everything works:
+Verify installation:
 
 ```bash
-# Should show available commands
 libby --help
 ```
 
-If you see the help menu, you're ready to go!
+## Usage
 
-## First Use
+### Download an Audiobook
 
-### 1. Login to Libby
+1. Open Libby in Chrome
+2. Open any audiobook (must be on the player page)
+3. Click the extension button or "📥 Download Audiobook" button on the page
+4. Wait for downloads to complete
+
+Files save to: `~/Downloads/libby-downloads/[Book Title]/`
+
+Each book folder contains:
+
+- `chapter-001.mp3`, `chapter-002.mp3`, etc.
+- `metadata.json` (book information)
+
+### Tag MP3 Files (Add Metadata)
+
+After downloading, you can add proper metadata (title, author, cover art) to your MP3 files:
 
 ```bash
-libby login
+# Interactive mode (recommended)
+libby
+
+# Select "Tag MP3 files"
+# Choose book from list
+# Done!
 ```
 
-A browser window will open. Log in to your Libby account normally, then close the browser. Your session will be saved.
-
-### 2. List Your Borrowed Books
+Or tag a specific folder:
 
 ```bash
+libby tag ~/Downloads/libby-downloads/How\ Not\ to\ Die/
+```
+
+After tagging, your MP3 files will have:
+
+- Album: Book title
+- Artist: Author(s)
+- Album Artist: Narrator
+- Track Number: Chapter number
+- Cover Art: Book cover image
+- Genre: Audiobook
+- Description: Book description
+
+### View Downloaded Books
+
+```bash
+# Show all books with status (tagged/untagged, merged/not merged)
 libby list
 ```
 
-This shows all audiobooks you currently have borrowed, with their IDs.
+### Merge Chapters (Coming Soon)
 
-### 3. Download a Book
+Single-file audiobooks are not yet implemented. For now, you'll have individual chapter MP3 files.
+
+## Complete Workflows
+
+### Basic Workflow (Raw MP3s)
+
+1. Click extension button on audiobook page
+2. Wait for downloads to complete
+3. Done - play chapters in any MP3 player
+
+### Recommended Workflow (Tagged MP3s)
+
+1. Click extension button on audiobook page
+2. Wait for downloads to complete
+3. Run: `libby`
+4. Select "Tag MP3 files"
+5. Choose book from list
+6. Done - files have proper metadata
+
+### Manual Tagging (Specific Book)
 
 ```bash
-# Use safe mode for your first download
-libby download <book-id> --mode safe
-```
+# Download via extension first
+# Then:
+libby tag ~/Downloads/libby-downloads/Book\ Title/
 
-The audiobook will be downloaded to `~/Downloads/Libby/` by default.
-
-## Download Modes
-
-- **Safe**: 8-20s between chapters, breaks every 3 chapters (safest)
-- **Balanced**: 4-12s between chapters, breaks every 5 chapters (default)
-- **Aggressive**: 2-6s between chapters, no breaks (highest risk)
-
-**Always start with safe mode for your first few downloads.**
-
-## Example Workflow
-
-```bash
-# Login
-libby login
-
-# See what you have borrowed
-libby list
-
-# Output:
-# 1. The Martian (abc123def456)
-#    by Andy Weir
-
-# Download in safe mode
-libby download abc123def456 --mode safe
-
-# Find your audiobook at:
-# ~/Downloads/Libby/The Martian/The Martian.mp3
+# With manual overrides:
+libby tag ~/path/to/folder/ \
+  --title "Book Title" \
+  --author "Author Name" \
+  --narrator "Narrator" \
+  --cover-url "https://..."
 ```
 
 ## Troubleshooting
 
-**Command not found: libby**
+### "BIF object not found"
+
+- Wait for player to fully load
+- Refresh the page
+- Try clicking the button again
+
+### "Crypto parameters not captured"
+
+- Wait for player to fully load
+- Extension needs to intercept audio loading
+- Try refreshing the page and clicking again
+
+### Extension button doesn't appear
+
+- Make sure you're on an audiobook player page (URL: `/open/loan/...`)
+- Not the shelf or book details page
+- Refresh the page
+- Check extension is enabled at `chrome://extensions/`
+
+### Downloads fail partway through
+
+- Chrome will retry automatically
+- Check `chrome://downloads/` for details
+- You can resume failed downloads manually
+
+### "Command not found: libby"
+
+The CLI is optional - only needed for tagging. If you want to install it:
 
 ```bash
 # Run from project directory:
 npm link
 ```
 
-**"Not logged in" error**
+### Tagging fails
+
+- Make sure `metadata.json` exists in book folder
+- Re-download book if metadata is missing
+- Check that MP3 files exist (chapter-001.mp3, etc.)
+
+## Advanced Usage
+
+### Verbose Logging
 
 ```bash
-libby login
+libby -v list
+libby -v tag
 ```
 
-**"FFmpeg not found" error**
-
-Install FFmpeg (see Prerequisites above).
-
-**Very slow downloads**
-
-This is intentional for safety. Use `--mode balanced` for moderate speed, or `--mode aggressive` for fastest (highest risk of detection).
-
-## Development Mode
+### Development Mode
 
 For contributors: use `npm run dev --` to run without building:
 
 ```bash
-npm run dev -- login
-npm run dev -- download <book-id>
+npm run dev -- list
+npm run dev -- tag
 ```
 
 ## Next Steps
 
 - Read the full [README](README.md) for detailed documentation
-- Learn about [stealth configurations](config/stealth.json)
+- Check the [Chrome extension docs](chrome-extension/README.md)
+- Learn about the [interactive CLI](INTERACTIVE_CLI.md)
 - Understand the [risks and warnings](README.md#important-warnings)
