@@ -4,14 +4,18 @@
 
 import chalk from 'chalk';
 import { logger } from '../utils/logger';
-import { discoverBooks, formatTimeAgo, getDownloadsFolder } from '../utils/books';
+import { BookService } from '../services/book-service';
+import { BookPresenter } from '../ui/presenters/book-presenter';
 
 export async function listBooks(): Promise<void> {
   try {
-    const downloadsFolder = getDownloadsFolder();
+    const bookService = new BookService();
+    const bookPresenter = new BookPresenter();
+
+    const downloadsFolder = bookService.getDownloadsFolder();
     logger.info(`Scanning: ${chalk.cyan(downloadsFolder)}\n`);
 
-    const books = await discoverBooks();
+    const books = await bookService.discoverBooks();
 
     if (books.length === 0) {
       console.log(chalk.yellow('No books found in downloads folder.'));
@@ -25,7 +29,7 @@ export async function listBooks(): Promise<void> {
 
     books.forEach((book, index) => {
       const num = chalk.cyan(`${index + 1}.`);
-      const title = chalk.bold(book.metadataJson?.metadata.title || book.name);
+      const title = chalk.bold(bookPresenter.getTitle(book));
       const chapters = chalk.gray(`(${book.chapterCount} chapters)`);
 
       console.log(`${num} ${title} ${chapters}`);
@@ -52,14 +56,14 @@ export async function listBooks(): Promise<void> {
       console.log(`   ${statusParts.join(chalk.gray(' • '))}`);
 
       // Show author if available
-      if (book.metadataJson?.metadata.authors) {
-        const authors = book.metadataJson.metadata.authors.join(', ');
-        console.log(`   ${chalk.gray(`by ${authors}`)}`);
+      const authors = bookPresenter.getAuthors(book);
+      if (authors.length > 0 && authors[0] !== 'Unknown') {
+        console.log(`   ${chalk.gray(`by ${authors.join(', ')}`)}`);
       }
 
       // Show download time
       if (book.downloadedAt) {
-        const timeAgo = formatTimeAgo(book.downloadedAt);
+        const timeAgo = bookService.formatTimeAgo(book.downloadedAt);
         console.log(`   ${chalk.gray(`Downloaded ${timeAgo}`)}`);
       }
 
@@ -67,20 +71,19 @@ export async function listBooks(): Promise<void> {
     });
 
     // Summary
-    const taggedCount = books.filter((b) => b.isTagged).length;
-    const mergedCount = books.filter((b) => b.isMerged).length;
+    const stats = bookService.getStatistics(books);
 
     console.log(chalk.bold('Summary:'));
-    console.log(`  Total books: ${chalk.cyan(books.length.toString())}`);
-    console.log(`  Tagged: ${chalk.cyan(`${taggedCount}/${books.length}`)}`);
-    console.log(`  Merged: ${chalk.cyan(`${mergedCount}/${books.length}`)}`);
+    console.log(`  Total books: ${chalk.cyan(stats.total.toString())}`);
+    console.log(`  Tagged: ${chalk.cyan(`${stats.tagged}/${stats.total}`)}`);
+    console.log(`  Merged: ${chalk.cyan(`${stats.merged}/${stats.total}`)}`);
 
     // Next steps
     console.log(chalk.bold('\nNext steps:'));
-    if (taggedCount < books.length) {
+    if (stats.tagged < stats.total) {
       console.log(`  Tag files: ${chalk.cyan('libby tag')}`);
     }
-    if (mergedCount < books.length) {
+    if (stats.merged < stats.total) {
       console.log(`  Merge chapters: ${chalk.cyan('libby merge')}`);
     }
   } catch (error) {
