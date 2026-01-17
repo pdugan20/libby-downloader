@@ -5,31 +5,27 @@
  *
  * @example
  * ```typescript
- * import { MetadataEmbedder, discoverBooks } from 'libby-downloader';
+ * import { BookService, MetadataService } from 'libby-downloader';
  *
  * // Find all downloaded books
- * const books = await discoverBooks();
+ * const bookService = new BookService();
+ * const books = await bookService.discoverBooks();
  *
  * // Tag a book's MP3 files with metadata
- * const embedder = new MetadataEmbedder();
- * await embedder.tagFiles(books[0].path);
+ * const metadataService = new MetadataService();
+ * await metadataService.embedToFolder(books[0].path);
  * ```
  *
  * @packageDocumentation
  */
 
-// Metadata embedding
-export { MetadataEmbedder } from './metadata/embedder';
+// Core services
+export { BookService } from './services/book-service';
+export { MetadataService } from './services/metadata-service';
+export { FileService } from './services/file-service';
 
-// Book discovery and management
-export {
-  discoverBooks,
-  findBook,
-  analyzeBook,
-  getDownloadsFolder,
-  formatTimeAgo,
-} from './utils/books';
-export type { BookInfo } from './utils/books';
+// Types
+export type { BookInfo } from './types/book';
 
 // Types
 export type { LibbyBook, LibbyChapter, AudioMetadata, ChapterMetadata } from './types';

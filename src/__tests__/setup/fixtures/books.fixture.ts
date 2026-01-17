@@ -2,7 +2,7 @@
  * Test fixtures for BookInfo objects
  */
 
-import { BookInfo } from '../../../utils/books';
+import { BookInfo } from '../../../types/book';
 
 export const createMockBookInfo = (overrides?: Partial<BookInfo>): BookInfo => {
   return {

@@ -5,7 +5,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { BookInfo } from '../utils/books';
+import { BookInfo } from '../types/book';
 import { logger } from '../utils/logger';
 
 export class BookService {

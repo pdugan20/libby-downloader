@@ -142,6 +142,42 @@ Shows which books are tagged/untagged, merged/not merged.
 - Shows book status (tagged/untagged, merged/not merged)
 - Interactive menus for easy navigation
 
+## Architecture
+
+The CLI uses a clean service layer architecture with separation of concerns:
+
+**Service Layer** (Business Logic):
+
+- `BookService` - Book discovery, analysis, filtering, and statistics
+- `MetadataService` - Unified metadata embedding for MP3 files
+- `FileService` - File operations abstraction (paths, sanitization)
+
+**UI Layer** (Presentation):
+
+- `BookPresenter` - Formats book data for display (title, authors)
+- `StatusPresenter` - Formats status indicators (tagged/untagged)
+- `BookSelector` - Reusable book selection prompts with filtering
+
+**Command Layer** (Orchestration):
+
+- Commands use services for business logic
+- Commands use presenters for display formatting
+- Zero code duplication across commands
+
+**Chrome Extension**:
+
+- Modular architecture with UIManager, MessageHandler, DownloadService
+- Origin validation for security (prevents XSS attacks)
+- Type-safe message constants (no hardcoded strings)
+- ES modules with clear separation of concerns
+
+**Testing**:
+
+- 80%+ test coverage across all layers
+- Comprehensive unit tests for services (90%+ coverage)
+- Integration tests for commands
+- Mocked dependencies for fast, reliable tests
+
 ## Advanced Usage
 
 ### Verbose Logging
@@ -166,15 +202,20 @@ npm run dev -- tag
 libby-downloader/
 ├── src/
 │   ├── commands/       # CLI command handlers (interactive, list, tag)
-│   ├── metadata/       # ID3 tag embedding
-│   ├── utils/          # Utilities (logging, book discovery, etc.)
+│   ├── services/       # Business logic layer (BookService, MetadataService, FileService)
+│   ├── ui/             # UI components (presenters, prompts)
+│   │   ├── presenters/ # Data formatting (BookPresenter, StatusPresenter)
+│   │   └── prompts/    # Reusable UI components (BookSelector)
+│   ├── utils/          # Utilities (logging, file operations)
 │   ├── types/          # TypeScript type definitions
-│   └── cli.ts          # Main CLI interface
+│   ├── cli.ts          # Main CLI interface
+│   └── index.ts        # Library API exports
 ├── chrome-extension/   # Chrome extension for downloading
-│   ├── manifest.json
-│   ├── content.js
-│   ├── iframe-extractor.js
-│   └── background.js
+│   ├── manifest.json   # Extension configuration (MV3)
+│   ├── content/        # Content script (UI, message handling)
+│   ├── background/     # Service worker (downloads, tracking)
+│   ├── iframe/         # Iframe extraction logic
+│   └── shared/         # Shared utilities (constants, validators)
 └── package.json
 ```
 
@@ -216,6 +257,35 @@ Improvements and pull requests are welcome, especially for:
 - Error handling improvements
 - Cross-platform compatibility
 - UI/UX enhancements
+
+**Development Guidelines**:
+
+```bash
+# Run tests before committing
+npm test
+
+# Check code quality (typecheck + lint + format + test)
+npm run check-all
+
+# View test coverage
+npm run test:coverage
+```
+
+**Using the Service Layer API**:
+
+```typescript
+import { BookService, MetadataService } from 'libby-downloader';
+
+// Discover books
+const bookService = new BookService();
+const books = await bookService.discoverBooks();
+
+// Tag MP3 files
+const metadataService = new MetadataService();
+await metadataService.embedToFolder(books[0].path);
+```
+
+See `docs/ARCHITECTURE.md` for detailed architecture documentation and `docs/TESTING.md` for testing guidelines.
 
 ## Legal Disclaimer
 

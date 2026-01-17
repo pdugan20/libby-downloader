@@ -4,7 +4,7 @@
 
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { BookInfo } from '../utils/books';
+import { BookInfo } from '../types/book';
 import { tagFiles } from './tag';
 import { listBooks } from './list';
 import { BookService } from '../services/book-service';

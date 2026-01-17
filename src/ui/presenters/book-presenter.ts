@@ -2,7 +2,7 @@
  * BookPresenter - Centralized book display formatting
  */
 
-import { BookInfo } from '../../utils/books';
+import { BookInfo } from '../../types/book';
 
 export class BookPresenter {
   /**

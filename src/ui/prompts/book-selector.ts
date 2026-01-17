@@ -5,7 +5,7 @@
 
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { BookInfo } from '../../utils/books';
+import { BookInfo } from '../../types/book';
 import { BookPresenter } from '../presenters/book-presenter';
 
 export interface BookSelectionOptions {
