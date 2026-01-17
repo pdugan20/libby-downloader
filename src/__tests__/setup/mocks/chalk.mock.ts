@@ -5,7 +5,7 @@
 const identity = (str: string) => str;
 
 const chalk = {
-  bold: { cyan: identity },
+  bold: Object.assign(identity, { cyan: identity }),
   cyan: identity,
   green: identity,
   yellow: identity,
