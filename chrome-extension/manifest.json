@@ -16,18 +16,20 @@
   ],
 
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background/background.js",
+    "type": "module"
   },
 
   "content_scripts": [
     {
       "matches": ["*://*.libbyapp.com/open/loan/*"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
+      "js": ["content/content.js"],
+      "run_at": "document_idle",
+      "type": "module"
     },
     {
       "matches": ["*://*.listen.libbyapp.com/*"],
-      "js": ["iframe-extractor.js"],
+      "js": ["iframe/iframe-extractor.js"],
       "run_at": "document_start",
       "world": "MAIN",
       "all_frames": true
