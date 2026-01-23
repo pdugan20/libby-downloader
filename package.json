@@ -20,7 +20,9 @@
     "test:coverage": "jest --coverage",
     "typecheck": "tsc --noEmit",
     "check-all": "npm run typecheck && npm run lint && npm run format:check && npm run test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "extension:lint": "web-ext lint --source-dir=chrome-extension --warnings-as-errors",
+    "extension:validate": "node scripts/validate-extension.js"
   },
   "keywords": [
     "libby",
@@ -58,6 +60,7 @@
     "prettier": "^3.8.0",
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "web-ext": "^9.2.0"
   }
 }

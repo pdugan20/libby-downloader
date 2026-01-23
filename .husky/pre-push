@@ -1,1 +1,1 @@
-npm run check-all
+npm run check-all && npm run extension:validate

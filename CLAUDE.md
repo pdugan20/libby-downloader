@@ -24,6 +24,10 @@ npm run lint                      # Check code with ESLint
 npm run lint:fix                  # Auto-fix linting issues
 npm run format                    # Format code with Prettier
 npm run format:check              # Check if code is formatted
+
+# Chrome Extension Validation
+npm run extension:validate        # Lint extension manifest and code
+npm run extension:lint            # Lint with warnings-as-errors
 ```
 
 ## Core Files
@@ -45,23 +49,26 @@ npm run format:check              # Check if code is formatted
 **Chrome Extension:**
 
 - `chrome-extension/manifest.json` - Extension configuration
-- `chrome-extension/content.js` - Injects download button
-- `chrome-extension/iframe-extractor.js` - Extracts BIF object and crypto params
-- `chrome-extension/background.js` - Service worker for downloads
+- `chrome-extension/content/content.js` - Main content script (bundled, no ES6 imports)
+- `chrome-extension/iframe/iframe-extractor.js` - Extracts BIF object and crypto params
+- `chrome-extension/background/background.js` - Service worker for downloads (supports ES6 modules)
+- `chrome-extension/shared/` - Shared utilities (used by background scripts)
 
 **Configuration:**
 
 - `eslint.config.js` - ESLint v9 flat config
 - `jest.config.js` - Test configuration
-- `.husky/` - Git hooks (pre-commit: lint-staged, pre-push: check-all)
+- `.husky/` - Git hooks (pre-commit: lint-staged, pre-push: check-all + extension:validate)
+- `scripts/validate-extension.js` - Custom extension validator (filters Firefox-specific errors)
 
 ## CRITICAL Rules
 
 **NEVER commit without passing validation:**
 
 - Pre-commit hook auto-formats and lints staged files
-- Pre-push hook runs full `check-all` suite
-- If hooks fail, fix issues before committing
+- Pre-push hook runs full `check-all` suite + extension validation
+- If hooks fail, fix issues before pushing
+- Extension validation filters out Firefox-specific errors (Chrome-only extension)
 
 **IMPORTANT: TypeScript `any` usage:**
 
@@ -191,6 +198,75 @@ npm run format:check              # Check if code is formatted
 - Extension button injection on audiobook pages
 
 If downloads suddenly fail, check Chrome DevTools console for BIF object changes.
+
+## Chrome Extension Development
+
+**CRITICAL: Module Import Limitation**
+
+Chrome Manifest V3 does NOT support ES6 module imports in content scripts via manifest declaration, even if you add `"type": "module"` to the manifest. The content script must be a single bundled file or use IIFE patterns.
+
+**Current architecture:**
+
+- Content script combines all modules into one file with IIFE wrapper
+- Background service worker CAN use `"type": "module"` and import statements
+- Shared utilities are copied inline into content script
+
+**Validation workflow:**
+
+```bash
+# Validate extension (auto-filters Firefox-specific errors)
+npm run extension:validate
+
+# Strict validation with warnings-as-errors (for debugging)
+npm run extension:lint
+```
+
+**Automated validation:**
+
+- Extension validation runs automatically on `git push` via pre-push hook
+- Custom validator (`scripts/validate-extension.js`) filters Firefox-specific errors
+- Only Chrome-relevant errors will block the push
+
+**Understanding web-ext validation:**
+
+web-ext is primarily designed for Firefox extensions. Our custom validator filters out:
+
+- `MANIFEST_FIELD_UNSUPPORTED` - service_worker vs scripts difference (Chrome uses service_worker)
+- `ADDON_ID_REQUIRED` - Firefox requires ID, Chrome doesn't
+- `MISSING_DATA_COLLECTION_PERMISSIONS` - Firefox privacy requirement only
+- `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION` - Firefox version requirements
+
+All innerHTML security warnings have been fixed by using textContent instead.
+
+**Manual testing in Chrome:**
+
+1. Open Chrome and navigate to `chrome://extensions/`
+2. Enable "Developer mode" toggle in top-right
+3. Click "Load unpacked" button
+4. Select the `chrome-extension/` directory
+5. Check for errors in the console
+6. Navigate to a Libby audiobook page to test functionality
+
+**Common extension errors:**
+
+- "Cannot use import statement outside a module" - Content script has ES6 imports, must be bundled
+- "Service worker registration failed" - Check background/background.js exists and is valid
+- "Extension context invalidated" - Extension was reloaded, refresh the test page
+
+**Debugging tips:**
+
+- Content script errors: Check the page's DevTools console
+- Background script errors: Check `chrome://extensions/` and click "Errors" button
+- Message passing issues: Add console.log in both content and background scripts
+- Use `chrome.runtime.lastError` to catch API errors
+
+**When making changes:**
+
+1. Test the extension loads without errors in Chrome
+2. Run `npm run extension:validate` to check for obvious issues
+3. Ignore Firefox-specific errors from web-ext
+4. Test actual functionality on Libby audiobook pages
+5. Check both DevTools consoles (page and extension service worker)
 
 ## CLI Commands
 
