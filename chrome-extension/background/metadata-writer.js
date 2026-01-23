@@ -17,26 +17,18 @@ export class MetadataWriter {
     console.log('[Metadata Writer] Saving metadata file');
 
     const metadataContent = JSON.stringify({ metadata, chapters }, null, 2);
-    const blob = new Blob([metadataContent], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
 
-    try {
-      const downloadId = await chrome.downloads.download({
-        url: url,
-        filename: `libby-downloads/${sanitizeFilename(bookTitle)}/metadata.json`,
-        saveAs: false,
-      });
+    // Use data URL instead of blob URL (blob URLs don't work in service workers)
+    const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(metadataContent);
 
-      console.log('[Metadata Writer] Metadata file download started');
+    const downloadId = await chrome.downloads.download({
+      url: dataUrl,
+      filename: `libby-downloads/${sanitizeFilename(bookTitle)}/metadata.json`,
+      saveAs: false,
+    });
 
-      // Revoke blob URL after 30 seconds
-      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    console.log('[Metadata Writer] Metadata file download started');
 
-      return downloadId;
-    } catch (error) {
-      // Clean up blob URL on error
-      URL.revokeObjectURL(url);
-      throw error;
-    }
+    return downloadId;
   }
 }

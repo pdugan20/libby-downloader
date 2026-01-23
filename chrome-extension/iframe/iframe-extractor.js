@@ -102,15 +102,18 @@ async function extractBookData() {
     const url =
       location.origin + '/' + spine.meta.path + '?' + odreadCmptParams[spine.spinePosition];
 
+    // Try different possible duration properties (fallback to 0 if not available)
+    const duration = spine.meta['audio-duration'] || spine.meta.duration || spine.duration || 0;
+
     chapters.push({
       index: spine.meta['-odread-spine-position'],
       title: `Part ${spine.meta['-odread-spine-position'] + 1}`,
       url: url,
-      duration: spine.meta['audio-duration'],
+      duration: duration,
       startTime: cumulativeTime,
     });
 
-    cumulativeTime += spine.meta['audio-duration'];
+    cumulativeTime += duration;
   }
 
   // Get chapter titles from TOC
