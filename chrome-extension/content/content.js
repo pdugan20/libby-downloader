@@ -51,16 +51,18 @@
   // VALIDATORS
   // ====================================
 
-  const VALID_ORIGINS = [
-    'https://listen.libbyapp.com',
-    'https://thunder.libbyapp.com',
+  // Valid origin patterns for Libby domains
+  // Supports both exact matches and subdomains (e.g., dewey-abc123.listen.libbyapp.com)
+  const VALID_ORIGIN_PATTERNS = [
+    /^https:\/\/([a-z0-9-]+\.)?listen\.libbyapp\.com$/,
+    /^https:\/\/([a-z0-9-]+\.)?thunder\.libbyapp\.com$/,
   ];
 
   function validateOrigin(origin) {
     if (origin === window.location.origin) {
       return true;
     }
-    return VALID_ORIGINS.some((validOrigin) => origin === validOrigin);
+    return VALID_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
   }
 
   function validateBookData(bookData) {

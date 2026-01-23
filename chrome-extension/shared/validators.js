@@ -4,12 +4,13 @@
  */
 
 /**
- * Valid origins for postMessage communication
- * Only accept messages from Libby's iframe domain
+ * Valid origin patterns for postMessage communication
+ * Supports both exact matches and subdomains (e.g., dewey-abc123.listen.libbyapp.com)
+ * Only accept messages from Libby's iframe domains
  */
-const VALID_ORIGINS = [
-  'https://listen.libbyapp.com',
-  'https://thunder.libbyapp.com',
+const VALID_ORIGIN_PATTERNS = [
+  /^https:\/\/([a-z0-9-]+\.)?listen\.libbyapp\.com$/,
+  /^https:\/\/([a-z0-9-]+\.)?thunder\.libbyapp\.com$/,
 ];
 
 /**
@@ -23,8 +24,8 @@ export function validateOrigin(origin) {
     return true;
   }
 
-  // Check against whitelist
-  return VALID_ORIGINS.some((validOrigin) => origin === validOrigin);
+  // Check against pattern whitelist
+  return VALID_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
 }
 
 /**
@@ -106,7 +107,7 @@ export function sanitizeFilename(filename) {
 export function validateLibbyUrl(url) {
   try {
     const urlObj = new URL(url);
-    return VALID_ORIGINS.some((origin) => urlObj.origin === origin);
+    return VALID_ORIGIN_PATTERNS.some((pattern) => pattern.test(urlObj.origin));
   } catch {
     return false;
   }
