@@ -324,11 +324,21 @@
 
       this.uiManager.updateState('extracting');
 
+      // Get the actual origin from the iframe's URL (supports subdomains)
+      let targetOrigin = 'https://listen.libbyapp.com'; // fallback
+      try {
+        const iframeUrl = new URL(iframe.src);
+        targetOrigin = iframeUrl.origin;
+        console.log('[Libby Downloader] Target origin:', targetOrigin);
+      } catch (error) {
+        console.warn('[Libby Downloader] Failed to parse iframe URL, using fallback origin');
+      }
+
       iframe.contentWindow.postMessage(
         {
           type: MessageTypes.EXTRACT_LIBBY_BOOK,
         },
-        'https://listen.libbyapp.com'
+        targetOrigin
       );
 
       this.extractionTimeout = setTimeout(() => {
