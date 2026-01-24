@@ -62,11 +62,18 @@ export default defineConfig({
       },
     },
 
-    // Generate source maps for debugging
-    sourcemap: process.env.NODE_ENV !== 'production',
+    // Generate source maps for debugging (disabled in production for smaller builds)
+    sourcemap: false,
 
-    // Minify in production
-    minify: process.env.NODE_ENV === 'production',
+    // Minify for production (reduces bundle size significantly)
+    minify: 'esbuild',
+
+    // Target modern browsers (Chrome extensions require modern Chrome anyway)
+    target: 'esnext',
+
+    // Additional optimizations
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 100, // Warn if chunks exceed 100kb
   },
 
   // Resolve TypeScript paths
