@@ -21,8 +21,6 @@ interface DownloadCompleteData {
 type StateData = DownloadProgressData | DownloadCompleteData | Record<string, never>;
 
 export class UIManager {
-  private button: HTMLButtonElement | null = null;
-  private iconContainer: HTMLDivElement | null = null;
   private libbyIframe: HTMLIFrameElement | null = null;
 
   /**
@@ -81,9 +79,6 @@ export class UIManager {
       navBar.appendChild(container);
 
       button.addEventListener('click', onClickHandler);
-
-      this.button = button;
-      this.iconContainer = iconContainer;
     } catch (error) {
       console.error('[Libby Downloader] Error creating button:', error);
     }
