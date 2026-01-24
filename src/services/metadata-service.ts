@@ -271,21 +271,4 @@ export class MetadataService {
     const files = await fs.readdir(folderPath);
     return files.filter((f) => f.endsWith('.mp3')).sort();
   }
-
-  /**
-   * Get MIME type from file extension
-   */
-  private getMimeType(filePath: string): string {
-    const ext = filePath.split('.').pop()?.toLowerCase();
-
-    const mimeTypes: Record<string, string> = {
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      png: 'image/png',
-      gif: 'image/gif',
-      webp: 'image/webp',
-    };
-
-    return mimeTypes[ext || ''] || 'image/jpeg';
-  }
 }
