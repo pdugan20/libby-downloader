@@ -31,7 +31,9 @@ class Logger {
   }
 
   /**
-   * Log a debug message (only in DEBUG_MODE)
+   * Log a debug message (only shown when DEBUG_MODE is true)
+   * @param message - Debug message text
+   * @param context - Optional structured data to log with message
    */
   debug(message: string, context?: LogContext): void {
     if (this.currentLevel <= LogLevel.DEBUG) {
@@ -44,7 +46,9 @@ class Logger {
   }
 
   /**
-   * Log an info message
+   * Log an informational message
+   * @param message - Info message text
+   * @param context - Optional structured data to log with message
    */
   info(message: string, context?: LogContext): void {
     if (this.currentLevel <= LogLevel.INFO) {
@@ -58,6 +62,8 @@ class Logger {
 
   /**
    * Log a warning message
+   * @param message - Warning message text
+   * @param context - Optional structured data to log with message
    */
   warn(message: string, context?: LogContext): void {
     if (this.currentLevel <= LogLevel.WARN) {
@@ -70,7 +76,19 @@ class Logger {
   }
 
   /**
-   * Log an error message
+   * Log an error message with optional error object and context
+   * Includes stack traces when DEBUG_MODE is true.
+   * @param message - Error message text
+   * @param error - Optional Error object or error value
+   * @param context - Optional structured data to log with message
+   * @example
+   * ```typescript
+   * try {
+   *   await downloadChapter(chapter);
+   * } catch (error) {
+   *   logger.error('Failed to download chapter', error, { chapterIndex: 3 });
+   * }
+   * ```
    */
   error(message: string, error?: Error | unknown, context?: LogContext): void {
     if (this.currentLevel <= LogLevel.ERROR) {
@@ -91,21 +109,31 @@ class Logger {
   }
 
   /**
-   * Log the start of an operation (debug only)
+   * Log the start of an operation (debug level only)
+   * Convenience wrapper for structured operation logging.
+   * @param operation - Operation name (e.g., "Download chapter", "Extract metadata")
+   * @param context - Optional structured data about the operation
    */
   operationStart(operation: string, context?: LogContext): void {
     this.debug(`Starting: ${operation}`, context);
   }
 
   /**
-   * Log the completion of an operation (debug only)
+   * Log the successful completion of an operation (debug level only)
+   * Convenience wrapper for structured operation logging.
+   * @param operation - Operation name (e.g., "Download chapter", "Extract metadata")
+   * @param context - Optional structured data about the operation
    */
   operationComplete(operation: string, context?: LogContext): void {
     this.debug(`Completed: ${operation}`, context);
   }
 
   /**
-   * Log the failure of an operation
+   * Log the failure of an operation (error level)
+   * Convenience wrapper for structured operation error logging.
+   * @param operation - Operation name (e.g., "Download chapter", "Extract metadata")
+   * @param error - Error object or error value
+   * @param context - Optional structured data about the operation
    */
   operationFailed(operation: string, error: Error | unknown, context?: LogContext): void {
     this.error(`Failed: ${operation}`, error, context);

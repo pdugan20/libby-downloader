@@ -206,46 +206,46 @@ npm run dev -- tag
 
 ```text
 libby-downloader/
-├── src/                          # TypeScript source code
-│   ├── commands/                 # CLI command handlers
-│   ├── services/                 # Business logic (BookService, MetadataService)
-│   ├── ui/                       # UI components (presenters, prompts)
-│   ├── utils/                    # CLI utilities
-│   ├── background/               # Extension service worker
-│   │   ├── index.ts             # Main orchestrator
-│   │   ├── download-service.ts  # Chapter downloads
-│   │   ├── download-tracker.ts  # State management
-│   │   └── metadata-writer.ts   # metadata.json creation
-│   ├── content/                  # Extension content script
-│   │   ├── index.ts             # Main entry point
-│   │   ├── ui-manager.ts        # Button states & notifications
-│   │   ├── message-handler.ts   # Message routing
-│   │   └── constants.ts         # Content-specific config
-│   ├── iframe/                   # Extension iframe scripts
-│   │   ├── extractor.ts         # Book data extraction
-│   │   └── ui-injector.ts       # Button injection
-│   ├── shared/                   # Shared extension utilities
-│   │   ├── logger.ts            # Centralized logging
-│   │   ├── validators.ts        # Origin & data validation
-│   │   ├── icon-loader.ts       # SVG icon loading
-│   │   └── constants.ts         # DEBUG_MODE flag
-│   ├── types/                    # TypeScript definitions
-│   │   ├── extension-book.ts    # BookData, Chapter types
-│   │   ├── messages.ts          # Message types
-│   │   └── errors.ts            # Custom error classes
-│   ├── styles/                   # Extension CSS
-│   ├── assets/icons/             # SVG icons
-│   ├── __tests__/                # Test files
-│   ├── cli.ts                    # CLI interface
-│   └── index.ts                  # Library exports
-├── chrome-extension/             # Built extension (output)
-│   ├── manifest.json            # Extension config (MV3)
-│   ├── background/              # Built service worker
-│   ├── content/                 # Built content script
-│   ├── iframe/                  # Built iframe scripts
-│   └── styles/                  # Built CSS
-├── vite.config.ts               # Vite build configuration
-├── ARCHITECTURE.md              # Extension architecture docs
+├── src/                           # TypeScript source code
+│   ├── commands/                  # CLI command handlers
+│   ├── services/                  # Business logic (BookService, MetadataService)
+│   ├── ui/                        # UI components (presenters, prompts)
+│   ├── utils/                     # CLI utilities
+│   ├── background/                # Extension service worker
+│   │   ├── index.ts               # Main orchestrator
+│   │   ├── download-service.ts    # Chapter downloads
+│   │   ├── download-tracker.ts    # State management
+│   │   └── metadata-writer.ts     # metadata.json creation
+│   ├── content/                   # Extension content script
+│   │   ├── index.ts               # Main entry point
+│   │   ├── ui-manager.ts          # Button states & notifications
+│   │   ├── message-handler.ts     # Message routing
+│   │   └── constants.ts           # Content-specific config
+│   ├── iframe/                    # Extension iframe scripts
+│   │   ├── extractor.ts           # Book data extraction
+│   │   └── ui-injector.ts         # Button injection
+│   ├── shared/                    # Shared extension utilities
+│   │   ├── logger.ts              # Centralized logging
+│   │   ├── validators.ts          # Origin & data validation
+│   │   ├── icon-loader.ts         # SVG icon loading
+│   │   └── constants.ts           # DEBUG_MODE flag
+│   ├── types/                     # TypeScript definitions
+│   │   ├── extension-book.ts      # BookData, Chapter types
+│   │   ├── messages.ts            # Message types
+│   │   └── errors.ts              # Custom error classes
+│   ├── styles/                    # Extension CSS
+│   ├── assets/icons/              # SVG icons
+│   ├── __tests__/                 # Test files
+│   ├── cli.ts                     # CLI interface
+│   └── index.ts                   # Library exports
+├── chrome-extension/              # Built extension (output)
+│   ├── manifest.json              # Extension config (MV3)
+│   ├── background/                # Built service worker
+│   ├── content/                   # Built content script
+│   ├── iframe/                    # Built iframe scripts
+│   └── styles/                    # Built CSS
+├── vite.config.ts                 # Vite build configuration
+├── ARCHITECTURE.md                # Extension architecture docs
 └── package.json
 ```
 

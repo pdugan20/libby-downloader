@@ -28,7 +28,22 @@ export interface DownloadAllResult {
 
 export class DownloadService {
   /**
-   * Download a single chapter
+   * Download a single chapter using Chrome downloads API
+   * @param chapter - The chapter to download
+   * @param bookTitle - Book title for folder organization
+   * @param index - Zero-based chapter index for filename
+   * @returns Download result with ID, filepath, and chapter index
+   * @throws {Error} If download fails or times out
+   * @example
+   * ```typescript
+   * const service = new DownloadService();
+   * const result = await service.downloadChapter(
+   *   { index: 0, title: 'Chapter 1', url: 'https://...', duration: 1800 },
+   *   'My Book',
+   *   0
+   * );
+   * console.log(result.filepath); // "~/Downloads/libby-downloads/My Book/chapter-001.mp3"
+   * ```
    */
   async downloadChapter(
     chapter: Chapter,
@@ -60,7 +75,26 @@ export class DownloadService {
   }
 
   /**
-   * Download all chapters sequentially with progress tracking
+   * Download all chapters sequentially with progress tracking and rate limiting
+   * Downloads chapters one at a time with 500ms delays to avoid overwhelming the server.
+   * Continues downloading even if individual chapters fail.
+   * @param chapters - Array of chapters to download
+   * @param bookTitle - Book title for folder organization
+   * @param onProgress - Optional callback called after each chapter completes
+   * @returns Summary of download results including completed, failed, and error details
+   * @example
+   * ```typescript
+   * const service = new DownloadService();
+   * const result = await service.downloadAllChapters(
+   *   bookData.chapters,
+   *   bookData.metadata.title,
+   *   (completed, total) => console.log(`${completed}/${total} chapters`)
+   * );
+   * console.log(`Downloaded ${result.completed} of ${result.total} chapters`);
+   * if (result.failed > 0) {
+   *   console.error('Failed chapters:', result.errors);
+   * }
+   * ```
    */
   async downloadAllChapters(
     chapters: Chapter[],

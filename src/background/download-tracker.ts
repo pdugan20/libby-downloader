@@ -28,7 +28,16 @@ export class DownloadTracker {
   private activeDownloads: Map<string, DownloadState> = new Map();
 
   /**
-   * Create a new download tracking entry
+   * Create a new download tracking entry for a book
+   * Generates a unique book ID based on current timestamp and initializes tracking state.
+   * @param bookData - Complete book data including metadata and chapters
+   * @returns Unique book ID for tracking this download
+   * @example
+   * ```typescript
+   * const tracker = new DownloadTracker();
+   * const bookId = tracker.createDownload(bookData);
+   * console.log('Tracking download:', bookId);
+   * ```
    */
   createDownload(bookData: BookData): string {
     const bookId = `${Date.now()}`;
@@ -53,7 +62,11 @@ export class DownloadTracker {
   }
 
   /**
-   * Update download progress
+   * Update download progress for an active download
+   * Silently ignores updates for non-existent book IDs.
+   * @param bookId - Unique book identifier from createDownload()
+   * @param completed - Number of chapters successfully downloaded
+   * @param failed - Number of chapters that failed to download (default: 0)
    */
   updateProgress(bookId: string, completed: number, failed = 0): void {
     const download = this.activeDownloads.get(bookId);
@@ -64,7 +77,10 @@ export class DownloadTracker {
   }
 
   /**
-   * Mark download as complete
+   * Mark download as complete and record final statistics
+   * Updates status, end time, and final chapter counts. Logs completion summary.
+   * @param bookId - Unique book identifier from createDownload()
+   * @param result - Final download results (completed, failed, total counts)
    */
   completeDownload(bookId: string, result: DownloadResult): void {
     const download = this.activeDownloads.get(bookId);
@@ -82,14 +98,25 @@ export class DownloadTracker {
   }
 
   /**
-   * Get download status
+   * Get current download status for a book
+   * @param bookId - Unique book identifier from createDownload()
+   * @returns Download state object or null if book ID not found
+   * @example
+   * ```typescript
+   * const status = tracker.getDownloadStatus(bookId);
+   * if (status) {
+   *   console.log(`Progress: ${status.completedChapters}/${status.totalChapters}`);
+   * }
+   * ```
    */
   getDownloadStatus(bookId: string): DownloadState | null {
     return this.activeDownloads.get(bookId) || null;
   }
 
   /**
-   * Remove download from tracker
+   * Remove download from tracker to free memory
+   * Used for cleanup after download completion. Safe to call with non-existent IDs.
+   * @param bookId - Unique book identifier from createDownload()
    */
   removeDownload(bookId: string): void {
     this.activeDownloads.delete(bookId);

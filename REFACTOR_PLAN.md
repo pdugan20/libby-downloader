@@ -281,9 +281,9 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
   - [x] Document folder structure
   - [x] Explain message flow
   - [x] Component responsibilities
-- [ ] 7.3 Add JSDoc comments
-  - [ ] Document all public APIs
-  - [ ] Add examples for complex functions
+- [x] 7.3 Add JSDoc comments
+  - [x] Document all public APIs
+  - [x] Add examples for complex functions
 - [ ] 7.4 Update CLAUDE.md
   - [ ] New build commands
   - [ ] New file structure

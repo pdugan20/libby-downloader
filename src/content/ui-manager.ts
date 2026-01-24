@@ -23,6 +23,19 @@ export class UIManager {
   private button: HTMLButtonElement | null = null;
   private iconContainer: HTMLDivElement | null = null;
 
+  /**
+   * Create and inject the download button into Libby's navigation bar
+   * Finds the .nav-action-bar-right element and appends a styled button that matches
+   * Libby's native UI. The button starts in READY state with download icon.
+   * @param onClickHandler - Callback function to execute when button is clicked
+   * @example
+   * ```typescript
+   * const uiManager = new UIManager();
+   * uiManager.createButton(() => {
+   *   console.log('Download button clicked!');
+   * });
+   * ```
+   */
   createButton(onClickHandler: () => void): void {
     console.log('[Libby Downloader] createButton() called');
 
@@ -85,6 +98,27 @@ export class UIManager {
     }
   }
 
+  /**
+   * Update button visual state and accessibility label
+   * Changes icon, aria-label, and disabled state based on current download status.
+   * @param state - Button state (READY, EXTRACTING, DOWNLOADING, SUCCESS, ERROR)
+   * @param data - Optional state-specific data (progress counts, completion stats)
+   * @example
+   * ```typescript
+   * // Show extracting state
+   * uiManager.updateState(ButtonState.EXTRACTING);
+   *
+   * // Show download progress
+   * uiManager.updateState(ButtonState.DOWNLOADING, { completed: 3, total: 10 });
+   *
+   * // Show completion
+   * uiManager.updateState(ButtonState.SUCCESS, {
+   *   completedChapters: 10,
+   *   failedChapters: 0,
+   *   totalChapters: 10
+   * });
+   * ```
+   */
   updateState(state: ButtonStateType, data: StateData = {}): void {
     if (!this.button || !this.iconContainer) return;
 
@@ -137,17 +171,42 @@ export class UIManager {
     }
   }
 
+  /**
+   * Reset button to READY state after a delay
+   * Used after successful downloads to allow user to download again.
+   * Waits 3 seconds (Timeouts.BUTTON_RESET) before resetting.
+   */
   resetAfterDelay(): void {
     setTimeout(() => {
       this.updateState(ButtonState.READY);
     }, Timeouts.BUTTON_RESET);
   }
 
+  /**
+   * Show error alert and update button to ERROR state
+   * Displays browser alert dialog with error message, then sets button to error icon.
+   * Button remains clickable in ERROR state to allow retry.
+   * @param message - Error message to display to user
+   * @example
+   * ```typescript
+   * uiManager.showError('Failed to find audiobook iframe');
+   * ```
+   */
   showError(message: string): void {
     alert(`❌ ${message}`);
     this.updateState(ButtonState.ERROR);
   }
 
+  /**
+   * Show temporary success notification overlay
+   * Displays a slide-in notification that auto-dismisses after 3 seconds.
+   * Uses CSS animations from content.css (slideIn, slideOut).
+   * @param message - Notification message to display
+   * @example
+   * ```typescript
+   * uiManager.showNotification('Download started! Check your downloads folder.');
+   * ```
+   */
   showNotification(message: string): void {
     const notification = document.createElement('div');
     notification.className = UIConfig.NOTIFICATION_CLASS;

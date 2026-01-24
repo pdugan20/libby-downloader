@@ -8,7 +8,24 @@ import { sanitizeFilename } from '../shared/validators';
 
 export class MetadataWriter {
   /**
-   * Save metadata JSON file for a book
+   * Save metadata JSON file alongside MP3 files in book folder
+   * Creates a metadata.json file containing book information and chapter details.
+   * Used by the CLI tool to embed ID3 tags into MP3 files.
+   * @param metadata - Book metadata (title, authors, narrators, cover, etc.)
+   * @param chapters - Array of chapter information (title, url, duration)
+   * @param bookTitle - Book title for folder organization
+   * @returns Chrome download ID for the metadata.json file
+   * @throws {Error} If Chrome downloads API fails
+   * @example
+   * ```typescript
+   * const writer = new MetadataWriter();
+   * const downloadId = await writer.saveMetadata(
+   *   bookData.metadata,
+   *   bookData.chapters,
+   *   'My Book'
+   * );
+   * console.log('Metadata saved with ID:', downloadId);
+   * ```
    */
   async saveMetadata(
     metadata: BookMetadata,
