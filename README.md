@@ -188,7 +188,3 @@ This tool is provided for **educational purposes only**. Users are responsible f
 ## License
 
 MIT - See [LICENSE](LICENSE)
-
-## Acknowledgments
-
-Inspired by the original Libby Downloader TamperMonkey script. This version improves safety by using a Chrome extension that runs in your real browser session instead of browser automation.
