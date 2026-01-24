@@ -21,231 +21,128 @@ Download audiobooks from Libby to your computer for offline listening.
 
 - **One-Click Downloads**: Chrome extension downloads chapters directly in browser
 - **Zero Bot Detection**: Runs in your real browser session (no automation)
+- **Visual Progress Bar**: Real-time download progress shown below album artwork
 - **Interactive CLI**: Auto-discovers books, shows status, easy tagging
 - **Metadata Embedding**: Add title, author, narrator, cover art to MP3 files
 - **Smart Auto-Detection**: No need to type file paths or book IDs
-- **Progress Tracking**: Real-time download progress in extension button
 
 ## Quick Start
 
-### 1. Install Chrome Extension (One-Time Setup)
-
-1. Open Chrome and navigate to: `chrome://extensions/`
-2. Enable "Developer mode" (top-right toggle)
-3. Click "Load unpacked"
-4. Select this folder: `libby-downloader/chrome-extension`
-
-### 2. Install CLI Tool (Optional - For Tagging)
-
-The CLI is optional and only needed if you want to add metadata to your MP3 files.
+### 1. Clone and Build
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/pdugan20/libby-downloader.git
 cd libby-downloader
-
-# Install dependencies
 npm install
-
-# Build the project
-npm run build
-
-# Link globally
-npm link
+npm run build:extension
 ```
+
+### 2. Install Chrome Extension
+
+1. Open Chrome and navigate to `chrome://extensions/`
+2. Enable "Developer mode" (top-right toggle)
+3. Click "Load unpacked"
+4. Select the `chrome-extension` folder from this project
 
 ### 3. Download Audiobooks
 
-**Download:**
+1. Open an audiobook in Libby (Chrome)
+2. Click the download button in the top-right navigation bar
+3. Watch the progress bar appear below the album artwork
+4. Downloads save to `~/Downloads/libby-downloads/[Book Title]/`
 
-1. Open audiobook in Libby (Chrome)
-2. Click "📥 Download Audiobook" button (top-right)
-3. Wait for downloads to complete
+### 4. Tag MP3 Files (Optional)
 
-Files save to: `~/Downloads/libby-downloads/[Book Title]/`
-
-**Tag MP3s (Add Metadata) - Optional:**
+Add metadata (title, author, narrator, cover art) to your MP3 files:
 
 ```bash
-libby
-# Select "Tag MP3 files"
-# Choose book from list
-# Done - metadata embedded!
-```
+# Install CLI globally
+npm link
 
-This adds title, author, narrator, cover art, and track numbers to each MP3 file.
+# Run interactive menu
+libby
+
+# Select "Tag MP3 files" and choose your book
+```
 
 ## CLI Commands
 
-### Interactive Menu (Recommended)
+### Interactive Menu
 
 ```bash
 libby
-# Shows menu:
-# - Tag MP3 files (add metadata)
-# - List all downloaded books
-# - View book details
-# - Merge chapters (coming soon)
 ```
+
+Options:
+
+- Tag MP3 files (add metadata)
+- List all downloaded books
+- View book details
 
 ### Tag Command
 
 ```bash
-# Interactive tagging (shows list of books)
+# Interactive (shows list of books)
 libby tag
 
 # Tag specific folder
-libby tag ~/Downloads/libby-downloads/How\ Not\ to\ Die/
+libby tag ~/Downloads/libby-downloads/BookTitle/
 
-# Tag with manual overrides
-libby tag ~/path/to/folder/ \
-  --title "Book Title" \
-  --author "Author Name" \
-  --narrator "Narrator" \
-  --cover-url "https://..."
+# With manual overrides
+libby tag ~/path/to/folder/ --title "Title" --author "Author"
 ```
 
-**What gets embedded:**
-
-- Album: Book title
-- Artist: Author(s)
-- Performer: Narrator
-- Track Number: Chapter number
-- Cover Art: Book cover image
-- Description: Book description
+Embedded metadata: title, author, narrator, track number, cover art, description
 
 ### List Command
 
 ```bash
-# Show all downloaded books with status
 libby list
 ```
 
-Shows which books are tagged/untagged, merged/not merged.
+Shows all downloaded books with tagging status.
 
 ## How It Works
 
 **Chrome Extension:**
 
-- Runs in your real browser (zero bot detection)
-- Extracts metadata from Libby's internal BIF object
-- Captures crypto parameters via JSON.parse hook
-- Downloads chapters directly via `chrome.downloads` API
-- Sequential downloads with 500ms delays (rate limiting)
-- Saves metadata.json alongside MP3 files
+- Runs in your real browser session (no bot detection)
+- Extracts book metadata from Libby's page data
+- Downloads chapters sequentially with rate limiting
+- Shows progress bar below album artwork during downloads
+- Saves MP3 files and metadata.json to Downloads folder
 
 **CLI Tool (Optional):**
 
 - Auto-discovers books in `~/Downloads/libby-downloads/`
-- Reads metadata.json from book folders
-- Embeds ID3 tags into MP3 files (title, author, cover art)
-- Shows book status (tagged/untagged, merged/not merged)
-- Interactive menus for easy navigation
+- Embeds ID3 metadata tags into MP3 files
+- Interactive menus for tagging and listing books
 
 ## Architecture
 
-**CLI Tool** - Clean service layer architecture with separation of concerns:
+Built with TypeScript and Vite:
 
-**Service Layer** (Business Logic):
+- **Chrome Extension**: Manifest V3 with background service worker, content scripts, and iframe injectors
+- **CLI Tool**: Service-layer architecture with separate business logic, UI presenters, and commands
+- **Testing**: 186 tests with 80%+ coverage
+- **Type Safety**: Strict TypeScript throughout
 
-- `BookService` - Book discovery, analysis, filtering, and statistics
-- `MetadataService` - Unified metadata embedding for MP3 files
-- `FileService` - File operations abstraction (paths, sanitization)
-
-**UI Layer** (Presentation):
-
-- `BookPresenter` - Formats book data for display (title, authors)
-- `StatusPresenter` - Formats status indicators (tagged/untagged)
-- `BookSelector` - Reusable book selection prompts with filtering
-
-**Command Layer** (Orchestration):
-
-- Commands use services for business logic
-- Commands use presenters for display formatting
-- Zero code duplication across commands
-
-**Chrome Extension** - Modern TypeScript architecture built with Vite:
-
-- **Background Service Worker**: Download orchestration, state tracking, metadata writer
-- **Content Script**: UI management, message routing, validation
-- **Iframe Scripts**: Book data extraction (MAIN world), download button injection (ISOLATED world)
-- **Shared Utilities**: Centralized logging, validators, error classes, icon loading
-- **Type-Safe**: Full TypeScript with strict typing throughout
-- **Security**: Origin validation, sanitized filenames, no unsafe code execution
-- **Build System**: Vite with ES modules, code splitting, minification
-
-**Testing**:
-
-- 186 total tests across CLI and extension
-- 80%+ CLI test coverage (90%+ for services)
-- Jest with jsdom environment for extension tests
-- Chrome API mocks for unit testing
-- Fast, reliable test execution (~8.5s)
-
-For detailed technical documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
-
-## Advanced Usage
-
-### Verbose Logging
-
-```bash
-libby -v list
-libby -v tag
-```
-
-### Development Mode
-
-Run without building:
-
-```bash
-npm run dev -- list
-npm run dev -- tag
-```
+For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Project Structure
 
 ```text
 libby-downloader/
-├── src/                           # TypeScript source code
-│   ├── commands/                  # CLI command handlers
-│   ├── services/                  # Business logic (BookService, MetadataService)
-│   ├── ui/                        # UI components (presenters, prompts)
-│   ├── utils/                     # CLI utilities
-│   ├── background/                # Extension service worker
-│   │   ├── index.ts               # Main orchestrator
-│   │   ├── download-service.ts    # Chapter downloads
-│   │   ├── download-tracker.ts    # State management
-│   │   └── metadata-writer.ts     # metadata.json creation
-│   ├── content/                   # Extension content script
-│   │   ├── index.ts               # Main entry point
-│   │   ├── ui-manager.ts          # Button states & notifications
-│   │   ├── message-handler.ts     # Message routing
-│   │   └── constants.ts           # Content-specific config
-│   ├── iframe/                    # Extension iframe scripts
-│   │   ├── extractor.ts           # Book data extraction
-│   │   └── ui-injector.ts         # Button injection
-│   ├── shared/                    # Shared extension utilities
-│   │   ├── logger.ts              # Centralized logging
-│   │   ├── validators.ts          # Origin & data validation
-│   │   ├── icon-loader.ts         # SVG icon loading
-│   │   └── constants.ts           # DEBUG_MODE flag
-│   ├── types/                     # TypeScript definitions
-│   │   ├── extension-book.ts      # BookData, Chapter types
-│   │   ├── messages.ts            # Message types
-│   │   └── errors.ts              # Custom error classes
-│   ├── styles/                    # Extension CSS
-│   ├── assets/icons/              # SVG icons
-│   ├── __tests__/                 # Test files
-│   ├── cli.ts                     # CLI interface
-│   └── index.ts                   # Library exports
-├── chrome-extension/              # Built extension (output)
-│   ├── manifest.json              # Extension config (MV3)
-│   ├── background/                # Built service worker
-│   ├── content/                   # Built content script
-│   ├── iframe/                    # Built iframe scripts
-│   └── styles/                    # Built CSS
-├── vite.config.ts                 # Vite build configuration
-├── ARCHITECTURE.md                # Extension architecture docs
+├── src/                      # TypeScript source
+│   ├── commands/            # CLI command handlers
+│   ├── services/            # Business logic (BookService, MetadataService)
+│   ├── ui/                  # Presenters and prompts
+│   ├── background/          # Extension service worker
+│   ├── content/             # Extension content script
+│   ├── iframe/              # Extension iframe scripts
+│   ├── shared/              # Shared utilities
+│   └── types/               # TypeScript definitions
+├── chrome-extension/        # Built extension output
 └── package.json
 ```
 
@@ -253,72 +150,45 @@ libby-downloader/
 
 ### Extension button doesn't appear
 
-- Make sure you're on an audiobook player page (URL: `/open/loan/...`)
-- Not the shelf or book details page
-- Refresh the page
-- Check extension is enabled at `chrome://extensions/`
+- Must be on audiobook player page (URL contains `/open/loan/`)
+- Refresh the page or check extension is enabled at `chrome://extensions/`
 
-### Downloads fail or stop partway
+### Downloads fail
 
+- Check `chrome://downloads/` for errors
 - Chrome will retry automatically
-- Check `chrome://downloads/` for details
-- You can resume failed downloads manually from Chrome's download manager
 
 ### Tagging fails
 
-- Make sure `metadata.json` exists in book folder
-- Re-download book if metadata is missing
-- Check that MP3 files exist (chapter-001.mp3, etc.)
+- Ensure `metadata.json` exists in book folder
+- Re-download if metadata is missing
 
 ### "Command not found: libby"
 
-The CLI is optional - only needed for tagging. If you want to install it:
+- Run `npm link` from the project directory to install CLI globally
+
+## Development
 
 ```bash
-# Run from project directory:
-npm link
+# Build and test
+npm run build:extension      # Build extension
+npm run check-all            # Run all checks (typecheck, lint, format, test)
+npm test                     # Run tests
+
+# Development
+npm run dev -- list          # Run CLI without building
+npm run dev:extension        # Watch mode for extension
 ```
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
 
 ## Contributing
 
-Improvements and pull requests are welcome, especially for:
+Pull requests welcome! Areas of interest:
 
-- Additional metadata options
 - Error handling improvements
 - Cross-platform compatibility
 - UI/UX enhancements
-
-**Development Guidelines**:
-
-```bash
-# CLI Development
-npm run dev -- list          # Run CLI without building
-npm test                     # Run tests
-npm run test:coverage        # View test coverage
-npm run check-all            # Full validation (typecheck + lint + format + test)
-
-# Extension Development
-npm run build:extension      # Build extension for production
-npm run dev:extension        # Watch mode for development
-npm run extension:validate   # Validate extension code
-npm run typecheck            # TypeScript type checking
-```
-
-**Using the Service Layer API**:
-
-```typescript
-import { BookService, MetadataService } from 'libby-downloader';
-
-// Discover books
-const bookService = new BookService();
-const books = await bookService.discoverBooks();
-
-// Tag MP3 files
-const metadataService = new MetadataService();
-await metadataService.embedToFolder(books[0].path);
-```
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed extension architecture documentation.
 
 ## Legal Disclaimer
 
