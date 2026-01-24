@@ -7,14 +7,18 @@
     "libby": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build:cli && npm run build:extension",
+    "build:cli": "tsc",
+    "build:extension": "vite build",
+    "build:extension:watch": "vite build --watch",
     "dev": "tsx src/cli.ts",
+    "dev:extension": "vite build --watch",
     "start": "node dist/cli.js",
     "watch": "tsc --watch",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
+    "lint": "eslint src/**/*.ts chrome-extension/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts chrome-extension/**/*.ts --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"chrome-extension/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"chrome-extension/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -46,9 +50,10 @@
     "node-id3": "^0.2.9"
   },
   "devDependencies": {
+    "@types/chrome": "^0.1.36",
     "@types/inquirer": "^9.0.9",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.0.9",
+    "@types/node": "^25.0.10",
     "@typescript-eslint/eslint-plugin": "^8.53.0",
     "@typescript-eslint/parser": "^8.53.0",
     "eslint": "^9.39.2",
@@ -61,6 +66,7 @@
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "vite": "^7.3.1",
     "web-ext": "^9.2.0"
   }
 }

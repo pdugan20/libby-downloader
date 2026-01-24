@@ -10,20 +10,22 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
 
 **Goal:** Establish modern development environment with TypeScript and build tooling
 
-- [ ] 1.1 Research and choose build tool (Vite + CRXJS vs Webpack)
-- [ ] 1.2 Install TypeScript and dependencies
-  - [ ] Install `typescript`, `@types/chrome`, `@types/node`
-  - [ ] Create `tsconfig.json` with proper Chrome extension settings
-- [ ] 1.3 Setup build tool configuration
-  - [ ] Configure bundler for background script
-  - [ ] Configure bundler for content scripts
-  - [ ] Configure bundler for iframe scripts
-  - [ ] Setup hot reload for development
-- [ ] 1.4 Update `package.json` scripts
-  - [ ] Add `dev` script for development mode
-  - [ ] Add `build` script for production build
-  - [ ] Update existing scripts to work with build output
-- [ ] 1.5 Add `.gitignore` entries for build artifacts
+**Build Tool Decision:** Plain Vite + TypeScript (no CRXJS plugin for stability)
+
+- [x] 1.1 Research and choose build tool (Vite + CRXJS vs Webpack)
+- [x] 1.2 Install TypeScript and dependencies
+  - [x] Install `typescript`, `@types/chrome`, `@types/node`, `vite`
+  - [x] Create `tsconfig.json` with proper Chrome extension settings
+- [x] 1.3 Setup build tool configuration
+  - [x] Configure bundler for background script
+  - [x] Configure bundler for content scripts
+  - [x] Configure bundler for iframe scripts
+  - [x] Setup source maps for debugging
+- [x] 1.4 Update `package.json` scripts
+  - [x] Add `dev:extension` script for development mode
+  - [x] Add `build:extension` script for production build
+  - [x] Update lint/format scripts to include chrome-extension/**/*.ts
+- [x] 1.5 Add `.gitignore` entries for build artifacts
 - [ ] 1.6 Test build process and verify extension loads
 
 **Estimated Time:** 2-3 hours

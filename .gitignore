@@ -5,6 +5,18 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Vite build artifacts in chrome-extension/
+chrome-extension/background/index.js
+chrome-extension/background/index.js.map
+chrome-extension/content/index.js
+chrome-extension/content/index.js.map
+chrome-extension/iframe/iframe-extractor.js
+chrome-extension/iframe/iframe-extractor.js.map
+chrome-extension/iframe/iframe-ui.js
+chrome-extension/iframe/iframe-ui.js.map
+chrome-extension/shared/
+chrome-extension/assets/
+
 # Environment
 .env
 .env.local
