@@ -51,15 +51,14 @@ export default defineConfig({
           return 'assets/[name][extname]';
         },
 
-        // Disable automatic dynamic import inlining (incompatible with multiple inputs)
-        inlineDynamicImports: false,
-
-        // Don't create chunks - inline everything into each entry
-        manualChunks: undefined,
-
-        // Format as ES modules (works in Manifest V3)
+        // Use ES modules format (required for code splitting with multiple inputs)
         format: 'es',
+
+        // Allow code splitting to create shared chunks
+        manualChunks: undefined,
       },
+      // Preserve module directives to avoid issues
+      preserveEntrySignatures: 'strict',
     },
 
     // Generate source maps for debugging (disabled in production for smaller builds)
@@ -73,7 +72,7 @@ export default defineConfig({
 
     // Additional optimizations
     reportCompressedSize: true,
-    chunkSizeWarningLimit: 100, // Warn if chunks exceed 100kb
+    chunkSizeWarningLimit: 500, // Warn if chunks exceed 500kb (increased since we're inlining everything)
   },
 
   // Resolve TypeScript paths
