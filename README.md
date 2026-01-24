@@ -15,16 +15,12 @@ Download audiobooks from Libby to your computer for offline listening.
 
 ## Features
 
-- **One-Click Downloads**: Chrome extension downloads chapters directly in browser
-- **Zero Bot Detection**: Runs in your real browser session (no automation)
-- **Visual Progress Bar**: Real-time download progress shown below album artwork
-- **Interactive CLI**: Auto-discovers books, shows status, easy tagging
-- **Metadata Embedding**: Add title, author, narrator, cover art to MP3 files
-- **Smart Auto-Detection**: No need to type file paths or book IDs
+- **One-Click Downloads**: Download audiobooks with a single click from your browser
+- **Interactive CLI**: Optionally add book title, author, narrator, and cover art to MP3 files
 
 ## Quick Start
 
-### 1. Clone and Build
+### Extension Only (Download Audiobooks)
 
 ```bash
 git clone https://github.com/pdugan20/libby-downloader.git
@@ -33,25 +29,27 @@ npm install
 npm run build:extension
 ```
 
-### 2. Install Chrome Extension
+Then load the extension:
 
 1. Open Chrome and navigate to `chrome://extensions/`
 2. Enable "Developer mode" (top-right toggle)
 3. Click "Load unpacked"
 4. Select the `chrome-extension` folder from this project
 
-### 3. Download Audiobooks
+Download audiobooks:
 
-1. Open an audiobook in Libby (Chrome)
+1. Open an audiobook in Libby using Chrome
 2. Click the download button in the top-right navigation bar
-3. Watch the progress bar appear below the album artwork
-4. Downloads save to `~/Downloads/libby-downloads/[Book Title]/`
+3. Downloads save to `~/Downloads/libby-downloads/[Book Title]/`
 
-### 4. Tag MP3 Files (Optional)
+### Extension + CLI (Add Metadata to MP3s)
 
-Add metadata (title, author, narrator, cover art) to your MP3 files:
+If you also want to tag your MP3 files with metadata:
 
 ```bash
+# Build CLI (in addition to extension)
+npm run build
+
 # Install CLI globally
 npm link
 
@@ -62,6 +60,8 @@ libby
 ```
 
 ## CLI Commands
+
+CLI requires installation via `npm run build && npm link` (see above).
 
 ### Interactive Menu
 
@@ -161,13 +161,22 @@ libby-downloader/
 
 ### "Command not found: libby"
 
-- Run `npm link` from the project directory to install CLI globally
+CLI requires building before linking:
+
+```bash
+npm run build    # Builds CLI to dist/cli.js
+npm link         # Creates global symlink
+```
 
 ## Development
 
 ```bash
-# Build and test
-npm run build:extension      # Build extension
+# Build
+npm run build                # Build both CLI and extension
+npm run build:cli            # Build CLI only
+npm run build:extension      # Build extension only
+
+# Test
 npm run check-all            # Run all checks (typecheck, lint, format, test)
 npm test                     # Run tests
 
