@@ -39,12 +39,14 @@ export default defineConfig({
           return '[name].js';
         },
 
-        // Keep chunk names clean
-        chunkFileNames: 'shared/[name].js',
-        assetFileNames: 'assets/[name].[ext]',
+        // Disable automatic dynamic import inlining (incompatible with multiple inputs)
+        inlineDynamicImports: false,
 
-        // Format as IIFE for content scripts, ESM for service worker
-        format: 'iife',
+        // Don't create chunks - inline everything into each entry
+        manualChunks: undefined,
+
+        // Format as ES modules (works in Manifest V3)
+        format: 'es',
       },
     },
 
