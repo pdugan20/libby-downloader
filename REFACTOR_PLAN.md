@@ -52,10 +52,12 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
   - [x] Typed crypto parameters with window interface extension
   - [x] Typed all message payloads and functions
   - [x] Verified build output (3.05 kB minified)
-- [ ] 2.3 Convert iframe UI to TypeScript
-  - [ ] Rename `iframe-ui.js` to `iframe-ui.ts`
-  - [ ] Type DOM manipulation code
-  - [ ] Type message handlers
+- [x] 2.3 Convert iframe UI to TypeScript
+  - [x] Converted to `src/iframe/ui-injector.ts`
+  - [x] Typed DOM manipulation with querySelector<HTMLElement>
+  - [x] Typed injectDownloadButton function with void return
+  - [x] Used imported MessageTypes for button click
+  - [x] Verified build output (2.68 kB minified)
 - [ ] 2.4 Convert content script to TypeScript
   - [ ] Rename `content.js` to `content.ts`
   - [ ] Extract classes to separate files
