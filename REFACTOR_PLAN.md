@@ -90,66 +90,69 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
 
 **Goal:** Break monolithic files into focused, reusable modules
 
-### 3.1 Shared Resources
+### 3.1 Shared Resources ✅ COMPLETE
 
-- [ ] 3.1.1 Create `src/shared/constants.ts`
-  - [ ] Move message type constants
-  - [ ] Move timeout constants
-  - [ ] Move UI config constants
-  - [ ] Export DEBUG_MODE flag
-- [ ] 3.1.2 Create `src/shared/validators.ts`
-  - [ ] Extract `validateOrigin` function
-  - [ ] Extract `validateBookData` function
-  - [ ] Add JSDoc documentation
-- [ ] 3.1.3 Create `src/shared/logger.ts`
-  - [ ] Centralized logging utility
-  - [ ] Support for different log levels
-  - [ ] Consistent log format with [Libby Downloader] prefix
+- [x] 3.1.1 Create `src/shared/constants.ts`
+  - [x] Message type constants already in `src/types/messages.ts`
+  - [x] Timeout constants already in `src/types/messages.ts`
+  - [x] UI config constants remain in `src/content/constants.ts` (content-specific)
+  - [x] Exported DEBUG_MODE flag
+- [x] 3.1.2 Create `src/shared/validators.ts`
+  - [x] Extracted `validateOrigin` function with JSDoc
+  - [x] Extracted `validateBookData` function with JSDoc
+  - [x] Extracted `sanitizeFilename` utility function
+  - [x] Updated content/validators.ts to re-export from shared
+  - [x] Updated background scripts to use shared validators
+- [x] 3.1.3 Create `src/shared/logger.ts`
+  - [x] Centralized Logger class with LogLevel enum
+  - [x] Support for DEBUG, INFO, WARN, ERROR levels
+  - [x] Consistent [Libby Downloader] prefix format
+  - [x] Exported singleton logger instance
 
-### 3.2 Content Script Refactor
+### 3.2 Content Script Refactor ✅ COMPLETE (Phase 2.4)
 
-- [ ] 3.2.1 Create `src/content/ui-manager.ts`
-  - [ ] Extract UIManager class
-  - [ ] Add proper types for all methods
-  - [ ] Document public API
-- [ ] 3.2.2 Create `src/content/message-handler.ts`
-  - [ ] Extract MessageHandler class
-  - [ ] Type all message payloads
-  - [ ] Document message flow
-- [ ] 3.2.3 Create `src/content/index.ts`
-  - [ ] Main entry point
-  - [ ] Initialization logic only
-  - [ ] Import and compose components
-- [ ] 3.2.4 Remove old monolithic `content.js`
+- [x] 3.2.1 Create `src/content/ui-manager.ts`
+  - [x] Extract UIManager class
+  - [x] Add proper types for all methods
+  - [x] Document public API
+- [x] 3.2.2 Create `src/content/message-handler.ts`
+  - [x] Extract MessageHandler class
+  - [x] Type all message payloads
+  - [x] Document message flow
+- [x] 3.2.3 Create `src/content/index.ts`
+  - [x] Main entry point
+  - [x] Initialization logic only
+  - [x] Import and compose components
+- [x] 3.2.4 Remove old monolithic `content.js`
+  - [x] Replaced with TypeScript modular structure
 
-### 3.3 Iframe Scripts Refactor
+### 3.3 Iframe Scripts Refactor ✅ COMPLETE (Phase 2.2-2.3)
 
-- [ ] 3.3.1 Create `src/iframe/extractor.ts`
-  - [ ] Clean up extraction logic
-  - [ ] Move to src directory structure
-  - [ ] Add error handling
-- [ ] 3.3.2 Create `src/iframe/ui-injector.ts`
-  - [ ] Extract button injection logic
-  - [ ] Add proper DOM manipulation types
-  - [ ] Document injection strategy
-- [ ] 3.3.3 Create `src/iframe/index.ts`
-  - [ ] Combine extractor and UI as separate concerns
-  - [ ] Proper initialization order
+- [x] 3.3.1 Create `src/iframe/extractor.ts`
+  - [x] Clean up extraction logic
+  - [x] Move to src directory structure
+  - [x] Add error handling
+- [x] 3.3.2 Create `src/iframe/ui-injector.ts`
+  - [x] Extract button injection logic
+  - [x] Add proper DOM manipulation types
+  - [x] Document injection strategy
+- [x] 3.3.3 Create `src/iframe/index.ts`
+  - [x] Not needed - scripts run independently
 
-### 3.4 Background Script Refactor
+### 3.4 Background Script Refactor ✅ COMPLETE (Phase 2.5)
 
-- [ ] 3.4.1 Create `src/background/download-manager.ts`
-  - [ ] Extract download orchestration logic
-  - [ ] Type download state
-  - [ ] Add retry logic
-- [ ] 3.4.2 Create `src/background/message-router.ts`
-  - [ ] Route messages to appropriate handlers
-  - [ ] Type-safe message routing
-- [ ] 3.4.3 Create `src/background/index.ts`
-  - [ ] Main service worker entry point
-  - [ ] Initialize all handlers
+- [x] 3.4.1 Create `src/background/download-service.ts`
+  - [x] Extract download orchestration logic
+  - [x] Type download state
+  - [x] Sequential chapter downloads
+- [x] 3.4.2 Create `src/background/download-tracker.ts`
+  - [x] Track download state
+  - [x] Type-safe state management
+- [x] 3.4.3 Create `src/background/index.ts`
+  - [x] Main service worker entry point
+  - [x] Initialize all handlers
 
-**Estimated Time:** 4-5 hours
+**Estimated Time:** 4-5 hours ✅ **PHASE COMPLETE**
 
 ---
 

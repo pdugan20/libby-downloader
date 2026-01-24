@@ -4,13 +4,7 @@
  */
 
 import type { BookMetadata, Chapter } from '../types/extension-book';
-
-/**
- * Sanitize filename to be filesystem-safe
- */
-function sanitizeFilename(filename: string): string {
-  return filename.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 200);
-}
+import { sanitizeFilename } from '../shared/validators';
 
 export class MetadataWriter {
   /**

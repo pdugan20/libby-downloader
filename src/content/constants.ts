@@ -2,8 +2,8 @@
  * Content script constants for Libby Downloader
  */
 
-// DEBUG MODE - Set to false for production
-export const DEBUG_MODE = true;
+// Re-export DEBUG_MODE from shared constants
+export { DEBUG_MODE } from '../shared/constants';
 
 export const ButtonState = {
   READY: 'ready',

@@ -5,13 +5,7 @@
 
 import type { Chapter } from '../types/extension-book';
 import { Timeouts } from '../types/messages';
-
-/**
- * Sanitize filename to be filesystem-safe
- */
-function sanitizeFilename(filename: string): string {
-  return filename.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 200);
-}
+import { sanitizeFilename } from '../shared/validators';
 
 export interface ChapterDownloadResult {
   downloadId: number;
