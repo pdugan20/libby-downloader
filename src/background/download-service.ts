@@ -4,7 +4,9 @@
  */
 
 import type { Chapter } from '../types/extension-book';
+import { DownloadError } from '../types/errors';
 import { Timeouts } from '../types/messages';
+import { logger } from '../shared/logger';
 import { sanitizeFilename } from '../shared/validators';
 
 export interface ChapterDownloadResult {
@@ -36,7 +38,10 @@ export class DownloadService {
     const chapterNum = String(index + 1).padStart(3, '0');
     const filename = `libby-downloads/${sanitizeFilename(bookTitle)}/chapter-${chapterNum}.mp3`;
 
-    console.log(`[Download Service] Downloading chapter ${index + 1}: ${chapter.title}`);
+    logger.operationStart(`Download chapter ${index + 1}`, {
+      title: chapter.title,
+      filename,
+    });
 
     const downloadId = await chrome.downloads.download({
       url: chapter.url,
@@ -76,7 +81,7 @@ export class DownloadService {
         results.downloadIds.push(result.downloadId);
         results.completed++;
 
-        console.log(`[Download Service] Chapter ${i + 1}/${chapters.length} complete`);
+        logger.operationComplete(`Download chapter ${i + 1}/${chapters.length}`);
 
         // Call progress callback
         if (onProgress) {
@@ -86,7 +91,12 @@ export class DownloadService {
         // Delay between chapters to avoid rate limiting
         await this.sleep(Timeouts.DOWNLOAD_DELAY);
       } catch (error) {
-        console.error(`[Download Service] Failed to download chapter ${i + 1}:`, error);
+        const downloadError = new DownloadError(
+          `Failed to download chapter ${i + 1}`,
+          i,
+          error instanceof Error ? error : undefined
+        );
+        logger.operationFailed(`Download chapter ${i + 1}`, downloadError);
         results.failed++;
         results.errors.push({
           chapterIndex: i,

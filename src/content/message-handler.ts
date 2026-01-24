@@ -4,7 +4,9 @@
  */
 
 import type { BookData } from '../types/extension-book';
+import { ExtractionError, IframeError, TimeoutError, ValidationError } from '../types/errors';
 import { MessageTypes } from '../types/messages';
+import { logger } from '../shared/logger';
 import { DEBUG_MODE } from './constants';
 import type { UIManager } from './ui-manager';
 import { validateBookData, validateOrigin } from './validators';
@@ -43,7 +45,7 @@ export class MessageHandler {
 
   private handleWindowMessage(event: MessageEvent): void {
     if (!validateOrigin(event.origin)) {
-      console.warn('[Libby Downloader] Rejected message from untrusted origin:', event.origin);
+      logger.warn('Rejected message from untrusted origin', { origin: event.origin });
       return;
     }
 
@@ -77,24 +79,30 @@ export class MessageHandler {
   }
 
   private handleButtonClick(): void {
-    console.log('[Libby Downloader] Finding iframe...');
+    try {
+      logger.operationStart('Button click handling');
 
-    const iframes = document.getElementsByTagName('iframe');
-    let libbyIframe: HTMLIFrameElement | null = null;
+      const iframes = document.getElementsByTagName('iframe');
+      let libbyIframe: HTMLIFrameElement | null = null;
 
-    for (const iframe of Array.from(iframes)) {
-      if (iframe.src && iframe.src.includes('listen.libbyapp.com')) {
-        libbyIframe = iframe;
-        break;
+      for (const iframe of Array.from(iframes)) {
+        if (iframe.src && iframe.src.includes('listen.libbyapp.com')) {
+          libbyIframe = iframe;
+          break;
+        }
       }
-    }
 
-    if (!libbyIframe) {
-      console.error('[Libby Downloader] Could not find audiobook iframe');
-      return;
-    }
+      if (!libbyIframe) {
+        throw new IframeError('Could not find audiobook iframe on page');
+      }
 
-    this.requestExtraction(libbyIframe);
+      this.requestExtraction(libbyIframe);
+      logger.operationComplete('Button click handling');
+    } catch (error) {
+      logger.operationFailed('Button click handling', error);
+      const message = error instanceof Error ? error.message : 'Failed to find audiobook iframe';
+      this.uiManager.showError(message);
+    }
   }
 
   private handleBackgroundMessage(message: BackgroundMessage): void {
@@ -115,12 +123,12 @@ export class MessageHandler {
   }
 
   private requestExtraction(iframe: HTMLIFrameElement): void {
-    console.log('[Libby Downloader] Requesting extraction from iframe');
+    logger.operationStart('Book extraction request');
 
     this.uiManager.updateState('extracting');
 
     if (DEBUG_MODE) {
-      console.log('[Libby Downloader] DEBUG MODE - Simulating extraction');
+      logger.debug('DEBUG MODE - Simulating extraction');
 
       setTimeout(() => {
         // Fake book data for UI testing
@@ -165,64 +173,69 @@ export class MessageHandler {
     }
 
     this.extractionTimeout = window.setTimeout(() => {
-      this.uiManager.showError(
-        'Extraction timeout. Try playing the audiobook for a few seconds first.'
+      const error = new TimeoutError(
+        'Extraction timeout. Try playing the audiobook for a few seconds first.',
+        10000
       );
+      logger.operationFailed('Book extraction', error);
+      this.uiManager.showError(error.message);
     }, 10000);
   }
 
   private async handleExtractionSuccess(bookData: BookData): Promise<void> {
-    if (this.extractionTimeout !== null) {
-      clearTimeout(this.extractionTimeout);
-    }
+    try {
+      if (this.extractionTimeout !== null) {
+        clearTimeout(this.extractionTimeout);
+      }
 
-    console.log('[Libby Downloader] Extraction successful');
+      logger.operationComplete('Book extraction', {
+        title: bookData.metadata.title,
+        chapters: bookData.chapters.length,
+      });
 
-    if (!validateBookData(bookData)) {
-      this.uiManager.showError('Invalid book data received from extraction');
-      return;
-    }
+      if (!validateBookData(bookData)) {
+        throw new ValidationError('Invalid book data received from extraction', bookData);
+      }
 
-    if (DEBUG_MODE) {
-      console.log('[Libby Downloader] DEBUG MODE - Simulating download progress');
+      if (DEBUG_MODE) {
+        logger.debug('DEBUG MODE - Simulating download progress');
 
-      // Simulate downloading progress
-      const totalChapters = bookData.chapters.length;
+        // Simulate downloading progress
+        const totalChapters = bookData.chapters.length;
+
+        this.uiManager.updateState('downloading', {
+          completed: 0,
+          total: totalChapters,
+        });
+
+        // Simulate progress updates
+        for (let i = 1; i <= totalChapters; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          this.uiManager.updateState('downloading', {
+            completed: i,
+            total: totalChapters,
+          });
+        }
+
+        // Simulate successful completion
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        this.uiManager.updateState('success', {
+          completedChapters: totalChapters,
+          failedChapters: 0,
+          totalChapters: totalChapters,
+        });
+
+        this.uiManager.showNotification(`Successfully downloaded ${totalChapters} chapters!`);
+        this.uiManager.resetAfterDelay();
+
+        return;
+      }
 
       this.uiManager.updateState('downloading', {
         completed: 0,
-        total: totalChapters,
+        total: bookData.chapters.length,
       });
 
-      // Simulate progress updates
-      for (let i = 1; i <= totalChapters; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        this.uiManager.updateState('downloading', {
-          completed: i,
-          total: totalChapters,
-        });
-      }
-
-      // Simulate successful completion
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      this.uiManager.updateState('success', {
-        completedChapters: totalChapters,
-        failedChapters: 0,
-        totalChapters: totalChapters,
-      });
-
-      this.uiManager.showNotification(`Successfully downloaded ${totalChapters} chapters!`);
-      this.uiManager.resetAfterDelay();
-
-      return;
-    }
-
-    this.uiManager.updateState('downloading', {
-      completed: 0,
-      total: bookData.chapters.length,
-    });
-
-    try {
       const response = await chrome.runtime.sendMessage({
         type: MessageTypes.START_DOWNLOAD,
         data: bookData,
@@ -232,9 +245,9 @@ export class MessageHandler {
         throw new Error(response.error);
       }
 
-      console.log('[Libby Downloader] Download started');
+      logger.operationComplete('Download start');
     } catch (error) {
-      console.error('[Libby Downloader] Download failed:', error);
+      logger.operationFailed('Download', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.uiManager.showError(`Download failed: ${errorMessage}`);
     }
@@ -245,7 +258,8 @@ export class MessageHandler {
       clearTimeout(this.extractionTimeout);
     }
 
-    console.error('[Libby Downloader] Extraction error:', error);
+    const extractionError = new ExtractionError(error);
+    logger.operationFailed('Book extraction', extractionError);
     this.uiManager.showError(`Extraction failed: ${error}`);
   }
 
