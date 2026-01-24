@@ -13,18 +13,21 @@ None - Extension functionality remains identical to v1.0.0 from a user perspecti
 ### New Features
 
 - **Full TypeScript Migration**: All extension code converted to TypeScript with strict type checking
+- **Visual Progress Bar**: Real-time download progress shown below album artwork (no more button state changes)
 - **Modular Architecture**: Clean separation of concerns across background, content, and iframe scripts
 - **Centralized Logging**: Unified logger with DEBUG_MODE support for development
 - **Custom Error Classes**: Type-safe error handling with context tracking
-- **Code Splitting**: Vite automatically extracts shared utilities into optimized chunks
+- **PostMessage UI Architecture**: Iframe scripts handle all UI rendering to avoid cross-origin issues
 
 ### Improvements
 
 **Build System:**
-- Vite build system for fast compilation and bundling
-- ES modules format (Manifest V3 compatible)
+- Vite build system with custom IIFE bundler for Chrome compatibility
+- IIFE output format (content scripts don't support ES module imports)
+- All dependencies inlined into self-contained bundles
 - Minification and tree shaking enabled
 - Development watch mode for faster iteration
+- Pre-push validation checks (DEBUG_MODE, build, bundle sizes, security)
 
 **Code Quality:**
 - 186 comprehensive tests across CLI and extension
@@ -39,10 +42,10 @@ None - Extension functionality remains identical to v1.0.0 from a user perspecti
 - Comprehensive inline documentation
 
 **Performance:**
-- Reduced bundle sizes through logging cleanup and optimization
-- Content script: 9.99 kB (minified)
-- Background script: 3.81 kB (minified)
-- Shared validators chunk: 2.42 kB (minified)
+- Optimized bundle sizes with IIFE compilation
+- Content script: ~8.5 kB (minified)
+- Background script: ~5.2 kB (minified)
+- Iframe UI script: ~6.2 kB (minified)
 
 **Developer Experience:**
 - Type-safe message passing between scripts
@@ -73,8 +76,8 @@ src/
 **Build Configuration:**
 - Target: esnext (modern Chrome)
 - Minification: esbuild
-- Format: ES modules
-- Code splitting: automatic
+- Format: IIFE (required for content scripts)
+- Dependencies: all inlined
 - Source maps: disabled in production
 
 ### Migration Guide

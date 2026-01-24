@@ -12,10 +12,6 @@ Download audiobooks from Libby to your computer for offline listening.
 
 - This tool is for **educational purposes only**
 - Downloading audiobooks may **violate your library's terms of service**
-- **Library cards can be banned** for policy violations
-- Use at your own risk and accept full responsibility
-
-**This tool helps you manage borrowed audiobooks, but users must comply with all library policies.**
 
 ## Features
 

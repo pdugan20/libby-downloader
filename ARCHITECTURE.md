@@ -50,7 +50,8 @@ libby-downloader/
 │   ├── content/          # Built content script
 │   ├── iframe/           # Built iframe scripts
 │   └── styles/           # Built CSS
-└── REFACTOR_PLAN.md       # Refactor progress tracking
+├── scripts/               # Build and validation scripts
+└── package.json
 ```
 
 ## Component Responsibilities
@@ -81,7 +82,7 @@ The content script runs on `libbyapp.com/open/loan/*` pages and coordinates the 
 **Main Components:**
 
 - **index.ts**: Initialization, creates UIManager and MessageHandler
-- **ui-manager.ts**: Manages button state (ready, extracting, downloading, success, error), shows notifications, updates button icons
+- **ui-manager.ts**: Sends progress messages to iframe for UI updates, manages iframe reference
 - **message-handler.ts**: Routes messages between iframe, content script, and background, handles button clicks, manages extraction timeout
 - **constants.ts**: Button states, timeouts, UI configuration
 - **validators.ts**: Re-exports shared validators for backward compatibility
@@ -110,9 +111,10 @@ Two separate scripts that run in the audiobook player iframe:
 **ui-injector.ts** (ISOLATED world):
 
 - Injects download button into Libby's native UI
-- Uses Libby's CSS classes for native look
+- Listens for progress messages from content script
+- Creates and updates progress bar below album artwork
+- Shows download progress and completion status
 - Sends button click events to content script via postMessage
-- Positioned before bookmark button in nav bar
 
 ### Shared Utilities (`src/shared/`)
 
@@ -166,29 +168,32 @@ Comprehensive TypeScript types:
    └─> chrome.tabs.sendMessage when done (DOWNLOAD_COMPLETE)
 
 7. Content script receives progress/completion
-   └─> Updates button UI (spinner → checkmark)
-   └─> Shows notification
-   └─> Resets button after 3 seconds
+   └─> Forwards UPDATE_PROGRESS_UI message to iframe via postMessage
+   └─> Iframe creates/updates progress bar below album artwork
+   └─> Shows "Download complete!" with checkmark when finished
 ```
 
 ## Build System
 
-Built with Vite for fast compilation and bundling:
+Built with Vite and custom build script for Chrome extension compatibility:
 
-**Configuration** (`vite.config.ts`):
+**Configuration** (`scripts/build-extension.mjs`):
 
-- Multiple entry points (background, content, iframe-extractor, iframe-ui, content-styles)
-- ES modules output format (Manifest V3 compatible)
-- Source maps in development
-- Minification in production
+- Multiple entry points built separately (background, content, iframe-extractor, iframe-ui)
+- IIFE output format (required for content scripts - ES modules not supported)
+- All dependencies inlined into self-contained bundles
+- Minification with esbuild
 - SVG ?raw imports for icons
-- CSS extraction
+- CSS extraction via Vite
+
+**Why IIFE?** Chrome content scripts declared in manifest.json cannot use ES module imports. The custom build script compiles each entry as an IIFE bundle with all dependencies included.
 
 **Build Commands:**
 
 - `npm run build:extension` - Production build
 - `npm run dev:extension` - Watch mode for development
 - `npm run typecheck` - TypeScript validation
+- `npm run extension:validate` - Lint and validate extension
 
 ## Debug Mode
 
