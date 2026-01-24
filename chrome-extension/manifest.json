@@ -39,10 +39,12 @@
       "run_at": "document_start",
       "world": "MAIN",
       "all_frames": true
+    },
+    {
+      "matches": ["*://*.listen.libbyapp.com/*"],
+      "js": ["iframe/iframe-ui.js"],
+      "run_at": "document_idle",
+      "all_frames": true
     }
-  ],
-
-  "action": {
-    "default_popup": "popup.html"
-  }
+  ]
 }
