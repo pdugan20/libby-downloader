@@ -41,10 +41,11 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
 
 **Goal:** Convert existing JavaScript to TypeScript with proper types
 
-- [ ] 2.1 Create shared type definitions
-  - [ ] Create `src/types/messages.ts` for message types
-  - [ ] Create `src/types/book.ts` for book data structures
-  - [ ] Create `src/types/chrome.ts` for Chrome API extensions
+- [x] 2.1 Create shared type definitions
+  - [x] Create `src/types/messages.ts` for message types
+  - [x] Create `src/types/extension-book.ts` for book data structures
+  - [x] Create `src/types/chrome.ts` for Chrome API extensions
+  - [x] Create `src/types/extension-types.ts` for central exports
 - [ ] 2.2 Convert iframe extractor to TypeScript
   - [ ] Rename `iframe-extractor.js` to `iframe-extractor.ts`
   - [ ] Add proper types for BIF object
