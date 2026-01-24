@@ -1,1 +1,1 @@
-npm run check-all && npm run extension:validate
+./scripts/pre-push-checks.sh && npm run check-all && npm run extension:validate
