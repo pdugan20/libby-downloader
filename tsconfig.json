@@ -32,7 +32,7 @@
 
     // Type Roots - Chrome API types
     "typeRoots": ["./node_modules/@types"],
-    "types": ["chrome", "node"]
+    "types": ["chrome", "node", "jest"]
   },
   "include": [
     "src/**/*",
