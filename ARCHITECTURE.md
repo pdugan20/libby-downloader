@@ -11,46 +11,46 @@ Libby Downloader is a Chrome extension that enables downloading audiobooks from 
 ```text
 libby-downloader/
 ├── src/                          # TypeScript source code
-│   ├── background/              # Service worker (background script)
-│   │   ├── index.ts            # Main service worker entry point
-│   │   ├── download-service.ts # Chapter download orchestration
-│   │   ├── download-tracker.ts # Download state management
-│   │   └── metadata-writer.ts  # metadata.json file creation
-│   ├── content/                # Content script (runs on Libby pages)
-│   │   ├── index.ts           # Main content script entry point
-│   │   ├── constants.ts       # Content-specific constants
-│   │   ├── ui-manager.ts      # Button state and notifications
-│   │   ├── message-handler.ts # Message routing and coordination
-│   │   └── validators.ts      # Re-exports shared validators
-│   ├── iframe/                # Iframe scripts (run in audiobook player)
-│   │   ├── extractor.ts      # Book data extraction (MAIN world)
-│   │   └── ui-injector.ts    # Download button injection
-│   ├── shared/               # Shared utilities
-│   │   ├── constants.ts     # DEBUG_MODE flag
-│   │   ├── logger.ts        # Centralized logging
-│   │   ├── validators.ts    # Origin/data validation
-│   │   └── icon-loader.ts   # SVG icon loading
-│   ├── types/               # TypeScript type definitions
-│   │   ├── extension-book.ts # BookData, Chapter, BookMetadata
-│   │   ├── messages.ts       # Message types and constants
-│   │   ├── errors.ts         # Custom error classes
-│   │   └── chrome.ts         # Chrome API extensions
-│   ├── styles/              # CSS stylesheets
-│   │   └── content.css      # Content script styles
-│   ├── assets/              # Static assets
-│   │   └── icons/           # SVG icons
-│   └── __tests__/           # Test files
-│       ├── mocks/          # Test mocks (Chrome APIs)
-│       ├── shared/         # Shared utility tests
-│       ├── background/     # Background script tests
-│       └── types/          # Type tests
-├── chrome-extension/        # Built extension (output)
-│   ├── manifest.json       # Extension configuration
-│   ├── background/        # Built background script
-│   ├── content/          # Built content script
-│   ├── iframe/           # Built iframe scripts
-│   └── styles/           # Built CSS
-├── scripts/               # Build and validation scripts
+│   ├── background/               # Service worker (background script)
+│   │   ├── index.ts              # Main service worker entry point
+│   │   ├── download-service.ts   # Chapter download orchestration
+│   │   ├── download-tracker.ts   # Download state management
+│   │   └── metadata-writer.ts    # metadata.json file creation
+│   ├── content/                  # Content script (runs on Libby pages)
+│   │   ├── index.ts              # Main content script entry point
+│   │   ├── constants.ts          # Content-specific constants
+│   │   ├── ui-manager.ts         # Button state and notifications
+│   │   ├── message-handler.ts    # Message routing and coordination
+│   │   └── validators.ts         # Re-exports shared validators
+│   ├── iframe/                   # Iframe scripts (run in audiobook player)
+│   │   ├── extractor.ts          # Book data extraction (MAIN world)
+│   │   └── ui-injector.ts        # Download button injection
+│   ├── shared/                   # Shared utilities
+│   │   ├── constants.ts          # DEBUG_MODE flag
+│   │   ├── logger.ts             # Centralized logging
+│   │   ├── validators.ts         # Origin/data validation
+│   │   └── icon-loader.ts        # SVG icon loading
+│   ├── types/                    # TypeScript type definitions
+│   │   ├── extension-book.ts     # BookData, Chapter, BookMetadata
+│   │   ├── messages.ts           # Message types and constants
+│   │   ├── errors.ts             # Custom error classes
+│   │   └── chrome.ts             # Chrome API extensions
+│   ├── styles/                   # CSS stylesheets
+│   │   └── content.css           # Content script styles
+│   ├── assets/                   # Static assets
+│   │   └── icons/                # SVG icons
+│   └── __tests__/                # Test files
+│       ├── mocks/                # Test mocks (Chrome APIs)
+│       ├── shared/               # Shared utility tests
+│       ├── background/           # Background script tests
+│       └── types/                # Type tests
+├── chrome-extension/             # Built extension (output)
+│   ├── manifest.json             # Extension configuration
+│   ├── background/               # Built background script
+│   ├── content/                  # Built content script
+│   ├── iframe/                   # Built iframe scripts
+│   └── styles/                   # Built CSS
+├── scripts/                      # Build and validation scripts
 └── package.json
 ```
 
