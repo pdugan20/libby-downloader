@@ -5,11 +5,12 @@
 
 import type { BookData } from '../types/extension-book';
 import { MessageTypes } from '../types/messages';
+import { logger } from '../shared/logger';
 import { DownloadService } from './download-service';
 import { DownloadTracker } from './download-tracker';
 import { MetadataWriter } from './metadata-writer';
 
-console.log('[Libby Downloader] Background service worker loaded');
+logger.info('Background service worker loaded');
 
 // Initialize services
 const downloadService = new DownloadService();
@@ -25,9 +26,7 @@ async function handleStartDownload(
 ): Promise<{ bookId: string; completed: number; failed: number; total: number }> {
   const { metadata, chapters } = bookData;
 
-  console.log(
-    `[Libby Downloader] Starting download: ${metadata.title} (${chapters.length} chapters)`
-  );
+  logger.info('Starting download', { title: metadata.title, chapters: chapters.length });
 
   // Create download tracking entry
   const bookId = downloadTracker.createDownload(bookData);
@@ -88,7 +87,7 @@ async function handleStartDownload(
  * Message listener
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[Libby Downloader] Received message:', message.type);
+  logger.debug('Received message', { type: message.type });
 
   if (message.type === MessageTypes.START_DOWNLOAD) {
     const tabId = sender.tab?.id;
@@ -122,13 +121,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  * Download state change listener
  */
 chrome.downloads.onChanged.addListener((delta) => {
-  if (delta.state && delta.state.current === 'complete') {
-    console.log(`[Libby Downloader] Download ${delta.id} completed`);
-  }
-
   if (delta.error) {
     console.error(`[Libby Downloader] Download ${delta.id} error:`, delta.error.current);
   }
 });
 
-console.log('[Libby Downloader] Background service worker ready');
+logger.info('Background service worker ready');

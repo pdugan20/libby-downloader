@@ -32,8 +32,6 @@ export class MetadataWriter {
     chapters: Chapter[],
     bookTitle: string
   ): Promise<number> {
-    console.log('[Metadata Writer] Saving metadata file');
-
     const metadataContent = JSON.stringify({ metadata, chapters }, null, 2);
 
     // Use data URL instead of blob URL (blob URLs don't work in service workers)
@@ -44,8 +42,6 @@ export class MetadataWriter {
       filename: `libby-downloads/${sanitizeFilename(bookTitle)}/metadata.json`,
       saveAs: false,
     });
-
-    console.log('[Metadata Writer] Metadata file download started');
 
     return downloadId;
   }

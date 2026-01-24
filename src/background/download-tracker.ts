@@ -56,8 +56,6 @@ export class DownloadTracker {
 
     this.activeDownloads.set(bookId, downloadState);
 
-    console.log(`[Download Tracker] Created download: ${metadata.title} (ID: ${bookId})`);
-
     return bookId;
   }
 
@@ -90,11 +88,6 @@ export class DownloadTracker {
     download.endTime = Date.now();
     download.completedChapters = result.completed;
     download.failedChapters = result.failed;
-
-    const duration = Math.round((download.endTime - download.startTime) / 1000);
-    console.log(
-      `[Download Tracker] Download complete: ${download.completedChapters}/${download.totalChapters} chapters in ${duration}s`
-    );
   }
 
   /**

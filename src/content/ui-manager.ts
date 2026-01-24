@@ -37,11 +37,8 @@ export class UIManager {
    * ```
    */
   createButton(onClickHandler: () => void): void {
-    console.log('[Libby Downloader] createButton() called');
-
     // Find the nav action bar
     const navBar = document.querySelector<HTMLElement>('.nav-action-bar-right');
-    console.log('[Libby Downloader] navBar element:', navBar);
 
     if (!navBar) {
       console.error('[Libby Downloader] Could not find nav-action-bar-right');
@@ -53,7 +50,6 @@ export class UIManager {
       const container = document.createElement('div');
       container.className = 'nav-action-item';
       container.id = UIConfig.BUTTON_ID + '-container';
-      console.log('[Libby Downloader] Created container:', container);
 
       // Create the button
       const button = document.createElement('button');
@@ -62,7 +58,6 @@ export class UIManager {
       button.type = 'button';
       button.setAttribute('aria-label', 'Download Audiobook');
       button.setAttribute('touch-action', 'none');
-      console.log('[Libby Downloader] Created button:', button);
 
       // Create the icon container
       const iconContainer = document.createElement('div');
@@ -75,24 +70,18 @@ export class UIManager {
           </g>
         </svg>
       `;
-      console.log('[Libby Downloader] Created icon container:', iconContainer);
 
       // Assemble the structure
       button.appendChild(iconContainer);
       container.appendChild(button);
-      console.log('[Libby Downloader] Assembled structure');
 
       // Insert into nav bar
       navBar.appendChild(container);
-      console.log('[Libby Downloader] Inserted into nav bar');
 
       button.addEventListener('click', onClickHandler);
-      console.log('[Libby Downloader] Added click handler');
 
       this.button = button;
       this.iconContainer = iconContainer;
-
-      console.log('[Libby Downloader] Button created and injected into nav bar');
     } catch (error) {
       console.error('[Libby Downloader] Error creating button:', error);
     }

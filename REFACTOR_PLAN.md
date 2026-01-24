@@ -288,9 +288,9 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
   - [x] New build commands
   - [x] New file structure
   - [x] Development workflow
-- [ ] 7.5 Clean up debug logging
-  - [ ] Remove verbose logs
-  - [ ] Keep only essential logs
+- [x] 7.5 Clean up debug logging
+  - [x] Remove verbose logs
+  - [x] Keep only essential logs
 - [ ] 7.6 Code review and cleanup
   - [ ] Remove dead code
   - [ ] Fix linting issues

@@ -57,7 +57,6 @@ export class MessageHandler {
 
     switch (type) {
       case 'LIBBY_DOWNLOADER_BUTTON_CLICKED':
-        console.log('[Libby Downloader] Button clicked in iframe, starting download...');
         this.handleButtonClick();
         break;
 
@@ -158,7 +157,6 @@ export class MessageHandler {
     try {
       const iframeUrl = new URL(iframe.src);
       targetOrigin = iframeUrl.origin;
-      console.log('[Libby Downloader] Target origin:', targetOrigin);
     } catch {
       console.warn('[Libby Downloader] Failed to parse iframe URL, using fallback origin');
     }
@@ -266,7 +264,6 @@ export class MessageHandler {
   private handleDownloadProgress(progress: { completed: number; total: number }): void {
     const { completed, total } = progress;
     this.uiManager.updateState('downloading', { completed, total });
-    console.log(`[Libby Downloader] Progress: ${completed}/${total}`);
   }
 
   private handleDownloadComplete(result: {
