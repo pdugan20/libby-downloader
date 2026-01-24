@@ -28,7 +28,4 @@ const messageHandler = new MessageHandler(uiManager);
 // Setup message listeners
 messageHandler.setupListeners();
 
-// Inject styles
-uiManager.injectStyles();
-
 console.log('[Libby Downloader] Ready - waiting for button click from iframe');

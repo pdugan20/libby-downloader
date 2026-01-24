@@ -31,6 +31,7 @@
     {
       "matches": ["*://*.libbyapp.com/open/loan/*"],
       "js": ["content/content.js"],
+      "css": ["styles/content-styles.css"],
       "run_at": "document_idle"
     },
     {

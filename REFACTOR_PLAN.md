@@ -160,28 +160,38 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
 
 **Goal:** Remove inline styles and centralize visual resources
 
-- [ ] 4.1 Create `src/styles/` directory structure
-- [ ] 4.2 Create `src/styles/iframe-ui.css`
-  - [ ] Extract button styles
-  - [ ] Extract animation keyframes
-  - [ ] Use CSS variables for theming
-- [ ] 4.3 Create `src/styles/notifications.css`
-  - [ ] Extract notification styles
-  - [ ] Extract slide animations
-- [ ] 4.4 Create `src/assets/icons/` directory
-- [ ] 4.5 Move SVG icons to separate files
-  - [ ] `download.svg` - main download icon
-  - [ ] `spinner.svg` - loading spinner
-  - [ ] `checkmark.svg` - success icon
-  - [ ] `error.svg` - error icon
-- [ ] 4.6 Create icon loader utility
-  - [ ] `src/shared/icon-loader.ts`
-  - [ ] Load SVG as strings
-  - [ ] Type-safe icon names
-- [ ] 4.7 Update components to use external styles
-- [ ] 4.8 Update manifest.json to inject CSS files
+- [x] 4.1 Create `src/styles/` and `src/assets/icons/` directory structure
+- [x] 4.2 Create `src/styles/content.css`
+  - [x] Extracted notification styles with class-based styling
+  - [x] Extracted animation keyframes (slideIn, slideOut, spin)
+  - [x] Removed inline cssText from showNotification()
+- [x] 4.3 Create SVG icon files in `src/assets/icons/`
+  - [x] `download.svg` - main download icon (cloud with arrow)
+  - [x] `spinner.svg` - loading spinner (rotating lines)
+  - [x] `checkmark.svg` - success icon
+  - [x] `error.svg` - error icon (circle with exclamation)
+- [x] 4.4 Create icon loader utility
+  - [x] Created `src/shared/icon-loader.ts`
+  - [x] Load SVG as strings via Vite's ?raw import
+  - [x] Type-safe IconName union type
+  - [x] getIcon() function with proper typing
+- [x] 4.5 Update components to use external resources
+  - [x] Updated ui-manager.ts to use getIcon() instead of inline SVG
+  - [x] Removed injectStyles() method (CSS injected via manifest)
+  - [x] Removed inline style objects
+- [x] 4.6 Configure Vite for CSS and assets
+  - [x] Added content-styles to vite.config.ts inputs
+  - [x] Configured assetFileNames for proper CSS output
+  - [x] Created src/vite-env.d.ts for SVG import types
+- [x] 4.7 Update manifest.json to inject CSS
+  - [x] Added css: ["styles/content-styles.css"] to content script
 
-**Estimated Time:** 2-3 hours
+**Build Results:**
+- Content script reduced from 12.12 kB to 10.41 kB
+- External CSS: 0.59 kB (0.33 kB gzipped)
+- SVG icons bundled into JS via ?raw imports
+
+**Estimated Time:** 2-3 hours ✅ **PHASE COMPLETE**
 
 ---
 

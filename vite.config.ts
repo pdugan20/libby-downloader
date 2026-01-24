@@ -20,6 +20,9 @@ export default defineConfig({
 
         // Iframe UI injector
         'iframe-ui': resolve(__dirname, 'src/iframe/ui-injector.ts'),
+
+        // Content script styles
+        'content-styles': resolve(__dirname, 'src/styles/content.css'),
       },
       output: {
         // Output each entry to its own directory
@@ -32,11 +35,20 @@ export default defineConfig({
           if (name === 'content') {
             return 'content/[name].js';
           }
+          if (name === 'content-styles') {
+            return 'styles/[name].js';
+          }
           if (name.startsWith('iframe')) {
             return 'iframe/[name].js';
           }
 
           return '[name].js';
+        },
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
+            return 'styles/[name][extname]';
+          }
+          return 'assets/[name][extname]';
         },
 
         // Disable automatic dynamic import inlining (incompatible with multiple inputs)

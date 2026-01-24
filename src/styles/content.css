@@ -1,0 +1,57 @@
+/**
+ * Styles for Libby Downloader content script
+ */
+
+/* Notification styles */
+.libby-downloader-notification {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  z-index: 999999;
+  padding: 16px 20px;
+  background: #4caf50;
+  color: white;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  font-family: system-ui, -apple-system, sans-serif;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Slide animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+/* Spinner animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}

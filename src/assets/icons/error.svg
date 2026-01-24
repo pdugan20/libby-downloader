@@ -1,0 +1,5 @@
+<svg viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" fill-rule="evenodd" stroke="none" stroke-width="1">
+    <path class="icon-fill" d="M32 6C17.64 6 6 17.64 6 32s11.64 26 26 26 26-11.64 26-26S46.36 6 32 6zm3 39h-6v-6h6v6zm0-12h-6V18h6v15z" fill="currentColor"/>
+  </g>
+</svg>
