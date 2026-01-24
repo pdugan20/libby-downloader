@@ -4,7 +4,8 @@
  */
 
 import { ButtonState, type ButtonStateType, Timeouts, UIConfig } from './constants';
-import { getIcon } from '../shared/icon-loader';
+import { MessageTypes } from '../types/messages';
+import { logger } from '../shared/logger';
 
 interface DownloadProgressData {
   completed: number;
@@ -22,6 +23,7 @@ type StateData = DownloadProgressData | DownloadCompleteData | Record<string, ne
 export class UIManager {
   private button: HTMLButtonElement | null = null;
   private iconContainer: HTMLDivElement | null = null;
+  private libbyIframe: HTMLIFrameElement | null = null;
 
   /**
    * Create and inject the download button into Libby's navigation bar
@@ -88,8 +90,10 @@ export class UIManager {
   }
 
   /**
-   * Update button visual state and accessibility label
-   * Changes icon, aria-label, and disabled state based on current download status.
+   * Update download progress by sending messages to iframe
+   * Shows progress bar below scaled album artwork via iframe script
+   * Note: Content script doesn't have button reference (button is in iframe),
+   * so we just send messages to iframe for UI updates
    * @param state - Button state (READY, EXTRACTING, DOWNLOADING, SUCCESS, ERROR)
    * @param data - Optional state-specific data (progress counts, completion stats)
    * @example
@@ -109,55 +113,71 @@ export class UIManager {
    * ```
    */
   updateState(state: ButtonStateType, data: StateData = {}): void {
-    if (!this.button || !this.iconContainer) return;
-
     switch (state) {
       case ButtonState.EXTRACTING:
-        this.iconContainer.innerHTML = getIcon('spinner');
-        this.button.setAttribute('aria-label', 'Extracting metadata...');
-        this.button.disabled = true;
+        this.sendIframeMessage(MessageTypes.UPDATE_PROGRESS_UI, 'extracting');
         break;
 
       case ButtonState.DOWNLOADING: {
         const progressData = data as DownloadProgressData;
         const { completed, total } = progressData;
-        this.iconContainer.innerHTML = getIcon('spinner');
-        this.button.setAttribute('aria-label', `Downloading ${completed}/${total} chapters...`);
-        this.button.disabled = true;
+        this.sendIframeMessage(MessageTypes.UPDATE_PROGRESS_UI, 'downloading', {
+          completed,
+          total,
+          message: `Downloading ${completed} of ${total} chapters`,
+        });
         break;
       }
 
       case ButtonState.SUCCESS: {
         const completeData = data as DownloadCompleteData;
-        const { completedChapters, failedChapters, totalChapters } = completeData;
-        this.iconContainer.innerHTML = getIcon('checkmark');
-        if (failedChapters === 0) {
-          this.button.setAttribute(
-            'aria-label',
-            `Downloaded ${completedChapters} chapters successfully!`
-          );
-        } else {
-          this.button.setAttribute(
-            'aria-label',
-            `Downloaded ${completedChapters}/${totalChapters} chapters (${failedChapters} failed)`
-          );
-        }
+        const { failedChapters } = completeData;
+        this.sendIframeMessage(MessageTypes.UPDATE_PROGRESS_UI, 'success', {
+          failedChapters,
+        });
         break;
       }
 
       case ButtonState.ERROR:
-        this.iconContainer.innerHTML = getIcon('error');
-        this.button.setAttribute('aria-label', 'Error - Click to retry');
-        this.button.disabled = false;
+        this.sendIframeMessage(MessageTypes.RESET_UI);
         break;
 
       case ButtonState.READY:
       default:
-        this.iconContainer.innerHTML = getIcon('download');
-        this.button.setAttribute('aria-label', 'Download Audiobook');
-        this.button.disabled = false;
+        this.sendIframeMessage(MessageTypes.RESET_UI);
         break;
     }
+  }
+
+  /**
+   * Set the Libby iframe reference for sending UI update messages
+   * Must be called before updating progress
+   * @param iframe - The Libby audiobook iframe element
+   */
+  setIframe(iframe: HTMLIFrameElement): void {
+    this.libbyIframe = iframe;
+    logger.debug('Libby iframe set for UI manager');
+  }
+
+  /**
+   * Send UI update message to iframe
+   */
+  private sendIframeMessage(type: string, state?: string, data?: Record<string, unknown>): void {
+    if (!this.libbyIframe || !this.libbyIframe.contentWindow) {
+      logger.warn('Cannot send message - iframe not set');
+      return;
+    }
+
+    const targetOrigin = new URL(this.libbyIframe.src).origin;
+    logger.debug('Sending iframe message', { type, state, data, targetOrigin });
+    this.libbyIframe.contentWindow.postMessage(
+      {
+        type,
+        state,
+        data,
+      },
+      targetOrigin
+    );
   }
 
   /**
@@ -173,7 +193,7 @@ export class UIManager {
 
   /**
    * Show error alert and update button to ERROR state
-   * Displays browser alert dialog with error message, then sets button to error icon.
+   * Displays browser alert dialog with error message, then resets UI.
    * Button remains clickable in ERROR state to allow retry.
    * @param message - Error message to display to user
    * @example
@@ -184,28 +204,5 @@ export class UIManager {
   showError(message: string): void {
     alert(`❌ ${message}`);
     this.updateState(ButtonState.ERROR);
-  }
-
-  /**
-   * Show temporary success notification overlay
-   * Displays a slide-in notification that auto-dismisses after 3 seconds.
-   * Uses CSS animations from content.css (slideIn, slideOut).
-   * @param message - Notification message to display
-   * @example
-   * ```typescript
-   * uiManager.showNotification('Download started! Check your downloads folder.');
-   * ```
-   */
-  showNotification(message: string): void {
-    const notification = document.createElement('div');
-    notification.className = UIConfig.NOTIFICATION_CLASS;
-    notification.textContent = message;
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-      notification.style.animation = 'slideOut 0.3s ease-out';
-      setTimeout(() => notification.remove(), 300);
-    }, Timeouts.NOTIFICATION_DURATION);
   }
 }

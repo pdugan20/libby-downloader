@@ -16,6 +16,8 @@ export const MessageTypes = {
 
   // UI messages
   LIBBY_DOWNLOADER_BUTTON_CLICKED: 'LIBBY_DOWNLOADER_BUTTON_CLICKED',
+  UPDATE_PROGRESS_UI: 'UPDATE_PROGRESS_UI',
+  RESET_UI: 'RESET_UI',
 } as const;
 
 export type MessageType = (typeof MessageTypes)[keyof typeof MessageTypes];

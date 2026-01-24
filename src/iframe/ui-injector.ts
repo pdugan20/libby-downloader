@@ -1,11 +1,218 @@
 /**
  * Iframe UI injector for Libby Downloader
- * Runs in the audiobook player iframe to inject download button into nav bar
+ * Runs in the audiobook player iframe to inject download button and progress overlay
  */
 
 import { MessageTypes } from '../types/messages';
 
 console.log('[Libby Downloader] Iframe UI script loaded');
+
+let progressOverlay: HTMLDivElement | null = null;
+let albumArtContainer: HTMLElement | null = null;
+
+/**
+ * Find album artwork container in iframe
+ */
+function findAlbumArtContainer(): HTMLElement | null {
+  const selectors = [
+    '.backdrop-cover-button',
+    '.slingshot',
+    '.title-tile-cover',
+    '.title-tile',
+    '.player-art',
+    '.album-art',
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector<HTMLElement>(selector);
+    if (element) {
+      console.log(`[Libby Downloader] Found album art: ${selector}`);
+      return element;
+    }
+  }
+
+  console.warn('[Libby Downloader] Could not find album art container');
+  return null;
+}
+
+/**
+ * Create progress overlay below album artwork
+ */
+function createProgressOverlay(): void {
+  console.log('[Libby Downloader] createProgressOverlay called');
+
+  if (progressOverlay) {
+    console.log('[Libby Downloader] Overlay already exists, returning');
+    return;
+  }
+
+  console.log('[Libby Downloader] Finding album art container...');
+  albumArtContainer = findAlbumArtContainer();
+  if (!albumArtContainer) {
+    console.warn('[Libby Downloader] Cannot create progress overlay - album art not found');
+    return;
+  }
+
+  console.log('[Libby Downloader] Album art found, creating overlay elements...');
+
+  // Create overlay container
+  const overlay = document.createElement('div');
+  overlay.className = 'libby-download-progress-overlay';
+
+  // Create progress bar container
+  const progressContainer = document.createElement('div');
+  progressContainer.className = 'libby-progress-container';
+
+  // Create progress bar
+  const progressBar = document.createElement('div');
+  progressBar.className = 'libby-progress-bar';
+
+  // Create progress fill
+  const progressFill = document.createElement('div');
+  progressFill.className = 'libby-progress-fill';
+  progressBar.appendChild(progressFill);
+
+  // Create progress text
+  const progressText = document.createElement('div');
+  progressText.className = 'libby-progress-text';
+  progressText.textContent = 'Preparing download...';
+
+  // Assemble structure
+  progressContainer.appendChild(progressBar);
+  progressContainer.appendChild(progressText);
+  overlay.appendChild(progressContainer);
+
+  // Append to body (will be positioned via CSS)
+  document.body.appendChild(overlay);
+
+  progressOverlay = overlay;
+  console.log('[Libby Downloader] Progress overlay created');
+}
+
+/**
+ * Update progress overlay
+ */
+function updateProgressOverlay(completed: number, total: number, message: string): void {
+  console.log('[Libby Downloader] updateProgressOverlay called', {
+    completed,
+    total,
+    message,
+    hasOverlay: !!progressOverlay,
+  });
+
+  if (!progressOverlay) {
+    console.log('[Libby Downloader] No overlay exists, creating one...');
+    createProgressOverlay();
+  }
+
+  if (!progressOverlay) {
+    console.warn('[Libby Downloader] Still no overlay after create attempt, returning');
+    return;
+  }
+
+  console.log('[Libby Downloader] Updating overlay elements');
+  const progressFill = progressOverlay.querySelector<HTMLElement>('.libby-progress-fill');
+  const progressText = progressOverlay.querySelector<HTMLElement>('.libby-progress-text');
+
+  if (progressFill) {
+    const percentage = total > 0 ? (completed / total) * 100 : 0;
+    progressFill.style.width = `${percentage}%`;
+    console.log('[Libby Downloader] Updated progress fill to', percentage + '%');
+  }
+
+  if (progressText) {
+    progressText.textContent = message;
+    console.log('[Libby Downloader] Updated progress text to', message);
+  }
+}
+
+/**
+ * Show completion message
+ */
+function showCompletionMessage(failedChapters: number): void {
+  if (!progressOverlay) return;
+
+  const progressText = progressOverlay.querySelector<HTMLElement>('.libby-progress-text');
+  if (progressText) {
+    if (failedChapters === 0) {
+      progressText.innerHTML = `
+        <svg class="libby-checkmark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <path d="M24 42.17L12.83 31L8.41 35.41L24 51L56 19L51.59 14.59L24 42.17Z" fill="currentColor"/>
+        </svg>
+        Download complete!
+      `;
+    } else {
+      progressText.innerHTML = `Download complete with ${failedChapters} errors`;
+    }
+    progressText.classList.add('libby-completion-message');
+  }
+}
+
+/**
+ * Remove progress overlay
+ */
+function removeProgressOverlay(): void {
+  if (progressOverlay) {
+    progressOverlay.remove();
+    progressOverlay = null;
+  }
+
+  albumArtContainer = null;
+}
+
+/**
+ * Handle messages from parent window
+ */
+window.addEventListener('message', (event) => {
+  // Filter out non-extension messages
+  if (!event.data || typeof event.data !== 'object' || !event.data.type) {
+    return;
+  }
+
+  console.log('[Libby Downloader] Iframe received extension message:', event.data);
+
+  const { type, state, data } = event.data as {
+    type: string;
+    state?: string;
+    data?: {
+      completed?: number;
+      total?: number;
+      message?: string;
+      failedChapters?: number;
+    };
+  };
+
+  console.log(`[Libby Downloader] Message type: ${type}, state: ${state}`);
+
+  switch (type) {
+    case MessageTypes.UPDATE_PROGRESS_UI:
+      console.log('[Libby Downloader] UPDATE_PROGRESS_UI matched');
+      if (state === 'extracting') {
+        console.log('[Libby Downloader] Creating progress overlay for extracting');
+        createProgressOverlay();
+        updateProgressOverlay(0, 1, 'Extracting metadata...');
+      } else if (state === 'downloading' && data) {
+        console.log('[Libby Downloader] Updating progress for downloading');
+        updateProgressOverlay(
+          data.completed || 0,
+          data.total || 1,
+          data.message || 'Downloading...'
+        );
+      } else if (state === 'success' && data) {
+        console.log('[Libby Downloader] Showing completion message');
+        showCompletionMessage(data.failedChapters || 0);
+      }
+      break;
+
+    case MessageTypes.RESET_UI:
+      console.log('[Libby Downloader] RESET_UI matched');
+      removeProgressOverlay();
+      break;
+
+    default:
+      console.log(`[Libby Downloader] Unhandled message type: ${type}`);
+  }
+});
 
 /**
  * Wait for nav bar and inject download button

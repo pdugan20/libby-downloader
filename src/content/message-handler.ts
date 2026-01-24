@@ -95,6 +95,9 @@ export class MessageHandler {
         throw new IframeError('Could not find audiobook iframe on page');
       }
 
+      // Pass iframe reference to UI manager for progress overlay
+      this.uiManager.setIframe(libbyIframe);
+
       this.requestExtraction(libbyIframe);
       logger.operationComplete('Button click handling');
     } catch (error) {
@@ -223,7 +226,6 @@ export class MessageHandler {
           totalChapters: totalChapters,
         });
 
-        this.uiManager.showNotification(`Successfully downloaded ${totalChapters} chapters!`);
         this.uiManager.resetAfterDelay();
 
         return;
@@ -278,12 +280,6 @@ export class MessageHandler {
       failedChapters: failed,
       totalChapters: total,
     });
-
-    if (failed === 0) {
-      this.uiManager.showNotification(`Successfully downloaded ${completed} chapters!`);
-    } else {
-      this.uiManager.showNotification(`Downloaded ${completed} chapters (${failed} failed)`);
-    }
 
     this.uiManager.resetAfterDelay();
   }

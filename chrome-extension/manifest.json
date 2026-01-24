@@ -30,7 +30,6 @@
     {
       "matches": ["*://*.libbyapp.com/open/loan/*"],
       "js": ["content/content.js"],
-      "css": ["styles/content-styles.css"],
       "run_at": "document_idle"
     },
     {
@@ -43,6 +42,7 @@
     {
       "matches": ["*://*.listen.libbyapp.com/*"],
       "js": ["iframe/iframe-ui.js"],
+      "css": ["styles/content-styles.css"],
       "run_at": "document_idle",
       "all_frames": true
     }
