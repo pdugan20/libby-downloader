@@ -178,10 +178,9 @@ async function handleMergeAction(
   }
 
   console.log(chalk.bold(`\n📖 ${bookPresenter.getTitle(selected)}\n`));
-  console.log(chalk.yellow('Note: Merge functionality coming soon!\n'));
 
-  // TODO: Implement merge
-  // await mergeBook(selected.path);
+  const { mergeBook } = await import('./merge');
+  await mergeBook(selected.path);
 }
 
 /**

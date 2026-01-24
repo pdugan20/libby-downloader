@@ -9,6 +9,7 @@ TypeScript CLI tool for managing audiobooks downloaded from Libby via Chrome ext
 npm run dev                       # Run interactive CLI
 npm run dev -- list               # List downloaded books
 npm run dev -- tag                # Tag MP3 files
+npm run dev -- merge              # Merge chapters into M4B audiobook
 
 # Testing & Validation
 npm test                          # Run Jest tests
@@ -44,7 +45,9 @@ npm run extension:lint            # Lint with warnings-as-errors
 - `src/commands/interactive.ts` - Interactive menu system
 - `src/commands/list.ts` - List downloaded books
 - `src/commands/tag.ts` - Tag MP3 files with metadata
+- `src/commands/merge.ts` - Merge chapters into M4B audiobook
 - `src/metadata/embedder.ts` - ID3 tag embedding
+- `src/services/merge-service.ts` - M4B audiobook merging with FFmpeg
 - `src/utils/books.ts` - Book discovery and status checking
 - `src/utils/logger.ts` - Logging utilities
 
@@ -108,10 +111,17 @@ npm run extension:lint            # Lint with warnings-as-errors
    - Embeds ID3 tags into MP3 files (title, author, narrator, cover art)
    - Shows book status (tagged/untagged)
 
+3. **CLI Merges (Optional):**
+   - CLI can merge individual chapter MP3s into a single M4B audiobook
+   - Uses fluent-ffmpeg with bundled ffmpeg binary (zero config)
+   - Embeds chapter markers (one per MP3 file)
+   - Includes metadata (title, author, narrator, cover art)
+   - Output: 64kbps AAC mono (optimized for voice)
+
 **Key Points:**
 
 - Extension handles ALL downloading (no CLI download functionality)
-- CLI is ONLY for tagging and listing books
+- CLI is for tagging, merging, and listing books
 - No browser automation
 - No rate limiting in CLI (extension handles that)
 - Downloads happen in user's real browser session (zero bot detection)
@@ -227,6 +237,8 @@ export const DEBUG_MODE = true; // Set to false for production
 **Key packages:**
 
 - `node-id3` for metadata embedding
+- `fluent-ffmpeg` for M4B audiobook creation
+- `@ffmpeg-installer/ffmpeg` for bundled ffmpeg binary (~50MB, cross-platform)
 - `commander` for CLI
 - `chalk` for terminal UI
 - `inquirer` for interactive prompts
@@ -352,9 +364,10 @@ All innerHTML security warnings have been fixed by using textContent instead.
 
 **Available Commands:**
 
-- `libby` - Interactive menu (tag files, list books, view details)
+- `libby` - Interactive menu (tag files, merge chapters, list books, view details)
 - `libby list` - List all downloaded books with status
 - `libby tag [folder]` - Tag MP3 files with metadata (interactive if no folder)
+- `libby merge [folder]` - Merge MP3 chapters into single M4B audiobook (interactive if no folder)
 
 **Command Options:**
 

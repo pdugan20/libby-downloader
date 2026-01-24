@@ -5,12 +5,14 @@
 import { runInteractive } from '../../commands/interactive';
 import { BookService } from '../../services/book-service';
 import { tagFiles } from '../../commands/tag';
+import { mergeBook } from '../../commands/merge';
 import { listBooks } from '../../commands/list';
 import { createMockBooks } from '../setup/fixtures/books.fixture';
 
 // Mock dependencies
 jest.mock('../../services/book-service');
 jest.mock('../../commands/tag');
+jest.mock('../../commands/merge');
 jest.mock('../../commands/list');
 jest.mock('inquirer', () => ({
   prompt: jest.fn(),
@@ -25,6 +27,7 @@ describe('runInteractive command', () => {
   let mockBookService: jest.Mocked<BookService>;
   const mockPrompt = inquirer.prompt as jest.MockedFunction<typeof inquirer.prompt>;
   const mockTagFiles = tagFiles as jest.MockedFunction<typeof tagFiles>;
+  const mockMergeBook = mergeBook as jest.MockedFunction<typeof mergeBook>;
   const mockListBooks = listBooks as jest.MockedFunction<typeof listBooks>;
 
   beforeEach(() => {
@@ -146,7 +149,8 @@ describe('runInteractive command', () => {
 
     await runInteractive();
 
-    // Merge is not implemented yet, so no further action
+    // All books already merged, so merge command should not be called
+    expect(mockMergeBook).not.toHaveBeenCalled();
   });
 
   it('should loop until user exits', async () => {

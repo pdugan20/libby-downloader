@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import { logger, LogLevel } from './utils/logger';
 import { tagFiles } from './commands/tag';
+import { mergeBook } from './commands/merge';
 import { listBooks } from './commands/list';
 import { runInteractive } from './commands/interactive';
 
@@ -69,6 +70,24 @@ program
       });
     } catch (error) {
       handleCliError(error, 'Tag');
+    }
+  });
+
+// Merge command
+program
+  .command('merge [folder]')
+  .description('Merge MP3 chapters into single M4B audiobook (interactive if no folder specified)')
+  .action(async (folder) => {
+    try {
+      if (!folder) {
+        // Interactive mode
+        await runInteractive();
+        return;
+      }
+
+      await mergeBook(folder);
+    } catch (error) {
+      handleCliError(error, 'Merge');
     }
   });
 
