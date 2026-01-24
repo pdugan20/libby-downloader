@@ -284,10 +284,10 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
 - [x] 7.3 Add JSDoc comments
   - [x] Document all public APIs
   - [x] Add examples for complex functions
-- [ ] 7.4 Update CLAUDE.md
-  - [ ] New build commands
-  - [ ] New file structure
-  - [ ] Development workflow
+- [x] 7.4 Update CLAUDE.md
+  - [x] New build commands
+  - [x] New file structure
+  - [x] Development workflow
 - [ ] 7.5 Clean up debug logging
   - [ ] Remove verbose logs
   - [ ] Keep only essential logs

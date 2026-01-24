@@ -16,7 +16,9 @@ npm run test:coverage             # Run tests with coverage report
 npm run check-all                 # Full validation: typecheck + lint + format + test
 
 # Building
-npm run build                     # Compile TypeScript to dist/
+npm run build                     # Compile CLI TypeScript to dist/
+npm run build:extension           # Build extension for production (Vite)
+npm run dev:extension             # Watch mode for extension development
 npm run typecheck                 # Type check without emitting files
 
 # Code Quality
@@ -46,13 +48,26 @@ npm run extension:lint            # Lint with warnings-as-errors
 - `src/utils/books.ts` - Book discovery and status checking
 - `src/utils/logger.ts` - Logging utilities
 
-**Chrome Extension:**
+**Chrome Extension (TypeScript Source):**
 
-- `chrome-extension/manifest.json` - Extension configuration
-- `chrome-extension/content/content.js` - Main content script (bundled, no ES6 imports)
-- `chrome-extension/iframe/iframe-extractor.js` - Extracts BIF object and crypto params
-- `chrome-extension/background/background.js` - Service worker for downloads (supports ES6 modules)
-- `chrome-extension/shared/` - Shared utilities (used by background scripts)
+- `src/background/` - Service worker (download orchestration, state tracking)
+  - `index.ts` - Main entry point and message handling
+  - `download-service.ts` - Chapter downloads with Chrome API
+  - `download-tracker.ts` - Download state management
+  - `metadata-writer.ts` - metadata.json file creation
+- `src/content/` - Content script (UI, message routing, validation)
+  - `index.ts` - Main entry point
+  - `ui-manager.ts` - Button states and notifications
+  - `message-handler.ts` - Message coordination
+  - `constants.ts` - Content-specific configuration
+- `src/iframe/` - Iframe scripts (book extraction, button injection)
+  - `extractor.ts` - BIF object extraction (MAIN world)
+  - `ui-injector.ts` - Download button injection (ISOLATED world)
+- `src/shared/` - Shared utilities (logger, validators, icons)
+  - `logger.ts` - Centralized logging with DEBUG_MODE
+  - `validators.ts` - Origin and data validation
+  - `icon-loader.ts` - SVG icon loading
+- `chrome-extension/` - Built extension output (loaded into Chrome)
 
 **Configuration:**
 
@@ -101,6 +116,30 @@ npm run extension:lint            # Lint with warnings-as-errors
 - No rate limiting in CLI (extension handles that)
 - Downloads happen in user's real browser session (zero bot detection)
 
+## Debug Mode
+
+The extension includes a DEBUG_MODE flag for development and testing:
+
+**Location:** `src/shared/constants.ts`
+
+```typescript
+export const DEBUG_MODE = true; // Set to false for production
+```
+
+**When DEBUG_MODE is true:**
+
+- Logger outputs DEBUG level messages
+- Error stack traces included in logs
+- Can simulate downloads without hitting Libby servers (in message handler)
+
+**When DEBUG_MODE is false (production):**
+
+- Logger outputs INFO level and above only
+- No stack traces (cleaner logs)
+- All downloads are real
+
+**IMPORTANT:** Always set `DEBUG_MODE = false` before production releases.
+
 ## Code Style
 
 **IMPORTANT formatting rules:**
@@ -123,16 +162,27 @@ npm run extension:lint            # Lint with warnings-as-errors
 
 ## Testing
 
-**Unit tests location:** `src/utils/__tests__/`
+**Test structure:** `src/__tests__/`
 
-**Current coverage:** Focus on pure utility functions
+- `__tests__/mocks/` - Chrome API mocks
+- `__tests__/shared/` - Shared utility tests (validators, logger, errors)
+- `__tests__/background/` - Background service tests (download-service, download-tracker)
+- `__tests__/types/` - Type definition tests
+- `utils/__tests__/` - CLI utility tests
 
-- `fs.test.ts` - File operations
+**Test environment:** Jest with jsdom (for browser-like environment)
+
+**Current coverage:**
+
+- 186 total tests across CLI and extension
+- Chrome API mocks for unit testing (downloads, runtime, tabs)
+- Focus on pure utility functions and service layer
 
 **IMPORTANT: Don't test against real Libby:**
 
 - Use mocks for external dependencies
 - Test with safe data only
+- Extension tests use mocked Chrome APIs
 
 ## Repository Etiquette
 
@@ -201,15 +251,31 @@ If downloads suddenly fail, check Chrome DevTools console for BIF object changes
 
 ## Chrome Extension Development
 
-**CRITICAL: Module Import Limitation**
+**Build System: Vite + TypeScript**
 
-Chrome Manifest V3 does NOT support ES6 module imports in content scripts via manifest declaration, even if you add `"type": "module"` to the manifest. The content script must be a single bundled file or use IIFE patterns.
+The extension is now built with Vite for fast compilation and proper module bundling:
+
+- **Multiple entry points:** background, content, iframe-extractor, iframe-ui, content-styles
+- **ES modules output:** Manifest V3 compatible
+- **Code splitting:** Shared utilities bundled into separate chunks
+- **TypeScript:** Full type safety with strict mode
+- **Source maps:** Available in development builds
+- **Minification:** Production builds are optimized
+
+**Build commands:**
+
+```bash
+npm run build:extension      # Production build (minified)
+npm run dev:extension         # Watch mode (rebuilds on changes)
+npm run typecheck             # Verify types without building
+```
 
 **Current architecture:**
 
-- Content script combines all modules into one file with IIFE wrapper
-- Background service worker CAN use `"type": "module"` and import statements
-- Shared utilities are copied inline into content script
+- All scripts written in TypeScript (`src/background/`, `src/content/`, `src/iframe/`)
+- Vite bundles each script with proper ES module support
+- Shared utilities (`src/shared/`) automatically split into reusable chunks
+- Content script and background worker both support ES6 imports via Vite bundling
 
 **Validation workflow:**
 
@@ -260,13 +326,23 @@ All innerHTML security warnings have been fixed by using textContent instead.
 - Message passing issues: Add console.log in both content and background scripts
 - Use `chrome.runtime.lastError` to catch API errors
 
-**When making changes:**
+**Development workflow:**
 
-1. Test the extension loads without errors in Chrome
-2. Run `npm run extension:validate` to check for obvious issues
-3. Ignore Firefox-specific errors from web-ext
-4. Test actual functionality on Libby audiobook pages
-5. Check both DevTools consoles (page and extension service worker)
+1. Make changes to TypeScript files in `src/background/`, `src/content/`, `src/iframe/`, or `src/shared/`
+2. Run `npm run dev:extension` in a terminal (watches for changes)
+3. Load/reload extension in Chrome (`chrome://extensions/` → Reload button)
+4. Test functionality on Libby audiobook pages
+5. Run `npm run extension:validate` to check for issues
+6. Run `npm test` to verify tests still pass
+
+**Debugging tips:**
+
+- Content script errors: Check page DevTools console
+- Background script errors: Check `chrome://extensions/` → Errors button
+- Build errors: Check Vite output in terminal
+- Type errors: Run `npm run typecheck`
+- Test the extension loads without errors in Chrome
+- Check both DevTools consoles (page and extension service worker)
 
 ## CLI Commands
 
@@ -286,20 +362,49 @@ All innerHTML security warnings have been fixed by using textContent instead.
 
 ## Project Structure
 
-```
+```text
 libby-downloader/
-├── src/
-│   ├── commands/       # CLI command handlers (interactive, list, tag)
-│   ├── metadata/       # ID3 tag embedding
-│   ├── utils/          # Utilities (logging, book discovery, etc.)
-│   ├── types/          # TypeScript type definitions
-│   ├── cli.ts          # Main CLI interface
-│   └── index.ts        # Library exports
-├── chrome-extension/   # Chrome extension for downloading
-│   ├── manifest.json
-│   ├── content.js
-│   ├── iframe-extractor.js
-│   └── background.js
+├── src/                           # TypeScript source code
+│   ├── commands/                  # CLI command handlers
+│   ├── services/                  # CLI business logic
+│   ├── ui/                        # CLI UI components
+│   ├── metadata/                  # ID3 tag embedding
+│   ├── utils/                     # CLI utilities
+│   ├── background/                # Extension service worker
+│   │   ├── index.ts               # Main orchestrator
+│   │   ├── download-service.ts    # Chapter downloads
+│   │   ├── download-tracker.ts    # State management
+│   │   └── metadata-writer.ts     # metadata.json creation
+│   ├── content/                   # Extension content script
+│   │   ├── index.ts               # Main entry point
+│   │   ├── ui-manager.ts          # Button states & notifications
+│   │   ├── message-handler.ts     # Message routing
+│   │   └── constants.ts           # Content-specific config
+│   ├── iframe/                    # Extension iframe scripts
+│   │   ├── extractor.ts           # Book data extraction
+│   │   └── ui-injector.ts         # Button injection
+│   ├── shared/                    # Shared extension utilities
+│   │   ├── logger.ts              # Centralized logging
+│   │   ├── validators.ts          # Origin & data validation
+│   │   ├── icon-loader.ts         # SVG icon loading
+│   │   └── constants.ts           # DEBUG_MODE flag
+│   ├── types/                     # TypeScript definitions
+│   │   ├── extension-book.ts      # BookData, Chapter types
+│   │   ├── messages.ts            # Message types
+│   │   └── errors.ts              # Custom error classes
+│   ├── styles/                    # Extension CSS
+│   ├── assets/icons/              # SVG icons
+│   ├── __tests__/                 # Test files
+│   ├── cli.ts                     # CLI interface
+│   └── index.ts                   # Library exports
+├── chrome-extension/              # Built extension (output)
+│   ├── manifest.json              # Extension config (MV3)
+│   ├── background/                # Built service worker
+│   ├── content/                   # Built content script
+│   ├── iframe/                    # Built iframe scripts
+│   └── styles/                    # Built CSS
+├── vite.config.ts                 # Vite build configuration
+├── ARCHITECTURE.md                # Extension architecture docs
 └── package.json
 ```
 
