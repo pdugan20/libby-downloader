@@ -273,14 +273,14 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
 
 **Goal:** Document architecture and clean up code
 
-- [ ] 7.1 Update README.md
-  - [ ] Add architecture overview
-  - [ ] Document new build process
-  - [ ] Update development instructions
-- [ ] 7.2 Create ARCHITECTURE.md
-  - [ ] Document folder structure
-  - [ ] Explain message flow
-  - [ ] Component responsibilities
+- [x] 7.1 Update README.md
+  - [x] Add architecture overview
+  - [x] Document new build process
+  - [x] Update development instructions
+- [x] 7.2 Create ARCHITECTURE.md
+  - [x] Document folder structure
+  - [x] Explain message flow
+  - [x] Component responsibilities
 - [ ] 7.3 Add JSDoc comments
   - [ ] Document all public APIs
   - [ ] Add examples for complex functions

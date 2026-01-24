@@ -144,7 +144,7 @@ Shows which books are tagged/untagged, merged/not merged.
 
 ## Architecture
 
-The CLI uses a clean service layer architecture with separation of concerns:
+**CLI Tool** - Clean service layer architecture with separation of concerns:
 
 **Service Layer** (Business Logic):
 
@@ -164,19 +164,25 @@ The CLI uses a clean service layer architecture with separation of concerns:
 - Commands use presenters for display formatting
 - Zero code duplication across commands
 
-**Chrome Extension**:
+**Chrome Extension** - Modern TypeScript architecture built with Vite:
 
-- Modular architecture with UIManager, MessageHandler, DownloadService
-- Origin validation for security (prevents XSS attacks)
-- Type-safe message constants (no hardcoded strings)
-- ES modules with clear separation of concerns
+- **Background Service Worker**: Download orchestration, state tracking, metadata writer
+- **Content Script**: UI management, message routing, validation
+- **Iframe Scripts**: Book data extraction (MAIN world), download button injection (ISOLATED world)
+- **Shared Utilities**: Centralized logging, validators, error classes, icon loading
+- **Type-Safe**: Full TypeScript with strict typing throughout
+- **Security**: Origin validation, sanitized filenames, no unsafe code execution
+- **Build System**: Vite with ES modules, code splitting, minification
 
 **Testing**:
 
-- 80%+ test coverage across all layers
-- Comprehensive unit tests for services (90%+ coverage)
-- Integration tests for commands
-- Mocked dependencies for fast, reliable tests
+- 186 total tests across CLI and extension
+- 80%+ CLI test coverage (90%+ for services)
+- Jest with jsdom environment for extension tests
+- Chrome API mocks for unit testing
+- Fast, reliable test execution (~8.5s)
+
+For detailed technical documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Advanced Usage
 
@@ -198,24 +204,48 @@ npm run dev -- tag
 
 ## Project Structure
 
-```
+```text
 libby-downloader/
-├── src/
-│   ├── commands/       # CLI command handlers (interactive, list, tag)
-│   ├── services/       # Business logic layer (BookService, MetadataService, FileService)
-│   ├── ui/             # UI components (presenters, prompts)
-│   │   ├── presenters/ # Data formatting (BookPresenter, StatusPresenter)
-│   │   └── prompts/    # Reusable UI components (BookSelector)
-│   ├── utils/          # Utilities (logging, file operations)
-│   ├── types/          # TypeScript type definitions
-│   ├── cli.ts          # Main CLI interface
-│   └── index.ts        # Library API exports
-├── chrome-extension/   # Chrome extension for downloading
-│   ├── manifest.json   # Extension configuration (MV3)
-│   ├── content/        # Content script (UI, message handling)
-│   ├── background/     # Service worker (downloads, tracking)
-│   ├── iframe/         # Iframe extraction logic
-│   └── shared/         # Shared utilities (constants, validators)
+├── src/                          # TypeScript source code
+│   ├── commands/                 # CLI command handlers
+│   ├── services/                 # Business logic (BookService, MetadataService)
+│   ├── ui/                       # UI components (presenters, prompts)
+│   ├── utils/                    # CLI utilities
+│   ├── background/               # Extension service worker
+│   │   ├── index.ts             # Main orchestrator
+│   │   ├── download-service.ts  # Chapter downloads
+│   │   ├── download-tracker.ts  # State management
+│   │   └── metadata-writer.ts   # metadata.json creation
+│   ├── content/                  # Extension content script
+│   │   ├── index.ts             # Main entry point
+│   │   ├── ui-manager.ts        # Button states & notifications
+│   │   ├── message-handler.ts   # Message routing
+│   │   └── constants.ts         # Content-specific config
+│   ├── iframe/                   # Extension iframe scripts
+│   │   ├── extractor.ts         # Book data extraction
+│   │   └── ui-injector.ts       # Button injection
+│   ├── shared/                   # Shared extension utilities
+│   │   ├── logger.ts            # Centralized logging
+│   │   ├── validators.ts        # Origin & data validation
+│   │   ├── icon-loader.ts       # SVG icon loading
+│   │   └── constants.ts         # DEBUG_MODE flag
+│   ├── types/                    # TypeScript definitions
+│   │   ├── extension-book.ts    # BookData, Chapter types
+│   │   ├── messages.ts          # Message types
+│   │   └── errors.ts            # Custom error classes
+│   ├── styles/                   # Extension CSS
+│   ├── assets/icons/             # SVG icons
+│   ├── __tests__/                # Test files
+│   ├── cli.ts                    # CLI interface
+│   └── index.ts                  # Library exports
+├── chrome-extension/             # Built extension (output)
+│   ├── manifest.json            # Extension config (MV3)
+│   ├── background/              # Built service worker
+│   ├── content/                 # Built content script
+│   ├── iframe/                  # Built iframe scripts
+│   └── styles/                  # Built CSS
+├── vite.config.ts               # Vite build configuration
+├── ARCHITECTURE.md              # Extension architecture docs
 └── package.json
 ```
 
@@ -261,14 +291,17 @@ Improvements and pull requests are welcome, especially for:
 **Development Guidelines**:
 
 ```bash
-# Run tests before committing
-npm test
+# CLI Development
+npm run dev -- list          # Run CLI without building
+npm test                     # Run tests
+npm run test:coverage        # View test coverage
+npm run check-all            # Full validation (typecheck + lint + format + test)
 
-# Check code quality (typecheck + lint + format + test)
-npm run check-all
-
-# View test coverage
-npm run test:coverage
+# Extension Development
+npm run build:extension      # Build extension for production
+npm run dev:extension        # Watch mode for development
+npm run extension:validate   # Validate extension code
+npm run typecheck            # TypeScript type checking
 ```
 
 **Using the Service Layer API**:
@@ -285,7 +318,7 @@ const metadataService = new MetadataService();
 await metadataService.embedToFolder(books[0].path);
 ```
 
-See `docs/ARCHITECTURE.md` for detailed architecture documentation and `docs/TESTING.md` for testing guidelines.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed extension architecture documentation.
 
 ## Legal Disclaimer
 
