@@ -46,11 +46,12 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
   - [x] Create `src/types/extension-book.ts` for book data structures
   - [x] Create `src/types/chrome.ts` for Chrome API extensions
   - [x] Create `src/types/extension-types.ts` for central exports
-- [ ] 2.2 Convert iframe extractor to TypeScript
-  - [ ] Rename `iframe-extractor.js` to `iframe-extractor.ts`
-  - [ ] Add proper types for BIF object
-  - [ ] Add types for crypto parameters
-  - [ ] Type message payloads
+- [x] 2.2 Convert iframe extractor to TypeScript
+  - [x] Converted to `src/iframe/extractor.ts`
+  - [x] Added proper types for BIF object structure
+  - [x] Typed crypto parameters with window interface extension
+  - [x] Typed all message payloads and functions
+  - [x] Verified build output (3.05 kB minified)
 - [ ] 2.3 Convert iframe UI to TypeScript
   - [ ] Rename `iframe-ui.js` to `iframe-ui.ts`
   - [ ] Type DOM manipulation code
