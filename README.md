@@ -98,29 +98,12 @@ libby list
 
 Shows all downloaded books with tagging status.
 
-## How It Works
-
-**Chrome Extension:**
-
-- Runs in your real browser session (no bot detection)
-- Extracts book metadata from Libby's page data
-- Downloads chapters sequentially with rate limiting
-- Shows progress bar below album artwork during downloads
-- Saves MP3 files and metadata.json to Downloads folder
-
-**CLI Tool (Optional):**
-
-- Auto-discovers books in `~/Downloads/libby-downloads/`
-- Embeds ID3 metadata tags into MP3 files
-- Interactive menus for tagging and listing books
-
 ## Architecture
 
 Built with TypeScript and Vite:
 
 - **Chrome Extension**: Manifest V3 with background service worker, content scripts, and iframe injectors
 - **CLI Tool**: Service-layer architecture with separate business logic, UI presenters, and commands
-- **Testing**: 186 tests with 80%+ coverage
 - **Type Safety**: Strict TypeScript throughout
 
 For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
@@ -129,7 +112,7 @@ For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ```text
 libby-downloader/
-├── src/                      # TypeScript source
+├── src/                     # TypeScript source
 │   ├── commands/            # CLI command handlers
 │   ├── services/            # Business logic (BookService, MetadataService)
 │   ├── ui/                  # Presenters and prompts
@@ -201,12 +184,10 @@ This tool is provided for **educational purposes only**. Users are responsible f
 
 - Complying with their library's terms of service
 - Respecting copyright and licensing agreements
-- Understanding local laws regarding digital content
-- Any consequences from using this tool
 
 ## License
 
-MIT - See LICENSE.txt
+MIT - See [LICENSE](LICENSE)
 
 ## Acknowledgments
 
