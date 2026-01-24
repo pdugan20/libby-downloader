@@ -126,7 +126,7 @@ describe('BookService', () => {
       } as any);
 
       // Mock checkIfTagged
-      mockExecFile.mockImplementation((cmd: any, args: any, callback: any) => {
+      mockExecFile.mockImplementation((_cmd: any, _args: any, callback: any) => {
         callback(null, {
           stdout: JSON.stringify({
             format: { tags: { album: 'Test', artist: 'Author' } },
@@ -152,7 +152,7 @@ describe('BookService', () => {
         mtime: new Date('2024-01-01'),
       } as any);
 
-      mockExecFile.mockImplementation((cmd: any, args: any, callback: any) => {
+      mockExecFile.mockImplementation((_cmd: any, _args: any, callback: any) => {
         callback(null, { stdout: JSON.stringify({ format: {} }) });
         return {} as any;
       });
@@ -172,7 +172,7 @@ describe('BookService', () => {
         mtime: new Date('2024-01-01'),
       } as any);
 
-      mockExecFile.mockImplementation((cmd: any, args: any, callback: any) => {
+      mockExecFile.mockImplementation((_cmd: any, _args: any, callback: any) => {
         callback(null, { stdout: JSON.stringify({ format: {} }) });
         return {} as any;
       });
