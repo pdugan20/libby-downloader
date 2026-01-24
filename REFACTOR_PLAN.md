@@ -58,10 +58,14 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
   - [x] Typed injectDownloadButton function with void return
   - [x] Used imported MessageTypes for button click
   - [x] Verified build output (2.68 kB minified)
-- [ ] 2.4 Convert content script to TypeScript
-  - [ ] Rename `content.js` to `content.ts`
-  - [ ] Extract classes to separate files
-  - [ ] Add proper types for all methods
+- [x] 2.4 Convert content script to TypeScript
+  - [x] Created `src/content/constants.ts` with ButtonState, Timeouts, UIConfig
+  - [x] Created `src/content/validators.ts` with origin and book data validators
+  - [x] Created `src/content/ui-manager.ts` with typed UIManager class
+  - [x] Created `src/content/message-handler.ts` with typed MessageHandler class
+  - [x] Created `src/content/index.ts` as main entry point
+  - [x] Added proper types for all methods and message payloads
+  - [x] Verified build output (12.16 kB minified)
 - [ ] 2.5 Convert background script to TypeScript
   - [ ] Rename `background.js` to `background.ts`
   - [ ] Type download handlers
