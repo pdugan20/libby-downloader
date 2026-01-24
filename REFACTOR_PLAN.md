@@ -66,14 +66,23 @@ Transform the extension from a monolithic IIFE-based structure to a modern, main
   - [x] Created `src/content/index.ts` as main entry point
   - [x] Added proper types for all methods and message payloads
   - [x] Verified build output (12.16 kB minified)
-- [ ] 2.5 Convert background script to TypeScript
-  - [ ] Rename `background.js` to `background.ts`
-  - [ ] Type download handlers
-  - [ ] Type message handlers
-- [ ] 2.6 Update manifest.json to reference compiled JS
-- [ ] 2.7 Fix all TypeScript errors and verify builds
+- [x] 2.5 Convert background script to TypeScript
+  - [x] Created `src/background/download-tracker.ts` with DownloadTracker class
+  - [x] Created `src/background/metadata-writer.ts` with MetadataWriter class
+  - [x] Created `src/background/download-service.ts` with DownloadService class
+  - [x] Created `src/background/index.ts` as main orchestrator
+  - [x] Added comprehensive types for download handlers and message handlers
+  - [x] Added DownloadStatus and Timeouts to shared messages.ts
+  - [x] Verified build output (4.39 kB minified)
+- [x] 2.6 Update manifest.json to reference compiled JS
+  - [x] Already configured in Phase 1 (manifest references built files)
+- [x] 2.7 Fix all TypeScript errors and verify builds
+  - [x] Fixed unused currentState property in UIManager
+  - [x] Fixed JSON.parse typing in extractor
+  - [x] All TypeScript errors resolved
+  - [x] Build successful (all scripts compile cleanly)
 
-**Estimated Time:** 3-4 hours
+**Estimated Time:** 3-4 hours ✅ **PHASE COMPLETE**
 
 ---
 

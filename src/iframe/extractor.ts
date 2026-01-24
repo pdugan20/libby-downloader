@@ -70,8 +70,8 @@ console.log('[Libby Downloader] Iframe script loaded');
 const originalParse = JSON.parse;
 window.__odreadCmptParams = null;
 
-JSON.parse = function (...args: [string, ...unknown[]]): unknown {
-  const result = originalParse.apply(this, args);
+JSON.parse = function (text: string, reviver?: (key: string, value: unknown) => unknown): unknown {
+  const result = originalParse.apply(this, [text, reviver]);
 
   if (result && typeof result === 'object' && result !== null) {
     const obj = result as Record<string, unknown>;

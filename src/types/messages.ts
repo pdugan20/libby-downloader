@@ -21,6 +21,29 @@ export const MessageTypes = {
 export type MessageType = (typeof MessageTypes)[keyof typeof MessageTypes];
 
 /**
+ * Download status constants
+ */
+export const DownloadStatus = {
+  IDLE: 'idle',
+  EXTRACTING: 'extracting',
+  DOWNLOADING: 'downloading',
+  COMPLETE: 'complete',
+  ERROR: 'error',
+} as const;
+
+export type DownloadStatusType = (typeof DownloadStatus)[keyof typeof DownloadStatus];
+
+/**
+ * Timeouts (in milliseconds)
+ */
+export const Timeouts = {
+  EXTRACTION: 10000, // 10 seconds
+  DOWNLOAD_DELAY: 500, // 500ms between chapters
+  NOTIFICATION_DURATION: 3000, // 3 seconds
+  BUTTON_RESET: 3000, // 3 seconds
+} as const;
+
+/**
  * Message payload types
  */
 

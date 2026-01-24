@@ -21,7 +21,6 @@ type StateData = DownloadProgressData | DownloadCompleteData | Record<string, ne
 export class UIManager {
   private button: HTMLButtonElement | null = null;
   private iconContainer: HTMLDivElement | null = null;
-  private currentState: ButtonStateType = ButtonState.READY;
 
   createButton(onClickHandler: () => void): void {
     console.log('[Libby Downloader] createButton() called');
@@ -87,8 +86,6 @@ export class UIManager {
 
   updateState(state: ButtonStateType, data: StateData = {}): void {
     if (!this.button || !this.iconContainer) return;
-
-    this.currentState = state;
 
     // Download icon SVG
     const downloadIcon = `
