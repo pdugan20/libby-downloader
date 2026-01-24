@@ -41,8 +41,8 @@ describe('DownloadTracker', () => {
 
     it('should generate unique book IDs', async () => {
       const bookId1 = tracker.createDownload(mockBookData);
-      // Wait 1ms to ensure different timestamp
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      // Wait 10ms to ensure different timestamp (1ms was too unreliable in CI)
+      await new Promise((resolve) => setTimeout(resolve, 10));
       const bookId2 = tracker.createDownload(mockBookData);
 
       expect(bookId1).not.toBe(bookId2);
