@@ -251,31 +251,35 @@ If downloads suddenly fail, check Chrome DevTools console for BIF object changes
 
 ## Chrome Extension Development
 
-**Build System: Vite + TypeScript**
+**Build System: Custom Vite IIFE Builder**
 
-The extension is now built with Vite for fast compilation and proper module bundling:
+**CRITICAL:** Content scripts CANNOT use ES module imports in Chrome extensions, even in Manifest V3. Only background workers support `type:"module"`.
 
-- **Multiple entry points:** background, content, iframe-extractor, iframe-ui, content-styles
-- **ES modules output:** Manifest V3 compatible
-- **Code splitting:** Shared utilities bundled into separate chunks
+The extension uses a custom build script (`scripts/build-extension.mjs`) that builds each entry separately as IIFE bundles:
+
+- **IIFE format:** All scripts bundled as Immediately Invoked Function Expressions
+- **Separate builds:** Each entry (background, content, iframe scripts) built independently
+- **All dependencies inlined:** Each bundle is self-contained (no separate chunks)
 - **TypeScript:** Full type safety with strict mode
-- **Source maps:** Available in development builds
-- **Minification:** Production builds are optimized
+- **Minification:** Optimized with esbuild
 
 **Build commands:**
 
 ```bash
-npm run build:extension      # Production build (minified)
+npm run build:extension      # Build all scripts as IIFE bundles
 npm run dev:extension         # Watch mode (rebuilds on changes)
 npm run typecheck             # Verify types without building
 ```
 
-**Current architecture:**
+**Build output:**
 
-- All scripts written in TypeScript (`src/background/`, `src/content/`, `src/iframe/`)
-- Vite bundles each script with proper ES module support
-- Shared utilities (`src/shared/`) automatically split into reusable chunks
-- Content script and background worker both support ES6 imports via Vite bundling
+- background.js: ~5 kB (IIFE, all deps inlined)
+- content.js: ~12 kB (IIFE, all deps inlined)
+- iframe-extractor.js: ~3 kB (IIFE)
+- iframe-ui.js: ~3 kB (IIFE)
+- content-styles.css: ~0.6 kB
+
+**Why not ES modules:** Chrome content scripts declared in manifest.json cannot use `import` statements. This is a platform limitation, not a build configuration issue.
 
 **Validation workflow:**
 
