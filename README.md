@@ -17,6 +17,7 @@ Download audiobooks from Libby to your computer for offline listening.
 
 - **One-Click Downloads**: Download audiobooks with a single click from your browser
 - **Interactive CLI**: Optionally add book title, author, narrator, and cover art to MP3 files
+- **M4B Audiobook Creation**: Merge individual chapter MP3s into a single M4B audiobook file with chapter markers
 
 ## Quick Start
 
@@ -72,6 +73,7 @@ libby
 Options:
 
 - Tag MP3 files (add metadata)
+- Merge chapters into M4B audiobook
 - List all downloaded books
 - View book details
 
@@ -89,6 +91,25 @@ libby tag ~/path/to/folder/ --title "Title" --author "Author"
 ```
 
 Embedded metadata: title, author, narrator, track number, cover art, description
+
+### Merge Command
+
+```bash
+# Interactive (shows list of books)
+libby merge
+
+# Merge specific folder
+libby merge ~/Downloads/libby-downloads/BookTitle/
+```
+
+Merges individual chapter MP3 files into a single M4B audiobook with:
+
+- Chapter markers (one per MP3 file)
+- Embedded metadata (title, author, narrator, cover art)
+- 64kbps AAC mono audio (optimized for voice)
+- M4B output file saved in the same directory
+
+Requires FFmpeg (bundled automatically).
 
 ### List Command
 
