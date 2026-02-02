@@ -57,7 +57,7 @@
     "@types/fluent-ffmpeg": "^2.1.24",
     "@types/inquirer": "^9.0.9",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.0.10",
+    "@types/node": "^25.2.0",
     "@typescript-eslint/eslint-plugin": "^8.53.0",
     "@typescript-eslint/parser": "^8.53.0",
     "eslint": "^9.39.2",
