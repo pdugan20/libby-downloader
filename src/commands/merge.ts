@@ -5,13 +5,17 @@
 import { logger } from '../utils/logger';
 import { MergeService } from '../services/merge-service';
 
+export interface MergeOptions {
+  force?: boolean;
+}
+
 /**
  * Merge MP3 chapters in a folder into a single M4B audiobook
  */
-export async function mergeBook(folderPath: string): Promise<void> {
+export async function mergeBook(folderPath: string, options?: MergeOptions): Promise<void> {
   try {
     const mergeService = new MergeService();
-    await mergeService.mergeFolder(folderPath);
+    await mergeService.mergeFolder(folderPath, { force: options?.force });
   } catch (error) {
     logger.error('Failed to merge audiobook', error);
     throw error;

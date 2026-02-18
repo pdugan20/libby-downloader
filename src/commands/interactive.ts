@@ -105,37 +105,36 @@ async function handleTagAction(
   bookSelector: BookSelector,
   bookPresenter: BookPresenter
 ): Promise<void> {
+  const untaggedBooks = books.filter((b) => !b.isTagged);
   const selected = await bookSelector.selectBook(books, {
     message: 'Which book do you want to tag?',
-    filter: (b) => !b.isTagged,
-    allowAll: true,
-    allButtonText: `Tag all untagged books`,
+    showStatus: true,
+    allowAll: untaggedBooks.length > 0,
+    allButtonText: `Tag all untagged books (${untaggedBooks.length})`,
   });
 
   if (!selected) {
     return;
   }
 
-  // Check if all books are tagged
-  const untaggedBooks = books.filter((b) => !b.isTagged);
-  if (untaggedBooks.length === 0) {
-    console.log(chalk.green('\n✓ All books are already tagged!\n'));
-    return;
-  }
-
-  // Handle "ALL" selection
+  // Handle "ALL" selection (tags untagged books only)
   if (Array.isArray(selected)) {
-    console.log(chalk.cyan(`\nTagging ${selected.length} books...\n`));
+    const toTag = selected.filter((b) => !b.isTagged);
+    if (toTag.length === 0) {
+      console.log(chalk.green('\n All books are already tagged!\n'));
+      return;
+    }
+    console.log(chalk.cyan(`\nTagging ${toTag.length} books...\n`));
 
-    for (const book of selected) {
-      console.log(chalk.bold(`\n📖 ${bookPresenter.getTitle(book)}`));
+    for (const book of toTag) {
+      console.log(chalk.bold(`\n${bookPresenter.getTitle(book)}`));
       await tagFiles(book.path, {});
     }
 
-    console.log(chalk.green(`\n✓ Tagged ${selected.length} books successfully!\n`));
+    console.log(chalk.green(`\nTagged ${toTag.length} books successfully!\n`));
   } else {
-    // Tag single book
-    console.log(chalk.bold(`\n📖 ${bookPresenter.getTitle(selected)}\n`));
+    // Tag single book (works for both tagged and untagged)
+    console.log(chalk.bold(`\n${bookPresenter.getTitle(selected)}\n`));
     await tagFiles(selected.path, {});
     console.log();
   }
@@ -149,26 +148,18 @@ async function handleMergeAction(
   bookSelector: BookSelector,
   bookPresenter: BookPresenter
 ): Promise<void> {
-  const unmergedBooks = books.filter((b) => !b.isMerged);
-
-  if (unmergedBooks.length === 0) {
-    console.log(chalk.green('\n✓ All books are already merged!\n'));
-    return;
-  }
-
   // Warn if books aren't tagged
-  const untaggedCount = unmergedBooks.filter((b) => !b.isTagged).length;
+  const untaggedCount = books.filter((b) => !b.isTagged).length;
   if (untaggedCount > 0) {
     console.log(
       chalk.yellow(
-        `\n⚠️  ${untaggedCount} book(s) are not tagged yet. Consider running "Tag MP3 files" first for better metadata.\n`
+        `\n${untaggedCount} book(s) are not tagged yet. Consider running "Tag MP3 files" first for better metadata.\n`
       )
     );
   }
 
   const selected = await bookSelector.selectBook(books, {
     message: 'Which book do you want to merge?',
-    filter: (b) => !b.isMerged,
     showStatus: true,
   });
 
@@ -176,10 +167,10 @@ async function handleMergeAction(
     return;
   }
 
-  console.log(chalk.bold(`\n📖 ${bookPresenter.getTitle(selected)}\n`));
+  console.log(chalk.bold(`\n${bookPresenter.getTitle(selected)}\n`));
 
   const { mergeBook } = await import('./merge');
-  await mergeBook(selected.path);
+  await mergeBook(selected.path, { force: selected.isMerged });
 }
 
 /**
