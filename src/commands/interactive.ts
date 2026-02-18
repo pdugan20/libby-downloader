@@ -31,27 +31,26 @@ export async function runInteractive(): Promise<void> {
 
   console.log(chalk.bold.cyan('\n📚 Libby Downloader\n'));
 
-  // Check for books
-  const books = await bookService.discoverBooks();
-
-  if (books.length === 0) {
-    console.log(chalk.yellow('No books found in downloads folder.'));
-    console.log(
-      chalk.gray('\nDownload books using the Chrome extension, then run this command again.\n')
-    );
-    return;
-  }
-
-  // Show quick summary
-  const stats = bookService.getStatistics(books);
-  console.log(chalk.gray(`Found ${stats.total} books`));
-  console.log(chalk.gray(`  Tagged: ${stats.tagged}/${stats.total}`));
-  console.log(chalk.gray(`  Merged: ${stats.merged}/${stats.total}\n`));
-
   // Main menu loop
   let shouldContinue = true;
 
   while (shouldContinue) {
+    // Discover books fresh each iteration so status reflects completed operations
+    const books = await bookService.discoverBooks();
+
+    if (books.length === 0) {
+      console.log(chalk.yellow('No books found in downloads folder.'));
+      console.log(
+        chalk.gray('\nDownload books using the Chrome extension, then run this command again.\n')
+      );
+      return;
+    }
+
+    // Show quick summary
+    const stats = bookService.getStatistics(books);
+    console.log(chalk.gray(`Found ${stats.total} books`));
+    console.log(chalk.gray(`  Tagged: ${stats.tagged}/${stats.total}`));
+    console.log(chalk.gray(`  Merged: ${stats.merged}/${stats.total}\n`));
     const { action } = await inquirer.prompt<{ action: MainAction }>([
       {
         type: 'list',

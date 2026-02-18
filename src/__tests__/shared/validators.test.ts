@@ -92,13 +92,31 @@ describe('validateBookData', () => {
     ).toBe(false);
   });
 
-  it('should reject metadata without authors', () => {
+  it('should reject metadata without authors field', () => {
+    expect(
+      validateBookData({
+        metadata: { title: 'Book' },
+        chapters: [{ index: 0, title: 'Ch1', url: 'http://test.com/1.mp3', duration: 100 }],
+      })
+    ).toBe(false);
+  });
+
+  it('should reject metadata with non-array authors', () => {
+    expect(
+      validateBookData({
+        metadata: { title: 'Book', authors: 'Single Author' },
+        chapters: [{ index: 0, title: 'Ch1', url: 'http://test.com/1.mp3', duration: 100 }],
+      })
+    ).toBe(false);
+  });
+
+  it('should accept metadata with empty authors array', () => {
     expect(
       validateBookData({
         metadata: { title: 'Book', authors: [] },
-        chapters: [],
+        chapters: [{ index: 0, title: 'Ch1', url: 'http://test.com/1.mp3', duration: 100 }],
       })
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('should reject data without chapters', () => {

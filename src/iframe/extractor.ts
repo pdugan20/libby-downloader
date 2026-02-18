@@ -72,18 +72,16 @@ window.__odreadCmptParams = null;
 
 JSON.parse = function (text: string, reviver?: (key: string, value: unknown) => unknown): unknown {
   const result = originalParse.apply(this, [text, reviver]);
+  extractCryptoParams(result, 'JSON.parse');
+  return result;
+};
 
-  if (result && typeof result === 'object' && result !== null) {
-    const obj = result as Record<string, unknown>;
-    if (obj.b && typeof obj.b === 'object') {
-      const b = obj.b as Record<string, unknown>;
-      if (b['-odread-cmpt-params']) {
-        window.__odreadCmptParams = Array.from(b['-odread-cmpt-params'] as number[]);
-        console.log('[Libby Downloader] Captured crypto parameters');
-      }
-    }
-  }
-
+// Hook Response.prototype.json to capture crypto parameters from fetch API responses
+// Chrome's Response.json() is native C++ and does NOT go through JSON.parse
+const originalResponseJson = Response.prototype.json;
+Response.prototype.json = async function (): Promise<unknown> {
+  const result = await originalResponseJson.call(this);
+  extractCryptoParams(result, 'Response.json');
   return result;
 };
 
@@ -134,18 +132,13 @@ async function extractBookData(): Promise<BookData> {
     throw new Error('BIF object not found. The audiobook player may not have loaded properly.');
   }
 
-  // Check crypto params
-  if (!window.__odreadCmptParams) {
-    throw new Error(
-      'Crypto parameters not captured yet. Play the audiobook for a few seconds and try again.'
-    );
-  }
+  // Wait for crypto params (polls for up to 5 seconds)
+  const odreadCmptParams = await waitForCryptoParams();
 
-  const odreadCmptParams = window.__odreadCmptParams;
-
-  // Extract metadata
-  const authors = BIF.map.creator.filter((c) => c.role === 'author').map((c) => c.name);
-  const narrators = BIF.map.creator.filter((c) => c.role === 'narrator').map((c) => c.name);
+  // Extract metadata (null-safe, case-insensitive with fallbacks)
+  const creators = BIF.map.creator ?? [];
+  const authors = resolveAuthors(creators);
+  const narrators = creators.filter((c) => c.role?.toLowerCase() === 'narrator').map((c) => c.name);
   const totalDuration = BIF.map.spine.reduce(
     (sum, spine) => sum + (spine['audio-duration'] || 0),
     0
@@ -242,6 +235,76 @@ async function getBIF(): Promise<BIFObject | null> {
  */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Extract crypto params from a parsed object (shared by JSON.parse and Response.json hooks)
+ */
+function extractCryptoParams(result: unknown, source: string): void {
+  if (result && typeof result === 'object' && result !== null) {
+    const obj = result as Record<string, unknown>;
+    if (obj.b && typeof obj.b === 'object') {
+      const b = obj.b as Record<string, unknown>;
+      if (b['-odread-cmpt-params']) {
+        window.__odreadCmptParams = Array.from(b['-odread-cmpt-params'] as number[]);
+        console.log(`[Libby Downloader] Captured crypto parameters via ${source}`);
+      }
+    }
+  }
+}
+
+/**
+ * Wait for crypto parameters with polling
+ * Gives Libby's player time to fetch params after playback starts
+ */
+async function waitForCryptoParams(
+  timeoutMs: number = 5000,
+  pollIntervalMs: number = 250
+): Promise<number[]> {
+  if (window.__odreadCmptParams) {
+    return window.__odreadCmptParams;
+  }
+
+  console.log('[Libby Downloader] Waiting for crypto parameters...');
+  const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+
+  for (let i = 0; i < maxAttempts; i++) {
+    await sleep(pollIntervalMs);
+    if (window.__odreadCmptParams) {
+      console.log(
+        `[Libby Downloader] Crypto parameters captured after ${(i + 1) * pollIntervalMs}ms`
+      );
+      return window.__odreadCmptParams;
+    }
+  }
+
+  throw new Error(
+    'Crypto parameters not captured. Please play the audiobook for a few seconds and try again.'
+  );
+}
+
+/**
+ * Resolve authors from BIF creator list with fallback chain
+ * 1. Case-insensitive match for known author roles
+ * 2. Any non-narrator creator
+ * 3. First creator regardless of role
+ * 4. 'Unknown' as last resort
+ */
+function resolveAuthors(creators: Array<{ name: string; role: string }>): string[] {
+  const authorRoles = new Set(['author', 'aut', 'wrt', 'writer']);
+  const byRole = creators
+    .filter((c) => authorRoles.has(c.role?.toLowerCase() ?? ''))
+    .map((c) => c.name);
+  if (byRole.length > 0) return byRole;
+
+  const nonNarrators = creators
+    .filter((c) => (c.role?.toLowerCase() ?? '') !== 'narrator')
+    .map((c) => c.name);
+  if (nonNarrators.length > 0) return nonNarrators;
+
+  if (creators.length > 0) return [creators[0].name];
+
+  return ['Unknown'];
 }
 
 console.log('[Libby Downloader] Ready to extract');

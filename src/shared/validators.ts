@@ -50,7 +50,7 @@ export function validateBookData(bookData: unknown): bookData is BookData {
     return false;
   }
 
-  if (!Array.isArray(metadata.authors) || metadata.authors.length === 0) {
+  if (!Array.isArray(metadata.authors)) {
     return false;
   }
 
