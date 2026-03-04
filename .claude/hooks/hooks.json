@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx claudelint check-all --format json"
+          }
+        ]
+      }
+    ]
+  }
+}

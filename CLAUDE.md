@@ -46,9 +46,9 @@ npm run extension:lint            # Lint with warnings-as-errors
 - `src/commands/list.ts` - List downloaded books
 - `src/commands/tag.ts` - Tag MP3 files with metadata
 - `src/commands/merge.ts` - Merge chapters into M4B audiobook
-- `src/metadata/embedder.ts` - ID3 tag embedding
+- `src/services/metadata-service.ts` - ID3 tag embedding
 - `src/services/merge-service.ts` - M4B audiobook merging with FFmpeg
-- `src/utils/books.ts` - Book discovery and status checking
+- `src/services/book-service.ts` - Book discovery and status checking
 - `src/utils/logger.ts` - Logging utilities
 
 **Chrome Extension (TypeScript Source):**
@@ -106,7 +106,7 @@ npm run extension:lint            # Lint with warnings-as-errors
    - Saves metadata.json alongside MP3 files
 
 2. **CLI Tags (Optional):**
-   - CLI auto-discovers books in `~/Downloads/libby-downloads/`
+   - CLI auto-discovers books in ~/Downloads/libby-downloads/
    - Reads metadata.json from book folders
    - Embeds ID3 tags into MP3 files (title, author, narrator, cover art)
    - Shows book status (tagged/untagged)
@@ -174,11 +174,11 @@ export const DEBUG_MODE = true; // Set to false for production
 
 **Test structure:** `src/__tests__/`
 
-- `__tests__/mocks/` - Chrome API mocks
-- `__tests__/shared/` - Shared utility tests (validators, logger, errors)
-- `__tests__/background/` - Background service tests (download-service, download-tracker)
-- `__tests__/types/` - Type definition tests
-- `utils/__tests__/` - CLI utility tests
+- `src/__tests__/mocks/` - Chrome API mocks
+- `src/__tests__/shared/` - Shared utility tests (validators, logger, errors)
+- `src/__tests__/background/` - Background service tests (download-service, download-tracker)
+- `src/__tests__/types/` - Type definition tests
+- `src/utils/__tests__/` - CLI utility tests
 
 **Test environment:** Jest with jsdom (for browser-like environment)
 

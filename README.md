@@ -1,8 +1,8 @@
 # Libby Downloader
 
-[![CI](https://github.com/pdugan20/libby-downloader/actions/workflows/ci.yml/badge.svg)](https://github.com/pdugan20/libby-downloader/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![CI](https://github.com/pdugan20/libby-downloader/workflows/CI/badge.svg)](https://github.com/pdugan20/libby-downloader/actions)
+[![Node.js](https://img.shields.io/node/v/next?logo=node.js)](https://nodejs.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Download audiobooks from Libby to your computer for offline listening.
 
@@ -206,6 +206,3 @@ This tool is provided for **educational purposes only**. Users are responsible f
 - Complying with their library's terms of service
 - Respecting copyright and licensing agreements
 
-## License
-
-MIT - See [LICENSE](LICENSE)
