@@ -44,7 +44,7 @@ jobs:
           name: codecov-umbrella
 
       - name: Lint Claude Code config
-        run: npx claudelint
+        run: npm run lint:claude
 
       - name: Build
         run: npm run build
