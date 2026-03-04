@@ -6,13 +6,6 @@
 
 Download audiobooks from Libby to your computer for offline listening.
 
-## Important Warnings
-
-**READ THIS BEFORE USING:**
-
-- This tool is for **educational purposes only**
-- Downloading audiobooks may **violate your library's terms of service**
-
 ## Features
 
 - **One-Click Downloads**: Download audiobooks with a single click from your browser
@@ -191,18 +184,7 @@ npm run dev:extension        # Watch mode for extension
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
 
-## Contributing
+## Disclaimer
 
-Pull requests welcome! Areas of interest:
-
-- Error handling improvements
-- Cross-platform compatibility
-- UI/UX enhancements
-
-## Legal Disclaimer
-
-This tool is provided for **educational purposes only**. Users are responsible for:
-
-- Complying with their library's terms of service
-- Respecting copyright and licensing agreements
+This tool is for educational purposes only. Users are responsible for complying with their library's terms of service and respecting copyright agreements.
 
