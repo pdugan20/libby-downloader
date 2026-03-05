@@ -18,6 +18,7 @@ interface BookMetadata {
     title: string;
     authors: string[];
     narrator?: string;
+    narrators?: string[];
     coverUrl?: string;
     description?: string | { full: string; short: string };
   };
@@ -55,7 +56,7 @@ export class MergeService {
   /**
    * Merge all chapter MP3 files in a folder into a single M4B audiobook
    */
-  async mergeFolder(folderPath: string): Promise<string> {
+  async mergeFolder(folderPath: string, options?: { force?: boolean }): Promise<string> {
     const ctx: MergeContext = { folderPath };
 
     const tasks = new Listr<MergeContext>(
@@ -162,7 +163,7 @@ export class MergeService {
                 },
                 {
                   title: 'Preparing output file',
-                  task: async (ctx) => {
+                  task: async (ctx, task) => {
                     if (!ctx.metadata) {
                       throw new Error('Missing metadata');
                     }
@@ -173,7 +174,14 @@ export class MergeService {
                     // Check if output file already exists
                     try {
                       await fs.access(ctx.outputPath);
-                      throw new Error(`Output file already exists: ${ctx.outputFilename}`);
+                      if (options?.force) {
+                        await fs.unlink(ctx.outputPath);
+                        task.title = 'Preparing output file: ' + chalk.yellow('replacing existing');
+                      } else {
+                        throw new Error(
+                          `Output file already exists: ${ctx.outputFilename} (use --force to overwrite)`
+                        );
+                      }
                     } catch (error) {
                       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
                         throw error;
@@ -403,8 +411,10 @@ export class MergeService {
     lines.push(`album=${metadata.metadata.title}`);
     lines.push('genre=Audiobook');
 
-    if (metadata.metadata.narrator) {
-      lines.push(`album_artist=${metadata.metadata.narrator}`);
+    // Resolve narrator: narrators[] (from extension) > narrator (legacy)
+    const narrator = metadata.metadata.narrators?.join(', ') || metadata.metadata.narrator;
+    if (narrator) {
+      lines.push(`album_artist=${narrator}`);
     }
 
     // Description

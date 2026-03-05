@@ -19,7 +19,9 @@ describe('mergeBook command', () => {
 
     await mergeBook('/test/book-folder');
 
-    expect(mockMergeService.mergeFolder).toHaveBeenCalledWith('/test/book-folder');
+    expect(mockMergeService.mergeFolder).toHaveBeenCalledWith('/test/book-folder', {
+      force: undefined,
+    });
   });
 
   it('should handle errors from MergeService', async () => {

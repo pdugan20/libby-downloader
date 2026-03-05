@@ -77,7 +77,8 @@ program
 program
   .command('merge [folder]')
   .description('Merge MP3 chapters into single M4B audiobook (interactive if no folder specified)')
-  .action(async (folder) => {
+  .option('--force', 'Overwrite existing M4B file')
+  .action(async (folder, options) => {
     try {
       if (!folder) {
         // Interactive mode
@@ -85,7 +86,7 @@ program
         return;
       }
 
-      await mergeBook(folder);
+      await mergeBook(folder, { force: options.force });
     } catch (error) {
       handleCliError(error, 'Merge');
     }

@@ -22,6 +22,7 @@ interface BookMetadata {
     subtitle?: string;
     authors: string[];
     narrator?: string;
+    narrators?: string[];
     coverUrl?: string;
     description?: string | { full: string; short: string };
   };
@@ -204,12 +205,16 @@ export class MetadataService {
           bookMetadata.metadata.description.short || bookMetadata.metadata.description.full || '';
       }
 
+      // Resolve narrator: narrators[] (from extension) > narrator (legacy) > undefined
+      const resolvedNarrator =
+        bookMetadata.metadata.narrators?.join(', ') || bookMetadata.metadata.narrator;
+
       return {
-        title: bookMetadata.metadata.title,
-        authors: bookMetadata.metadata.authors,
-        narrator: bookMetadata.metadata.narrator,
-        coverUrl: bookMetadata.metadata.coverUrl,
-        description,
+        title: options.title || bookMetadata.metadata.title,
+        authors: options.author ? [options.author] : bookMetadata.metadata.authors,
+        narrator: options.narrator || resolvedNarrator,
+        coverUrl: options.coverUrl || bookMetadata.metadata.coverUrl,
+        description: options.description || description,
         chapters: bookMetadata.chapters,
       };
     }
