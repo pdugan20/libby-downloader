@@ -33,401 +33,81 @@ npm run extension:validate        # Lint extension manifest and code
 npm run extension:lint            # Lint with warnings-as-errors
 ```
 
-## Core Files
+## Entry Points
 
-**Entry Points:**
-
-- `src/cli.ts` - Main CLI interface (Commander.js)
+- `src/cli.ts` - CLI interface (Commander.js)
 - `src/index.ts` - Library exports
-
-**Key Modules:**
-
-- `src/commands/interactive.ts` - Interactive menu system
-- `src/commands/list.ts` - List downloaded books
-- `src/commands/tag.ts` - Tag MP3 files with metadata
-- `src/commands/merge.ts` - Merge chapters into M4B audiobook
-- `src/services/metadata-service.ts` - ID3 tag embedding
-- `src/services/merge-service.ts` - M4B audiobook merging with FFmpeg
-- `src/services/book-service.ts` - Book discovery and status checking
-- `src/utils/logger.ts` - Logging utilities
-
-**Chrome Extension (TypeScript Source):**
-
-- `src/background/` - Service worker (download orchestration, state tracking)
-  - `index.ts` - Main entry point and message handling
-  - `download-service.ts` - Chapter downloads with Chrome API
-  - `download-tracker.ts` - Download state management
-  - `metadata-writer.ts` - metadata.json file creation
-- `src/content/` - Content script (UI, message routing, validation)
-  - `index.ts` - Main entry point
-  - `ui-manager.ts` - Button states and notifications
-  - `message-handler.ts` - Message coordination
-  - `constants.ts` - Content-specific configuration
-- `src/iframe/` - Iframe scripts (book extraction, button injection)
-  - `extractor.ts` - BIF object extraction (MAIN world)
-  - `ui-injector.ts` - Download button injection (ISOLATED world)
-- `src/shared/` - Shared utilities (logger, validators, icons)
-  - `logger.ts` - Centralized logging with DEBUG_MODE
-  - `validators.ts` - Origin and data validation
-  - `icon-loader.ts` - SVG icon loading
-- `chrome-extension/` - Built extension output (loaded into Chrome)
-
-**Configuration:**
-
-- `eslint.config.js` - ESLint v9 flat config
-- `jest.config.js` - Test configuration
-- `.husky/` - Git hooks (pre-commit: lint-staged, pre-push: check-all + extension:validate)
-- `scripts/validate-extension.js` - Custom extension validator (filters Firefox-specific errors)
+- `src/background/index.ts` - Extension service worker
+- `src/content/index.ts` - Extension content script
+- `src/iframe/extractor.ts` - BIF object extraction (MAIN world)
+- `src/iframe/ui-injector.ts` - Download button injection (ISOLATED world)
 
 ## CRITICAL Rules
 
-**NEVER commit without passing validation:**
-
 - Pre-commit hook auto-formats and lints staged files
 - Pre-push hook runs full `check-all` suite + extension validation
-- If hooks fail, fix issues before pushing
-- Extension validation filters out Firefox-specific errors (Chrome-only extension)
-
-**IMPORTANT: TypeScript `any` usage:**
-
-- `any` types are ALLOWED in logger variadic parameters
-- These ESLint warnings are expected and should NOT be "fixed"
+- `any` types are ALLOWED in logger variadic parameters — don't "fix" these ESLint warnings
+- Always set `DEBUG_MODE = false` in `src/shared/constants.ts` before production releases
+- Don't test against real Libby — use mocks for all external dependencies
 
 ## Architecture
-
-**How it works:**
 
 1. **Chrome Extension Downloads:**
    - User clicks extension button on Libby audiobook page
    - Extension extracts BIF object (book metadata) from page
    - Extension hooks JSON.parse to capture odreadCmptParams (crypto keys)
-   - Extension downloads chapters sequentially via chrome.downloads API
-   - 500ms delays between chapters (rate limiting)
+   - Downloads chapters sequentially via chrome.downloads API (500ms delays)
    - Saves metadata.json alongside MP3 files
 
 2. **CLI Tags (Optional):**
-   - CLI auto-discovers books in ~/Downloads/libby-downloads/
-   - Reads metadata.json from book folders
-   - Embeds ID3 tags into MP3 files (title, author, narrator, cover art)
-   - Shows book status (tagged/untagged)
+   - Auto-discovers books in ~/Downloads/libby-downloads/
+   - Reads metadata.json, embeds ID3 tags into MP3 files
 
 3. **CLI Merges (Optional):**
-   - CLI can merge individual chapter MP3s into a single M4B audiobook
-   - Uses fluent-ffmpeg with bundled ffmpeg binary (zero config)
-   - Embeds chapter markers (one per MP3 file)
-   - Includes metadata (title, author, narrator, cover art)
-   - Output: 64kbps AAC mono (optimized for voice)
+   - Merges chapter MP3s into single M4B audiobook via fluent-ffmpeg
+   - Embeds chapter markers, metadata, and cover art
+   - Output: 64kbps AAC mono
 
-**Key Points:**
-
-- Extension handles ALL downloading (no CLI download functionality)
-- CLI is for tagging, merging, and listing books
-- No browser automation
-- No rate limiting in CLI (extension handles that)
-- Downloads happen in user's real browser session (zero bot detection)
+Extension handles ALL downloading. CLI is for tagging, merging, and listing only.
 
 ## Debug Mode
 
-The extension includes a DEBUG_MODE flag for development and testing:
+`src/shared/constants.ts` — `DEBUG_MODE` flag:
 
-**Location:** `src/shared/constants.ts`
-
-```typescript
-export const DEBUG_MODE = true; // Set to false for production
-```
-
-**When DEBUG_MODE is true:**
-
-- Logger outputs DEBUG level messages
-- Error stack traces included in logs
-- Can simulate downloads without hitting Libby servers (in message handler)
-
-**When DEBUG_MODE is false (production):**
-
-- Logger outputs INFO level and above only
-- No stack traces (cleaner logs)
-- All downloads are real
-
-**IMPORTANT:** Always set `DEBUG_MODE = false` before production releases.
+- **true:** DEBUG level logging, stack traces, simulated downloads
+- **false:** INFO level and above, real downloads only
 
 ## Code Style
 
-**IMPORTANT formatting rules:**
-
 - Prettier: single quotes, 100 char width, 2-space indent
-- ESLint: TypeScript recommended rules + Prettier integration
-- All staged files auto-formatted on commit
-
-**Naming:**
-
-- PascalCase: classes
-- camelCase: functions, variables
-- SCREAMING_SNAKE_CASE: constants
-
-**Error handling:**
-
-- Use try/catch with `logger.error()`
-- Clean up resources in finally blocks
-- Unused error variables: use `catch { }` without parameter
+- PascalCase: classes | camelCase: functions, variables | SCREAMING_SNAKE_CASE: constants
+- Error handling: try/catch with `logger.error()`, cleanup in finally, `catch { }` without parameter
 
 ## Testing
 
-**Test structure:** `src/__tests__/`
-
-- `src/__tests__/mocks/` - Chrome API mocks
-- `src/__tests__/shared/` - Shared utility tests (validators, logger, errors)
-- `src/__tests__/background/` - Background service tests (download-service, download-tracker)
-- `src/__tests__/types/` - Type definition tests
-- `src/utils/__tests__/` - CLI utility tests
-
-**Test environment:** Jest with jsdom (for browser-like environment)
-
-**Current coverage:**
-
-- 186 total tests across CLI and extension
-- Chrome API mocks for unit testing (downloads, runtime, tabs)
-- Focus on pure utility functions and service layer
-
-**IMPORTANT: Don't test against real Libby:**
-
-- Use mocks for external dependencies
-- Test with safe data only
-- Extension tests use mocked Chrome APIs
-
-## Repository Etiquette
-
-**Branch strategy:**
-
-- Main branch: `main`
-- Feature branches: `feature/descriptive-name`
-- Bug fixes: `fix/issue-description`
-
-**Commit messages:**
-
-- Descriptive, present tense
-- Multi-line for complex changes
-- No emoji (per user preferences)
-
-**Pull requests:**
-
-- All checks must pass (GitHub Actions CI)
-- Tests run on Node 18.x, 20.x, 22.x
+- Test structure: `src/__tests__/` and `src/utils/__tests__/`
+- Environment: Jest with jsdom
+- Chrome API mocks in `src/__tests__/mocks/`
 - Coverage thresholds: 50% branches, 60% statements
 
-## Common Issues
+## Chrome Extension Build
 
-**TypeScript errors:**
+**CRITICAL:** Content scripts CANNOT use ES module imports in Chrome extensions (MV3). Only background workers support `type:"module"`.
 
-- Make sure all imports reference existing files
-- Check that exported types match actual exports
-- Run `npm run typecheck` to verify
+The build script (`scripts/build-extension.mjs`) compiles each entry as a self-contained IIFE bundle with all dependencies inlined.
 
-**ESLint warnings about `any`:**
+**Extension validation** uses web-ext, which is Firefox-focused. The custom validator (`scripts/validate-extension.js`) filters out Firefox-specific errors: `MANIFEST_FIELD_UNSUPPORTED`, `ADDON_ID_REQUIRED`, `MISSING_DATA_COLLECTION_PERMISSIONS`, `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`.
 
-- Expected in logger functions
-- These warnings are acceptable, don't suppress them
+**Debugging:**
 
-## Dependencies
-
-**IMPORTANT external requirements:**
-
-- Node.js 18+ (tested on 18.x, 20.x, 22.x)
-- Chrome browser (for extension)
-
-**Key packages:**
-
-- `node-id3` for metadata embedding
-- `fluent-ffmpeg` for M4B audiobook creation
-- `@ffmpeg-installer/ffmpeg` for bundled ffmpeg binary (~50MB, cross-platform)
-- `commander` for CLI
-- `chalk` for terminal UI
-- `inquirer` for interactive prompts
-
-**Dependency management:**
-
-- Dependabot configured in `.github/dependabot.yml`
-- Runs weekly checks every Monday
-- Creates PRs automatically for updates
-- Check security: `npm audit`
-- Check outdated: `npm outdated`
+- Content script errors: page DevTools console
+- Background script errors: `chrome://extensions/` → Errors button
+- Build/type errors: terminal output or `npm run typecheck`
 
 ## When Libby Changes
 
-**CRITICAL monitoring points:**
+If downloads suddenly fail, check these in Chrome DevTools:
 
-- `BIF` object structure (contains book/chapter metadata)
+- `BIF` object structure (book/chapter metadata)
 - `odreadCmptParams` availability (crypto keys for chapter URLs)
 - Extension button injection on audiobook pages
-
-If downloads suddenly fail, check Chrome DevTools console for BIF object changes.
-
-## Chrome Extension Development
-
-**Build System: Custom Vite IIFE Builder**
-
-**CRITICAL:** Content scripts CANNOT use ES module imports in Chrome extensions, even in Manifest V3. Only background workers support `type:"module"`.
-
-The extension uses a custom build script (`scripts/build-extension.mjs`) that builds each entry separately as IIFE bundles:
-
-- **IIFE format:** All scripts bundled as Immediately Invoked Function Expressions
-- **Separate builds:** Each entry (background, content, iframe scripts) built independently
-- **All dependencies inlined:** Each bundle is self-contained (no separate chunks)
-- **TypeScript:** Full type safety with strict mode
-- **Minification:** Optimized with esbuild
-
-**Build commands:**
-
-```bash
-npm run build:extension      # Build all scripts as IIFE bundles
-npm run dev:extension         # Watch mode (rebuilds on changes)
-npm run typecheck             # Verify types without building
-```
-
-**Build output:**
-
-- background.js: ~5 kB (IIFE, all deps inlined)
-- content.js: ~12 kB (IIFE, all deps inlined)
-- iframe-extractor.js: ~3 kB (IIFE)
-- iframe-ui.js: ~3 kB (IIFE)
-- content-styles.css: ~0.6 kB
-
-**Why not ES modules:** Chrome content scripts declared in manifest.json cannot use `import` statements. This is a platform limitation, not a build configuration issue.
-
-**Validation workflow:**
-
-```bash
-# Validate extension (auto-filters Firefox-specific errors)
-npm run extension:validate
-
-# Strict validation with warnings-as-errors (for debugging)
-npm run extension:lint
-```
-
-**Automated validation:**
-
-- Extension validation runs automatically on `git push` via pre-push hook
-- Custom validator (`scripts/validate-extension.js`) filters Firefox-specific errors
-- Only Chrome-relevant errors will block the push
-
-**Understanding web-ext validation:**
-
-web-ext is primarily designed for Firefox extensions. Our custom validator filters out:
-
-- `MANIFEST_FIELD_UNSUPPORTED` - service_worker vs scripts difference (Chrome uses service_worker)
-- `ADDON_ID_REQUIRED` - Firefox requires ID, Chrome doesn't
-- `MISSING_DATA_COLLECTION_PERMISSIONS` - Firefox privacy requirement only
-- `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION` - Firefox version requirements
-
-All innerHTML security warnings have been fixed by using textContent instead.
-
-**Manual testing in Chrome:**
-
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable "Developer mode" toggle in top-right
-3. Click "Load unpacked" button
-4. Select the `chrome-extension/` directory
-5. Check for errors in the console
-6. Navigate to a Libby audiobook page to test functionality
-
-**Common extension errors:**
-
-- "Cannot use import statement outside a module" - Content script has ES6 imports, must be bundled
-- "Service worker registration failed" - Check background/background.js exists and is valid
-- "Extension context invalidated" - Extension was reloaded, refresh the test page
-
-**Debugging tips:**
-
-- Content script errors: Check the page's DevTools console
-- Background script errors: Check `chrome://extensions/` and click "Errors" button
-- Message passing issues: Add console.log in both content and background scripts
-- Use `chrome.runtime.lastError` to catch API errors
-
-**Development workflow:**
-
-1. Make changes to TypeScript files in `src/background/`, `src/content/`, `src/iframe/`, or `src/shared/`
-2. Run `npm run dev:extension` in a terminal (watches for changes)
-3. Load/reload extension in Chrome (`chrome://extensions/` → Reload button)
-4. Test functionality on Libby audiobook pages
-5. Run `npm run extension:validate` to check for issues
-6. Run `npm test` to verify tests still pass
-
-**Debugging tips:**
-
-- Content script errors: Check page DevTools console
-- Background script errors: Check `chrome://extensions/` → Errors button
-- Build errors: Check Vite output in terminal
-- Type errors: Run `npm run typecheck`
-- Test the extension loads without errors in Chrome
-- Check both DevTools consoles (page and extension service worker)
-
-## CLI Commands
-
-**Available Commands:**
-
-- `libby` - Interactive menu (tag files, merge chapters, list books, view details)
-- `libby list` - List all downloaded books with status
-- `libby tag [folder]` - Tag MP3 files with metadata (interactive if no folder)
-- `libby merge [folder]` - Merge MP3 chapters into single M4B audiobook (interactive if no folder)
-
-**Command Options:**
-
-- `-v, --verbose` - Enable verbose logging
-- `--title <title>` - Override book title (tag command)
-- `--author <author>` - Override author (tag command)
-- `--narrator <narrator>` - Override narrator (tag command)
-- `--cover-url <url>` - Override cover art URL (tag command)
-
-## Project Structure
-
-```text
-libby-downloader/
-├── src/                           # TypeScript source code
-│   ├── commands/                  # CLI command handlers
-│   ├── services/                  # CLI business logic
-│   ├── ui/                        # CLI UI components
-│   ├── metadata/                  # ID3 tag embedding
-│   ├── utils/                     # CLI utilities
-│   ├── background/                # Extension service worker
-│   │   ├── index.ts               # Main orchestrator
-│   │   ├── download-service.ts    # Chapter downloads
-│   │   ├── download-tracker.ts    # State management
-│   │   └── metadata-writer.ts     # metadata.json creation
-│   ├── content/                   # Extension content script
-│   │   ├── index.ts               # Main entry point
-│   │   ├── ui-manager.ts          # Button states & notifications
-│   │   ├── message-handler.ts     # Message routing
-│   │   └── constants.ts           # Content-specific config
-│   ├── iframe/                    # Extension iframe scripts
-│   │   ├── extractor.ts           # Book data extraction
-│   │   └── ui-injector.ts         # Button injection
-│   ├── shared/                    # Shared extension utilities
-│   │   ├── logger.ts              # Centralized logging
-│   │   ├── validators.ts          # Origin & data validation
-│   │   ├── icon-loader.ts         # SVG icon loading
-│   │   └── constants.ts           # DEBUG_MODE flag
-│   ├── types/                     # TypeScript definitions
-│   │   ├── extension-book.ts      # BookData, Chapter types
-│   │   ├── messages.ts            # Message types
-│   │   └── errors.ts              # Custom error classes
-│   ├── styles/                    # Extension CSS
-│   ├── assets/icons/              # SVG icons
-│   ├── __tests__/                 # Test files
-│   ├── cli.ts                     # CLI interface
-│   └── index.ts                   # Library exports
-├── chrome-extension/              # Built extension (output)
-│   ├── manifest.json              # Extension config (MV3)
-│   ├── background/                # Built service worker
-│   ├── content/                   # Built content script
-│   ├── iframe/                    # Built iframe scripts
-│   └── styles/                    # Built CSS
-├── vite.config.ts                 # Vite build configuration
-├── ARCHITECTURE.md                # Extension architecture docs
-└── package.json
-```
-
-## Resources
-
-- Chrome Extensions: https://developer.chrome.com/docs/extensions/
-- Node.js: https://nodejs.org/docs/
-- Libby: https://libbyapp.com
-- node-id3: https://github.com/Zazama/node-id3

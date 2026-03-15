@@ -1,20 +1,18 @@
 # Libby Downloader
 
 [![CI](https://github.com/pdugan20/libby-downloader/workflows/CI/badge.svg)](https://github.com/pdugan20/libby-downloader/actions)
-[![Node.js](https://img.shields.io/node/v/next?logo=node.js)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-18%2B-green?logo=node.js)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
 
 Download audiobooks from Libby to your computer for offline listening.
 
 ## Features
 
-- **One-Click Downloads**: Download audiobooks with a single click from your browser
-- **Interactive CLI**: Optionally add book title, author, narrator, and cover art to MP3 files
-- **M4B Audiobook Creation**: Merge individual chapter MP3s into a single M4B audiobook file with chapter markers
+- **One-Click Downloads**: Chrome extension downloads audiobooks directly from Libby
+- **MP3 Tagging**: CLI adds title, author, narrator, and cover art to downloaded files
+- **M4B Audiobooks**: Merge chapters into a single audiobook file with chapter markers
 
-## Quick Start
-
-### Extension Only (Download Audiobooks)
+## Setup
 
 ```bash
 git clone https://github.com/pdugan20/libby-downloader.git
@@ -23,163 +21,47 @@ npm install
 npm run build:extension
 ```
 
-Then load the extension:
+Load the extension in Chrome:
 
-1. Open Chrome and navigate to `chrome://extensions/`
+1. Navigate to `chrome://extensions/`
 2. Enable "Developer mode" (top-right toggle)
-3. Click "Load unpacked"
-4. Select the `chrome-extension` folder from this project
+3. Click "Load unpacked" and select the `chrome-extension` folder
 
-Download audiobooks:
-
-1. Open an audiobook in Libby using Chrome
-2. Click the download button in the top-right navigation bar
-3. Downloads save to `~/Downloads/libby-downloads/[Book Title]/`
-
-### Extension + CLI (Add Metadata to MP3s)
-
-If you also want to tag your MP3 files with metadata:
+To use the CLI (optional):
 
 ```bash
-# Build CLI (in addition to extension)
-npm run build
-
-# Install CLI globally
-npm link
-
-# Run interactive menu
-libby
-
-# Select "Tag MP3 files" and choose your book
+npm run build && npm link
 ```
 
-## CLI Commands
+## Usage
 
-CLI requires installation via `npm run build && npm link` (see above).
+### Downloading
 
-### Interactive Menu
+Open an audiobook in Libby, then click the download button in the top-right navigation bar. Files save to `~/Downloads/libby-downloads/[Book Title]/`.
+
+### CLI
+
+The CLI provides tagging and merging for downloaded books. Run `libby` for the interactive menu, or use commands directly:
 
 ```bash
-libby
+libby tag                  # Tag MP3 files with metadata (interactive)
+libby tag ~/path/to/book/  # Tag a specific folder
+libby merge                # Merge chapters into M4B audiobook (interactive)
+libby merge ~/path/to/book/
+libby list                 # List all downloaded books
 ```
 
-Options:
-
-- Tag MP3 files (add metadata)
-- Merge chapters into M4B audiobook
-- List all downloaded books
-- View book details
-
-### Tag Command
-
-```bash
-# Interactive (shows list of books)
-libby tag
-
-# Tag specific folder
-libby tag ~/Downloads/libby-downloads/BookTitle/
-
-# With manual overrides
-libby tag ~/path/to/folder/ --title "Title" --author "Author"
-```
-
-Embedded metadata: title, author, narrator, track number, cover art, description
-
-### Merge Command
-
-```bash
-# Interactive (shows list of books)
-libby merge
-
-# Merge specific folder
-libby merge ~/Downloads/libby-downloads/BookTitle/
-```
-
-Merges individual chapter MP3 files into a single M4B audiobook with:
-
-- Chapter markers (one per MP3 file)
-- Embedded metadata (title, author, narrator, cover art)
-- 64kbps AAC mono audio (optimized for voice)
-- M4B output file saved in the same directory
-
-Requires FFmpeg (bundled automatically).
-
-### List Command
-
-```bash
-libby list
-```
-
-Shows all downloaded books with tagging status.
-
-## Architecture
-
-Built with TypeScript and Vite:
-
-- **Chrome Extension**: Manifest V3 with background service worker, content scripts, and iframe injectors
-- **CLI Tool**: Service-layer architecture with separate business logic, UI presenters, and commands
-- **Type Safety**: Strict TypeScript throughout
-
-For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
-
-## Project Structure
-
-```text
-libby-downloader/
-├── src/                     # TypeScript source
-│   ├── commands/            # CLI command handlers
-│   ├── services/            # Business logic (BookService, MetadataService)
-│   ├── ui/                  # Presenters and prompts
-│   ├── background/          # Extension service worker
-│   ├── content/             # Extension content script
-│   ├── iframe/              # Extension iframe scripts
-│   ├── shared/              # Shared utilities
-│   └── types/               # TypeScript definitions
-├── chrome-extension/        # Built extension output
-└── package.json
-```
-
-## Troubleshooting
-
-### Extension button doesn't appear
-
-- Must be on audiobook player page (URL contains `/open/loan/`)
-- Refresh the page or check extension is enabled at `chrome://extensions/`
-
-### Downloads fail
-
-- Check `chrome://downloads/` for errors
-- Chrome will retry automatically
-
-### Tagging fails
-
-- Ensure `metadata.json` exists in book folder
-- Re-download if metadata is missing
-
-### "Command not found: libby"
-
-CLI requires building before linking:
-
-```bash
-npm run build    # Builds CLI to dist/cli.js
-npm link         # Creates global symlink
-```
+Tag command options: `--title`, `--author`, `--narrator`, `--cover-url`
 
 ## Development
 
 ```bash
-# Build
-npm run build                # Build both CLI and extension
-npm run build:cli            # Build CLI only
-npm run build:extension      # Build extension only
-
-# Test
-npm run check-all            # Run all checks (typecheck, lint, format, test)
-npm test                     # Run tests
-
-# Development
-npm run dev -- list          # Run CLI without building
-npm run dev:extension        # Watch mode for extension
+npm run build              # Build CLI and extension
+npm run build:extension    # Build extension only
+npm run dev -- list        # Run CLI without building
+npm run dev:extension      # Watch mode for extension
+npm run check-all          # Full validation (typecheck, lint, format, test)
+npm test                   # Run tests
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
@@ -187,4 +69,3 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
 ## Disclaimer
 
 This tool is for educational purposes only. Users are responsible for complying with their library's terms of service and respecting copyright agreements.
-
