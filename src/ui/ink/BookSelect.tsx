@@ -2,6 +2,7 @@ import { Box, Text } from 'ink';
 import SelectInput from 'ink-select-input';
 import { BookInfo } from '../../types/book';
 import { BookPresenter } from '../presenters/book-presenter';
+import { Indicator, Item } from './SelectTheme';
 
 interface BookSelectProps {
   books: BookInfo[];
@@ -73,7 +74,12 @@ export function BookSelect({
   return (
     <Box flexDirection="column">
       <Text dimColor>{message}</Text>
-      <SelectInput items={items} onSelect={handleSelect} />
+      <SelectInput
+        items={items}
+        onSelect={handleSelect}
+        indicatorComponent={Indicator}
+        itemComponent={Item}
+      />
     </Box>
   );
 }

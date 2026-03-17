@@ -38,6 +38,22 @@ Lightweight middle ground with numbered selection instead of arrow keys.
 **Pros:** Extremely lightweight. Zero-dep prompts library.
 **Cons:** Numbered input less polished. No spinner animation. prompts library less maintained.
 
+## Progress Bar Variants
+
+Evaluated March 2026. Option 4 (thin block) selected.
+
+Preview script: `node scripts/preview-progress.mjs`
+
+| # | Style | Example | Notes |
+|---|-------|---------|-------|
+| 1 | Count only | `⠋ Tagging chapter-8.mp3  **8**/20` | No bar, just numbers |
+| 2 | Subtle line | `⠋ ... ━━━━━━━━───────────  **8**/20` | White `━` filled, dim `─` empty |
+| 3 | Dots | `⠋ ... ●●●●●●●●············  **8**/20` | White `●` filled, dim `·` empty |
+| 4 | Thin block (SELECTED) | `⠋ ... ▓▓▓▓▓▓▓▓░░░░░░░░░░░░  **8**/20` | White `▓` filled, dim `░` empty |
+| 5 | Percentage | `⠋ Tagging chapter-8.mp3  **40%**` | No bar, just percent |
+| 6 | Spinner only | `⠋ Tagging chapter-8.mp3` | No progress indicator |
+| 7 | Bracket bar | `⠋ ... [========            ] **8**/20` | Classic bracket style |
+
 ## Decision
 
 **Ink (Approach 4)** selected because:

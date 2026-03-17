@@ -3,7 +3,7 @@
 # Generate test fixtures for CLI integration testing.
 # Creates realistic book directories with tiny valid MP3 files.
 #
-# Usage: ./scripts/generate-fixtures.sh [--clean]
+# Usage: ./scripts/generate-fixtures.sh [--clean] [--large]
 
 set -euo pipefail
 
@@ -196,6 +196,37 @@ cat > "$BOOK_DIR/metadata.json" << 'METADATA'
 }
 METADATA
 
+# ──────────────────────────────────────────────────────────────
+# 7. large-book — Many chapters, longer duration (only with --large)
+# ──────────────────────────────────────────────────────────────
+if [[ "${1:-}" == "--large" ]]; then
+  echo "[INFO] Creating large-book fixture (20 chapters x 10s)..."
+  BOOK_DIR="$FIXTURES_DIR/A Long Story"
+  mkdir -p "$BOOK_DIR"
+
+  CHAPTERS_JSON=""
+  for i in $(seq 1 20); do
+    generate_mp3 "$BOOK_DIR/chapter-$i.mp3" 10
+    if [[ -n "$CHAPTERS_JSON" ]]; then CHAPTERS_JSON+=","; fi
+    CHAPTERS_JSON+="{ \"index\": $((i-1)), \"title\": \"Chapter $i: Part $i\", \"duration\": 10 }"
+  done
+
+  cat > "$BOOK_DIR/metadata.json" << METADATA
+{
+  "metadata": {
+    "title": "A Long Story",
+    "authors": ["Verbose Author"],
+    "narrator": "Patient Narrator",
+    "description": "A long book for testing progress display."
+  },
+  "chapters": [$CHAPTERS_JSON]
+}
+METADATA
+
+  echo ""
+  echo "[SUCCESS] Large fixture created: A Long Story (20 chapters x 10s)"
+fi
+
 echo ""
 echo "[SUCCESS] Fixtures generated in $FIXTURES_DIR"
 echo ""
@@ -205,6 +236,9 @@ echo "  Science of Everything  - tagged and merged book"
 echo "  Unknown Book           - no metadata.json"
 echo "  Empty Promises         - metadata but no chapter files"
 echo "  Collaborative Work     - multiple authors, object description"
+if [[ "${1:-}" == "--large" ]]; then
+echo "  A Long Story           - 20 chapters x 10s (large, for progress testing)"
+fi
 echo ""
 echo "Usage:"
 echo "  npm run dev -- list --data-dir ./fixtures"

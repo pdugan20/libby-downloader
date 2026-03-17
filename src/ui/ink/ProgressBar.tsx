@@ -13,9 +13,9 @@ export function ProgressBar({ current, total, width = 20 }: ProgressBarProps) {
 
   return (
     <Text>
-      <Text color="green">{'█'.repeat(filled)}</Text>
+      <Text color="white">{'▓'.repeat(filled)}</Text>
       <Text dimColor>{'░'.repeat(empty)}</Text>
-      <Text> </Text>
+      <Text>{'  '}</Text>
       <Text bold>{current}</Text>
       <Text dimColor>/{total}</Text>
     </Text>

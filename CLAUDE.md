@@ -45,7 +45,8 @@ npm run release:dry               # Preview release without changes
 
 ## Entry Points
 
-- `src/cli.ts` - CLI interface (Commander.js)
+- `src/cli.ts` - CLI entry point (Commander.js + Ink render)
+- `src/ui/ink/` - Ink components (App, BookList, BookSelect, InteractiveMenu, etc.)
 - `src/index.ts` - Library exports
 - `src/background/index.ts` - Extension service worker
 - `src/content/index.ts` - Extension content script
@@ -57,8 +58,11 @@ npm run release:dry               # Preview release without changes
 - Pre-commit hook auto-formats and lints staged files
 - Pre-push hook runs full `check-all` suite + extension validation
 - `any` types are ALLOWED in logger variadic parameters — don't "fix" these ESLint warnings
-- UI uses @clack/prompts for all user-facing output (spinners, prompts, log messages)
+- UI uses Ink (React for terminals) — components in `src/ui/ink/`
+- Services use progress callbacks, never import UI libraries directly
 - Logger (`src/utils/logger.ts`) is for debug/verbose output only, not user-facing display
+- Color palette: bold for titles, dimColor for secondary, green checkmarks only, cyan for commands/filenames
+- Project is ESM (`"type": "module"`) — config files use `.cjs` extension
 - Always set `DEBUG_MODE = false` in `src/shared/constants.ts` before production releases
 - Don't test against real Libby — use mocks for all external dependencies
 
@@ -100,6 +104,8 @@ Extension handles ALL downloading. CLI is for tagging, merging, and listing only
 - **Unit tests:** `src/__tests__/` and `src/utils/__tests__/` (Jest with jsdom)
 - **Integration tests:** `npm run test:cli` runs CLI against generated fixtures
 - **Fixtures:** `npm run fixtures` generates tiny MP3s in `fixtures/` (gitignored)
+- **Large fixtures:** `bash scripts/generate-fixtures.sh --large` adds a 20-chapter book for progress testing
+- **Slow mode:** `LIBBY_SLOW_MODE=1 npm run dev -- tag <folder>` adds 200ms delay per file for UI testing
 - Chrome API mocks in `src/__tests__/mocks/`
 - Coverage thresholds: 50% branches, 60% statements
 - Conventional commits enforced via commitlint (commit-msg hook)

@@ -8,19 +8,26 @@ import { Header } from './Header';
 
 interface BookListProps {
   dataDir?: string;
+  /** When true, don't exit after rendering (used inside interactive menu) */
+  inline?: boolean;
+  /** Pre-loaded books (skip discovery) */
+  books?: BookInfo[];
+  onDone?: () => void;
 }
 
-export function BookList({ dataDir }: BookListProps) {
+export function BookList({ dataDir, inline, books: preloadedBooks }: BookListProps) {
   const { exit } = useApp();
-  const [books, setBooks] = useState<BookInfo[] | null>(null);
+  const [books, setBooks] = useState<BookInfo[] | null>(preloadedBooks || null);
   const bookPresenter = new BookPresenter();
 
   useEffect(() => {
+    if (preloadedBooks) return;
     const bookService = new BookService(dataDir);
     bookService.discoverBooks().then((discovered) => {
       setBooks(discovered);
-      // Exit after render
-      setTimeout(() => exit(), 100);
+      if (!inline) {
+        setTimeout(() => exit(), 100);
+      }
     });
   }, []);
 
@@ -40,7 +47,7 @@ export function BookList({ dataDir }: BookListProps) {
     return (
       <Box flexDirection="column" marginY={1}>
         <Header />
-        <Text color="yellow">No books found in downloads folder.</Text>
+        <Text dimColor>No books found in downloads folder.</Text>
         <Text dimColor>
           Use the Chrome extension to download books to: {bookService.getDownloadsFolder()}
         </Text>
@@ -52,7 +59,9 @@ export function BookList({ dataDir }: BookListProps) {
   const titles = books.map((b) => bookPresenter.getTitle(b));
   const authors = books.map((b) => {
     const a = bookPresenter.getAuthors(b);
-    return a[0] !== 'Unknown' ? a.join(', ') : '';
+    if (a[0] === 'Unknown') return '';
+    if (a.length === 1) return a[0];
+    return `${a[0]} +${a.length - 1}`;
   });
   const maxTitle = Math.min(Math.max(...titles.map((t) => t.length), 10), 28);
   const maxAuthor = Math.min(Math.max(...authors.map((a) => a.length), 6), 20);
@@ -80,7 +89,9 @@ export function BookList({ dataDir }: BookListProps) {
               <Text bold>{title}</Text>
             </Box>
             <Box width={maxAuthor + 2}>
-              <Text dimColor>{author}</Text>
+              <Text dimColor wrap="truncate-end">
+                {author}
+              </Text>
             </Box>
             <Box width={8}>
               <Text dimColor>{chStr}</Text>

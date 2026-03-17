@@ -9,6 +9,7 @@ import { BookSelect } from './BookSelect';
 import { BookList } from './BookList';
 import { TagProgress } from './TagProgress';
 import { MergeProgress } from './MergeProgress';
+import { Indicator, Item } from './SelectTheme';
 
 type View =
   | 'loading'
@@ -149,7 +150,7 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
     return (
       <Box flexDirection="column" marginY={1}>
         <Header />
-        <Text color="yellow">No books found in downloads folder.</Text>
+        <Text dimColor>No books found in downloads folder.</Text>
         <Text dimColor>
           Download books using the Chrome extension, then run this command again.
         </Text>
@@ -160,9 +161,14 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
   if (view === 'list') {
     return (
       <Box flexDirection="column">
-        <BookList dataDir={dataDir} />
+        <BookList dataDir={dataDir} inline books={books} />
         <Box marginTop={1}>
-          <Text dimColor>Press any key to return to menu...</Text>
+          <SelectInput
+            indicatorComponent={Indicator}
+            itemComponent={Item}
+            items={[{ label: 'Back to menu', value: 'back' }]}
+            onSelect={() => setView('menu')}
+          />
         </Box>
       </Box>
     );
@@ -209,8 +215,8 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
         <Header total={stats.total} tagged={stats.tagged} merged={stats.merged} />
         {untaggedCount > 0 && (
           <Box marginBottom={1}>
-            <Text color="yellow">
-              {untaggedCount} book(s) are not tagged yet. Consider tagging first.
+            <Text dimColor>
+              {untaggedCount} book(s) not tagged yet — tag first for better metadata
             </Text>
           </Box>
         )}
@@ -261,6 +267,8 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
           <Text dimColor>Path: {selectedBook.path}</Text>
         </Box>
         <SelectInput
+          indicatorComponent={Indicator}
+          itemComponent={Item}
           items={[{ label: 'Back to menu', value: 'back' }]}
           onSelect={() => {
             setSelectedBook(null);
@@ -294,7 +302,12 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
           <Text dimColor>{message}</Text>
         </Box>
       )}
-      <SelectInput items={menuItems} onSelect={handleMenuSelect} />
+      <SelectInput
+        indicatorComponent={Indicator}
+        itemComponent={Item}
+        items={menuItems}
+        onSelect={handleMenuSelect}
+      />
     </Box>
   );
 }

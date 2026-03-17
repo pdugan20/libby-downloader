@@ -72,6 +72,8 @@ export class MetadataService {
       const chapterTitle = metadata.chapters?.[i]?.title || `Chapter ${chapterNum}`;
 
       onProgress?.onFileStart?.(mp3Files[i], chapterNum, mp3Files.length);
+      // Yield to event loop so UI can re-render between files
+      await new Promise((resolve) => setTimeout(resolve, process.env.LIBBY_SLOW_MODE ? 200 : 0));
 
       await this.embedToFile(filePath, {
         title: chapterTitle,
