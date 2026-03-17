@@ -4,8 +4,6 @@
 
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import * as p from '@clack/prompts';
-import chalk from 'chalk';
 import NodeID3 from 'node-id3';
 import { logger } from '../utils/logger';
 
@@ -15,6 +13,11 @@ export interface EmbedOptions {
   narrator?: string;
   coverUrl?: string;
   description?: string;
+}
+
+export interface TagProgressCallback {
+  onFileStart?: (filename: string, current: number, total: number) => void;
+  onComplete?: (totalFiles: number) => void;
 }
 
 interface BookMetadata {
@@ -37,7 +40,11 @@ export class MetadataService {
   /**
    * Embed metadata into all MP3 files in a folder
    */
-  async embedToFolder(folderPath: string, options: EmbedOptions = {}): Promise<void> {
+  async embedToFolder(
+    folderPath: string,
+    options: EmbedOptions = {},
+    onProgress?: TagProgressCallback
+  ): Promise<void> {
     const resolvedPath = path.resolve(folderPath);
 
     // Validate folder
@@ -49,9 +56,8 @@ export class MetadataService {
     // Load metadata from file or options
     const metadata = await this.loadMetadata(resolvedPath, options);
 
-    // Download cover art
-    const s = p.spinner();
-    const coverBuffer = await this.downloadCoverArt(metadata.coverUrl, s);
+    // Download cover art if available
+    const coverBuffer = await this.downloadCoverArt(metadata.coverUrl);
 
     // Find all MP3 files
     const mp3Files = await this.findMp3Files(resolvedPath);
@@ -59,15 +65,13 @@ export class MetadataService {
       throw new Error('No MP3 files found in folder');
     }
 
-    // Tag each file with spinner
-    s.start(`Tagging ${mp3Files[0]} (1/${mp3Files.length})`);
-
+    // Tag each file
     for (let i = 0; i < mp3Files.length; i++) {
       const filePath = path.join(resolvedPath, mp3Files[i]);
       const chapterNum = i + 1;
       const chapterTitle = metadata.chapters?.[i]?.title || `Chapter ${chapterNum}`;
 
-      s.message(`Tagging ${mp3Files[i]} (${chapterNum}/${mp3Files.length})`);
+      onProgress?.onFileStart?.(mp3Files[i], chapterNum, mp3Files.length);
 
       await this.embedToFile(filePath, {
         title: chapterTitle,
@@ -81,7 +85,7 @@ export class MetadataService {
       });
     }
 
-    s.stop(`Tagged ${chalk.cyan(mp3Files.length.toString())} files`);
+    onProgress?.onComplete?.(mp3Files.length);
   }
 
   /**
@@ -111,7 +115,6 @@ export class MetadataService {
       year: metadata.year,
     };
 
-    // Add comment
     if (metadata.comment) {
       tags.comment = {
         language: 'eng',
@@ -119,7 +122,6 @@ export class MetadataService {
       };
     }
 
-    // Add cover art
     if (metadata.coverBuffer) {
       tags.image = {
         mime: 'image/jpeg',
@@ -132,7 +134,6 @@ export class MetadataService {
       };
     }
 
-    // Write tags
     const success = NodeID3.write(tags, filePath);
 
     if (!success) {
@@ -237,21 +238,14 @@ export class MetadataService {
   /**
    * Download cover art from URL
    */
-  private async downloadCoverArt(
-    coverUrl?: string,
-    spinner?: ReturnType<typeof p.spinner>
-  ): Promise<Buffer | undefined> {
+  private async downloadCoverArt(coverUrl?: string): Promise<Buffer | undefined> {
     if (!coverUrl) return undefined;
 
     try {
-      if (spinner) spinner.start('Downloading cover art...');
       const response = await fetch(coverUrl);
       const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      if (spinner) spinner.stop('Cover art downloaded');
-      return buffer;
+      return Buffer.from(arrayBuffer);
     } catch {
-      if (spinner) spinner.stop(chalk.yellow('Cover art skipped'));
       return undefined;
     }
   }

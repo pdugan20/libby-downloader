@@ -85,9 +85,9 @@ describe('MergeService', () => {
 
   describe('mergeFolder', () => {
     it('should merge chapters into M4B audiobook', async () => {
-      const outputPath = await mergeService.mergeFolder('/test/book');
+      const result = await mergeService.mergeFolder('/test/book');
 
-      expect(outputPath).toContain('.m4b');
+      expect(result.outputPath).toContain('.m4b');
       expect(mockFs.writeFile).toHaveBeenCalled();
       expect(mockFfmpeg).toHaveBeenCalled();
     });
@@ -162,9 +162,9 @@ describe('MergeService', () => {
     it('should handle cover art download failure gracefully', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      const outputPath = await mergeService.mergeFolder('/test/book');
+      const result = await mergeService.mergeFolder('/test/book');
 
-      expect(outputPath).toContain('.m4b');
+      expect(result.outputPath).toContain('.m4b');
     });
 
     it('should clean up temp files after merge', async () => {
@@ -187,9 +187,9 @@ describe('MergeService', () => {
         return Promise.reject(new Error('File not found'));
       });
 
-      const outputPath = await mergeService.mergeFolder('/test/book');
+      const result = await mergeService.mergeFolder('/test/book');
 
-      expect(outputPath).toContain('Book-Title-With-Bad-Chars.m4b');
+      expect(result.outputPath).toContain('Book-Title-With-Bad-Chars.m4b');
     });
 
     it('should sort chapter files numerically', async () => {
@@ -236,9 +236,9 @@ describe('MergeService', () => {
         callback(new Error('Probe failed'));
       });
 
-      const outputPath = await mergeService.mergeFolder('/test/book');
+      const result = await mergeService.mergeFolder('/test/book');
 
-      expect(outputPath).toContain('.m4b');
+      expect(result.outputPath).toContain('.m4b');
     });
   });
 });

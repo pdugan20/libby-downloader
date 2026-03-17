@@ -1,29 +1,14 @@
 /**
  * Tag command - Embed metadata into MP3 files
+ * Direct tagging is now handled by Ink components in src/ui/ink/TagProgress.tsx
  */
 
-import { MetadataService } from '../services/metadata-service';
-
-export interface TagOptions {
-  title?: string;
-  author?: string;
-  narrator?: string;
-  coverUrl?: string;
-  description?: string;
-  all?: boolean;
-}
+import { MetadataService, EmbedOptions } from '../services/metadata-service';
 
 /**
- * Tag MP3 files in a folder with metadata
+ * Tag MP3 files in a folder with metadata (non-interactive, no UI)
  */
-export async function tagFiles(folderPath: string, options: TagOptions): Promise<void> {
+export async function tagFiles(folderPath: string, options: EmbedOptions): Promise<void> {
   const metadataService = new MetadataService();
-
-  await metadataService.embedToFolder(folderPath, {
-    title: options.title,
-    author: options.author,
-    narrator: options.narrator,
-    coverUrl: options.coverUrl,
-    description: options.description,
-  });
+  await metadataService.embedToFolder(folderPath, options);
 }

@@ -7,8 +7,6 @@ import * as path from 'path';
 import * as os from 'os';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
-import * as p from '@clack/prompts';
-import chalk from 'chalk';
 import { logger } from '../utils/logger';
 
 // Set ffmpeg path to bundled binary
@@ -39,11 +37,23 @@ interface ChapterInfo {
   duration: number;
 }
 
+export interface MergeResult {
+  outputPath: string;
+  outputFilename: string;
+  fileSize: number;
+}
+
+export interface MergeProgressCallback {
+  onStageChange?: (stage: string) => void;
+  onMergeProgress?: (timemark: string) => void;
+  onComplete?: (filename: string, fileSize: number) => void;
+}
+
 export class MergeService {
   /**
    * Merge all chapter MP3 files in a folder into a single M4B audiobook
    */
-  async mergeFolder(folderPath: string): Promise<string> {
+  async mergeFolder(folderPath: string, onProgress?: MergeProgressCallback): Promise<MergeResult> {
     const resolved = path.resolve(folderPath);
 
     // Validate folder
@@ -52,32 +62,24 @@ export class MergeService {
       throw new Error(`Not a directory: ${resolved}`);
     }
 
-    const s = p.spinner();
-
     // Load metadata
-    s.start('Loading metadata...');
+    onProgress?.onStageChange?.('Loading metadata...');
     const metadata = await this.loadMetadata(resolved);
-    s.stop(`Loaded: ${chalk.cyan(metadata.metadata.title)}`);
 
     // Find chapter files
-    s.start('Finding chapter files...');
+    onProgress?.onStageChange?.('Finding chapters...');
     const chapterFiles = await this.findChapterFiles(resolved);
-    s.stop(`Found ${chalk.cyan(chapterFiles.length.toString())} chapters`);
 
     // Calculate chapter timestamps
-    s.start('Calculating chapter timestamps...');
+    onProgress?.onStageChange?.('Calculating timestamps...');
     const chapters = await this.calculateChapterInfo(resolved, chapterFiles, metadata);
-    const totalDuration = chapters.reduce((sum, ch) => sum + ch.duration, 0);
-    const hours = Math.floor(totalDuration / 3600);
-    const minutes = Math.floor((totalDuration % 3600) / 60);
-    s.stop(`Total duration: ${hours}h ${minutes}m`);
 
     // Create temp directory
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'libby-merge-'));
 
     try {
       // Generate merge files
-      s.start('Generating merge files...');
+      onProgress?.onStageChange?.('Preparing merge files...');
 
       const concatFilePath = path.join(tmpDir, 'concat.txt');
       await this.createConcatFile(chapterFiles, resolved, concatFilePath);
@@ -92,8 +94,6 @@ export class MergeService {
           path.join(tmpDir, 'cover.jpg')
         );
       }
-
-      s.stop('Merge files ready');
 
       // Prepare output file
       const sanitizedTitle = this.sanitizeFilename(metadata.metadata.title);
@@ -110,28 +110,22 @@ export class MergeService {
       }
 
       // Execute merge
-      s.start(`Merging ${chapterFiles.length} chapters into M4B...`);
+      onProgress?.onStageChange?.(`Merging ${chapterFiles.length} chapters...`);
       await this.executeMerge(
         concatFilePath,
         metadataFilePath,
         coverArtPath,
         outputPath,
         (timemark) => {
-          s.message(`Merging: ${chalk.cyan(timemark)} / 64kbps AAC`);
+          onProgress?.onMergeProgress?.(timemark);
         }
       );
-      s.stop('Merge complete');
 
-      // Show result
+      // Get result info
       const fileSize = (await fs.stat(outputPath)).size;
-      const sizeStr =
-        fileSize < 1024 * 1024
-          ? `${(fileSize / 1024).toFixed(0)} KB`
-          : `${(fileSize / 1024 / 1024).toFixed(1)} MB`;
+      onProgress?.onComplete?.(outputFilename, fileSize);
 
-      p.log.success(`Created ${chalk.cyan(outputFilename)} (${sizeStr})`);
-
-      return outputPath;
+      return { outputPath, outputFilename, fileSize };
     } finally {
       // Cleanup temp directory
       try {

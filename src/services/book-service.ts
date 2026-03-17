@@ -241,9 +241,12 @@ export class BookService {
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
 
     if (seconds < 60) return 'just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (seconds < 3600) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+    const hours = Math.floor(seconds / 3600);
+    if (seconds < 86400) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    const days = Math.floor(seconds / 86400);
+    if (seconds < 604800) return `${days} ${days === 1 ? 'day' : 'days'} ago`;
     return date.toLocaleDateString();
   }
 }

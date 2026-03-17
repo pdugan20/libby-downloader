@@ -15,7 +15,11 @@ describe('mergeBook command', () => {
   });
 
   it('should call MergeService.mergeFolder with correct path', async () => {
-    mockMergeService.mergeFolder.mockResolvedValue('/test/book/Book.m4b');
+    mockMergeService.mergeFolder.mockResolvedValue({
+      outputPath: '/test/book/Book.m4b',
+      outputFilename: 'Book.m4b',
+      fileSize: 1024,
+    });
 
     await mergeBook('/test/book-folder');
 
