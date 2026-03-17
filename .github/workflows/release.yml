@@ -40,7 +40,7 @@ jobs:
           VERSION="${{ github.ref_name }}"
           VERSION="${VERSION#v}"
           awk -v ver="$VERSION" '
-            /^## \[/ { if (found) exit; if (index($0, ver)) found=1; next }
+            /^## / { if (found) exit; if (index($0, ver)) found=1; next }
             found { print }
           ' CHANGELOG.md > release-notes.md
 
