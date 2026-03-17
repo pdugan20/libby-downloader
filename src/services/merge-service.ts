@@ -56,7 +56,7 @@ export class MergeService {
    * Merge all chapter MP3 files in a folder into a single M4B audiobook
    */
   async mergeFolder(folderPath: string): Promise<string> {
-    const ctx: MergeContext = { folderPath };
+    const ctx: MergeContext = { folderPath: path.resolve(folderPath) };
 
     const tasks = new Listr<MergeContext>(
       [

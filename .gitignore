@@ -49,3 +49,6 @@ Thumbs.db
 coverage/
 .nyc_output/
 .claudelint-cache/
+
+# Generated fixtures
+fixtures/

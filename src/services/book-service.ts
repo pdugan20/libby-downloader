@@ -9,11 +9,17 @@ import { BookInfo } from '../types/book';
 import { logger } from '../utils/logger';
 
 export class BookService {
+  private dataDir?: string;
+
+  constructor(dataDir?: string) {
+    this.dataDir = dataDir;
+  }
+
   /**
-   * Get the default libby-downloads folder
+   * Get the libby-downloads folder (custom or default)
    */
   getDownloadsFolder(): string {
-    return path.join(os.homedir(), 'Downloads', 'libby-downloads');
+    return this.dataDir || path.join(os.homedir(), 'Downloads', 'libby-downloads');
   }
 
   /**

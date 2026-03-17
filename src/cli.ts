@@ -19,24 +19,34 @@ function handleCliError(error: unknown, context: string): never {
   process.exit(1);
 }
 
+/**
+ * Get the --data-dir value from the root program options
+ */
+function getDataDir(cmd: Command): string | undefined {
+  return cmd.optsWithGlobals().dataDir;
+}
+
 const program = new Command();
 
 program
   .name('libby')
   .description('Manage audiobooks downloaded from Libby (via Chrome extension)')
   .version('1.0.0')
-  .action(async () => {
-    // If no command specified, run interactive mode
-    await runInteractive();
+  .option(
+    '--data-dir <path>',
+    'Override the downloads directory (default: ~/Downloads/libby-downloads)'
+  )
+  .action(async (_options, cmd: Command) => {
+    await runInteractive(getDataDir(cmd));
   });
 
 // List command
 program
   .command('list')
   .description('List all downloaded books')
-  .action(async () => {
+  .action(async (_options, cmd: Command) => {
     try {
-      await listBooks();
+      await listBooks(getDataDir(cmd));
     } catch (error) {
       handleCliError(error, 'List');
     }
@@ -52,11 +62,10 @@ program
   .option('--cover-url <url>', 'Override cover art URL')
   .option('--description <desc>', 'Override description')
   .option('--all', 'Tag all untagged books')
-  .action(async (folder, options) => {
+  .action(async (folder, options, cmd: Command) => {
     try {
       if (!folder) {
-        // Interactive mode
-        await runInteractive();
+        await runInteractive(getDataDir(cmd));
         return;
       }
 
@@ -77,11 +86,10 @@ program
 program
   .command('merge [folder]')
   .description('Merge MP3 chapters into single M4B audiobook (interactive if no folder specified)')
-  .action(async (folder) => {
+  .action(async (folder, _options, cmd: Command) => {
     try {
       if (!folder) {
-        // Interactive mode
-        await runInteractive();
+        await runInteractive(getDataDir(cmd));
         return;
       }
 

@@ -37,23 +37,24 @@ export class MetadataService {
    * Embed metadata into all MP3 files in a folder
    */
   async embedToFolder(folderPath: string, options: EmbedOptions = {}): Promise<void> {
+    const resolvedPath = path.resolve(folderPath);
     try {
-      logger.info(`Tagging MP3 files in: ${folderPath}`);
+      logger.info(`Tagging MP3 files in: ${resolvedPath}`);
 
       // Validate folder
-      const folderStat = await fs.stat(folderPath);
+      const folderStat = await fs.stat(resolvedPath);
       if (!folderStat.isDirectory()) {
-        throw new Error(`Not a directory: ${folderPath}`);
+        throw new Error(`Not a directory: ${resolvedPath}`);
       }
 
       // Load metadata from file or options
-      const metadata = await this.loadMetadata(folderPath, options);
+      const metadata = await this.loadMetadata(resolvedPath, options);
 
       // Download cover art if available
       const coverBuffer = await this.downloadCoverArt(metadata.coverUrl);
 
       // Find all MP3 files
-      const mp3Files = await this.findMp3Files(folderPath);
+      const mp3Files = await this.findMp3Files(resolvedPath);
       if (mp3Files.length === 0) {
         throw new Error('No MP3 files found in folder');
       }
@@ -62,7 +63,7 @@ export class MetadataService {
 
       // Tag each file
       for (let i = 0; i < mp3Files.length; i++) {
-        const filePath = path.join(folderPath, mp3Files[i]);
+        const filePath = path.join(resolvedPath, mp3Files[i]);
         const chapterNum = i + 1;
         const chapterTitle = metadata.chapters?.[i]?.title || `Chapter ${chapterNum}`;
 

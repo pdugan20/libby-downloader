@@ -10,11 +10,17 @@ npm run dev                       # Run interactive CLI
 npm run dev -- list               # List downloaded books
 npm run dev -- tag                # Tag MP3 files
 npm run dev -- merge              # Merge chapters into M4B audiobook
+npm run dev -- --data-dir ./fixtures  # Use test fixtures instead of real downloads
 
 # Testing & Validation
-npm test                          # Run Jest tests
+npm test                          # Run Jest unit tests
+npm run test:cli                  # Run CLI integration tests against fixtures
 npm run test:coverage             # Run tests with coverage report
 npm run check-all                 # Full validation: typecheck + lint + format + test
+
+# Fixtures
+npm run fixtures                  # Generate test fixtures (tiny MP3s + metadata)
+npm run fixtures:clean            # Remove generated fixtures
 
 # Building
 npm run build                     # Compile CLI TypeScript to dist/
@@ -31,6 +37,10 @@ npm run format:check              # Check if code is formatted
 # Chrome Extension Validation
 npm run extension:validate        # Lint extension manifest and code
 npm run extension:lint            # Lint with warnings-as-errors
+
+# Releases
+npm run release                   # Interactive release (bumps version, tags, pushes)
+npm run release:dry               # Preview release without changes
 ```
 
 ## Entry Points
@@ -60,7 +70,7 @@ npm run extension:lint            # Lint with warnings-as-errors
    - Saves metadata.json alongside MP3 files
 
 2. **CLI Tags (Optional):**
-   - Auto-discovers books in ~/Downloads/libby-downloads/
+   - Auto-discovers books in ~/Downloads/libby-downloads/ (override with `--data-dir`)
    - Reads metadata.json, embeds ID3 tags into MP3 files
 
 3. **CLI Merges (Optional):**
@@ -85,10 +95,12 @@ Extension handles ALL downloading. CLI is for tagging, merging, and listing only
 
 ## Testing
 
-- Test structure: `src/__tests__/` and `src/utils/__tests__/`
-- Environment: Jest with jsdom
+- **Unit tests:** `src/__tests__/` and `src/utils/__tests__/` (Jest with jsdom)
+- **Integration tests:** `npm run test:cli` runs CLI against generated fixtures
+- **Fixtures:** `npm run fixtures` generates tiny MP3s in `fixtures/` (gitignored)
 - Chrome API mocks in `src/__tests__/mocks/`
 - Coverage thresholds: 50% branches, 60% statements
+- Conventional commits enforced via commitlint (commit-msg hook)
 
 ## Chrome Extension Build
 

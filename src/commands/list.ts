@@ -7,9 +7,9 @@ import { logger } from '../utils/logger';
 import { BookService } from '../services/book-service';
 import { BookPresenter } from '../ui/presenters/book-presenter';
 
-export async function listBooks(): Promise<void> {
+export async function listBooks(dataDir?: string): Promise<void> {
   try {
-    const bookService = new BookService();
+    const bookService = new BookService(dataDir);
     const bookPresenter = new BookPresenter();
 
     const downloadsFolder = bookService.getDownloadsFolder();

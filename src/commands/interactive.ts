@@ -23,8 +23,8 @@ enum MainAction {
 /**
  * Main interactive menu
  */
-export async function runInteractive(): Promise<void> {
-  const bookService = new BookService();
+export async function runInteractive(dataDir?: string): Promise<void> {
+  const bookService = new BookService(dataDir);
   const bookSelector = new BookSelector();
   const bookPresenter = new BookPresenter();
   const statusPresenter = new StatusPresenter();
@@ -78,7 +78,7 @@ export async function runInteractive(): Promise<void> {
 
       case MainAction.LIST:
         console.log(); // Blank line
-        await listBooks();
+        await listBooks(dataDir);
         break;
 
       case MainAction.DETAILS:
