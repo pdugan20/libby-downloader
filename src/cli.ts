@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import * as p from '@clack/prompts';
 import { logger, LogLevel } from './utils/logger';
 import { tagFiles } from './commands/tag';
 import { mergeBook } from './commands/merge';
@@ -8,14 +9,16 @@ import { listBooks } from './commands/list';
 import { runInteractive } from './commands/interactive';
 
 /**
- * Handle CLI errors with proper formatting
+ * Handle CLI errors — clean output for users, stack traces only in verbose mode
  */
-function handleCliError(error: unknown, context: string): never {
-  if (error instanceof Error) {
-    logger.error(`${context} failed`, error);
-  } else {
-    logger.error(`${context} failed: ${String(error)}`);
+function handleCliError(error: unknown): never {
+  const message = error instanceof Error ? error.message : String(error);
+  p.log.error(message);
+
+  if (logger.isDebug() && error instanceof Error && error.stack) {
+    p.log.message(error.stack, { symbol: '' });
   }
+
   process.exit(1);
 }
 
@@ -46,9 +49,11 @@ program
   .description('List all downloaded books')
   .action(async (_options, cmd: Command) => {
     try {
+      p.intro('Libby Downloader');
       await listBooks(getDataDir(cmd));
+      p.outro('');
     } catch (error) {
-      handleCliError(error, 'List');
+      handleCliError(error);
     }
   });
 
@@ -69,6 +74,7 @@ program
         return;
       }
 
+      p.intro('Libby Downloader');
       await tagFiles(folder, {
         title: options.title,
         author: options.author,
@@ -77,8 +83,9 @@ program
         description: options.description,
         all: options.all,
       });
+      p.outro('Done!');
     } catch (error) {
-      handleCliError(error, 'Tag');
+      handleCliError(error);
     }
   });
 
@@ -93,9 +100,11 @@ program
         return;
       }
 
+      p.intro('Libby Downloader');
       await mergeBook(folder);
+      p.outro('Done!');
     } catch (error) {
-      handleCliError(error, 'Merge');
+      handleCliError(error);
     }
   });
 

@@ -1,8 +1,8 @@
 /**
- * Interactive CLI - Main menu interface
+ * Interactive CLI - Main menu interface using @clack/prompts
  */
 
-import inquirer from 'inquirer';
+import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { BookInfo } from '../types/book';
 import { tagFiles } from './tag';
@@ -10,15 +10,12 @@ import { listBooks } from './list';
 import { BookService } from '../services/book-service';
 import { BookSelector } from '../ui/prompts/book-selector';
 import { BookPresenter } from '../ui/presenters/book-presenter';
-import { StatusPresenter } from '../ui/presenters/status-presenter';
 
-enum MainAction {
-  TAG = 'Tag MP3 files (add metadata)',
-  MERGE = 'Merge chapters into single file',
-  LIST = 'List all downloaded books',
-  DETAILS = 'View book details',
-  EXIT = 'Exit',
-}
+const ACTION_TAG = 'tag';
+const ACTION_MERGE = 'merge';
+const ACTION_LIST = 'list';
+const ACTION_DETAILS = 'details';
+const ACTION_EXIT = 'exit';
 
 /**
  * Main interactive menu
@@ -27,74 +24,63 @@ export async function runInteractive(dataDir?: string): Promise<void> {
   const bookService = new BookService(dataDir);
   const bookSelector = new BookSelector();
   const bookPresenter = new BookPresenter();
-  const statusPresenter = new StatusPresenter();
 
-  console.log(chalk.bold.cyan('\n📚 Libby Downloader\n'));
+  p.intro('Libby Downloader');
 
-  // Main menu loop
   let shouldContinue = true;
 
   while (shouldContinue) {
-    // Discover books fresh each iteration so status reflects completed operations
     const books = await bookService.discoverBooks();
 
     if (books.length === 0) {
-      console.log(chalk.yellow('No books found in downloads folder.'));
-      console.log(
-        chalk.gray('\nDownload books using the Chrome extension, then run this command again.\n')
+      p.log.warn('No books found in downloads folder.');
+      p.log.message(
+        chalk.dim('Download books using the Chrome extension, then run this command again.')
       );
-      return;
+      break;
     }
 
-    // Show quick summary
     const stats = bookService.getStatistics(books);
-    console.log(chalk.gray(`Found ${stats.total} books`));
-    console.log(chalk.gray(`  Tagged: ${stats.tagged}/${stats.total}`));
-    console.log(chalk.gray(`  Merged: ${stats.merged}/${stats.total}\n`));
-    const { action } = await inquirer.prompt<{ action: MainAction }>([
-      {
-        type: 'list',
-        name: 'action',
-        message: 'What would you like to do?',
-        choices: [
-          MainAction.TAG,
-          MainAction.MERGE,
-          MainAction.LIST,
-          MainAction.DETAILS,
-          new inquirer.Separator(),
-          MainAction.EXIT,
-        ],
-      },
-    ]);
+    p.log.info(
+      `${chalk.cyan(stats.total.toString())} books  /  Tagged: ${stats.tagged}/${stats.total}  /  Merged: ${stats.merged}/${stats.total}`
+    );
+
+    const action = await p.select({
+      message: 'What would you like to do?',
+      options: [
+        { value: ACTION_TAG, label: 'Tag MP3 files', hint: 'add metadata' },
+        { value: ACTION_MERGE, label: 'Merge chapters', hint: 'create M4B audiobook' },
+        { value: ACTION_LIST, label: 'List all books' },
+        { value: ACTION_DETAILS, label: 'View book details' },
+        { value: ACTION_EXIT, label: chalk.dim('Exit') },
+      ],
+    });
+
+    if (p.isCancel(action) || action === ACTION_EXIT) {
+      shouldContinue = false;
+      break;
+    }
 
     switch (action) {
-      case MainAction.TAG:
+      case ACTION_TAG:
         await handleTagAction(books, bookSelector, bookPresenter);
         break;
 
-      case MainAction.MERGE:
+      case ACTION_MERGE:
         await handleMergeAction(books, bookSelector, bookPresenter);
         break;
 
-      case MainAction.LIST:
-        console.log(); // Blank line
+      case ACTION_LIST:
         await listBooks(dataDir);
         break;
 
-      case MainAction.DETAILS:
-        await handleDetailsAction(books, bookSelector, bookPresenter, statusPresenter);
+      case ACTION_DETAILS:
+        await handleDetailsAction(books, bookSelector, bookPresenter);
         break;
-
-      case MainAction.EXIT:
-        console.log(chalk.cyan('\n👋 Goodbye!\n'));
-        shouldContinue = false;
-        break;
-    }
-
-    if (shouldContinue) {
-      console.log(); // Blank line between actions
     }
   }
+
+  p.outro('Goodbye!');
 }
 
 /**
@@ -105,39 +91,30 @@ async function handleTagAction(
   bookSelector: BookSelector,
   bookPresenter: BookPresenter
 ): Promise<void> {
+  const untaggedBooks = books.filter((b) => !b.isTagged);
+  if (untaggedBooks.length === 0) {
+    p.log.success('All books are already tagged!');
+    return;
+  }
+
   const selected = await bookSelector.selectBook(books, {
     message: 'Which book do you want to tag?',
     filter: (b) => !b.isTagged,
     allowAll: true,
-    allButtonText: `Tag all untagged books`,
+    allButtonText: `Tag all ${untaggedBooks.length} untagged books`,
   });
 
-  if (!selected) {
-    return;
-  }
+  if (!selected) return;
 
-  // Check if all books are tagged
-  const untaggedBooks = books.filter((b) => !b.isTagged);
-  if (untaggedBooks.length === 0) {
-    console.log(chalk.green('\n✓ All books are already tagged!\n'));
-    return;
-  }
-
-  // Handle "ALL" selection
   if (Array.isArray(selected)) {
-    console.log(chalk.cyan(`\nTagging ${selected.length} books...\n`));
-
     for (const book of selected) {
-      console.log(chalk.bold(`\n📖 ${bookPresenter.getTitle(book)}`));
+      p.log.step(bookPresenter.getTitle(book));
       await tagFiles(book.path, {});
     }
-
-    console.log(chalk.green(`\n✓ Tagged ${selected.length} books successfully!\n`));
+    p.log.success(`Tagged ${selected.length} books`);
   } else {
-    // Tag single book
-    console.log(chalk.bold(`\n📖 ${bookPresenter.getTitle(selected)}\n`));
+    p.log.step(bookPresenter.getTitle(selected));
     await tagFiles(selected.path, {});
-    console.log();
   }
 }
 
@@ -152,17 +129,14 @@ async function handleMergeAction(
   const unmergedBooks = books.filter((b) => !b.isMerged);
 
   if (unmergedBooks.length === 0) {
-    console.log(chalk.green('\n✓ All books are already merged!\n'));
+    p.log.success('All books are already merged!');
     return;
   }
 
-  // Warn if books aren't tagged
   const untaggedCount = unmergedBooks.filter((b) => !b.isTagged).length;
   if (untaggedCount > 0) {
-    console.log(
-      chalk.yellow(
-        `\n⚠️  ${untaggedCount} book(s) are not tagged yet. Consider running "Tag MP3 files" first for better metadata.\n`
-      )
+    p.log.warn(
+      `${untaggedCount} book(s) are not tagged yet. Consider tagging first for better metadata.`
     );
   }
 
@@ -172,11 +146,9 @@ async function handleMergeAction(
     showStatus: true,
   });
 
-  if (!selected || Array.isArray(selected)) {
-    return;
-  }
+  if (!selected || Array.isArray(selected)) return;
 
-  console.log(chalk.bold(`\n📖 ${bookPresenter.getTitle(selected)}\n`));
+  p.log.step(bookPresenter.getTitle(selected));
 
   const { mergeBook } = await import('./merge');
   await mergeBook(selected.path);
@@ -188,48 +160,38 @@ async function handleMergeAction(
 async function handleDetailsAction(
   books: BookInfo[],
   bookSelector: BookSelector,
-  bookPresenter: BookPresenter,
-  statusPresenter: StatusPresenter
+  bookPresenter: BookPresenter
 ): Promise<void> {
   const selected = await bookSelector.selectBook(books, {
     message: 'Which book do you want to view?',
   });
 
-  if (!selected || Array.isArray(selected)) {
-    return;
-  }
+  if (!selected || Array.isArray(selected)) return;
 
-  console.log();
-  console.log(chalk.bold.cyan('📖 ' + bookPresenter.getTitle(selected)));
-  console.log();
-
-  // Show metadata if available
   const authors = bookPresenter.getAuthors(selected);
   const narrator = bookPresenter.getNarrator(selected);
   const coverUrl = bookPresenter.getCoverUrl(selected);
 
+  const lines: string[] = [];
+
   if (authors.length > 0 && authors[0] !== 'Unknown') {
-    console.log(chalk.gray('Author:    ') + authors.join(', '));
+    lines.push(`Author:    ${authors.join(', ')}`);
   }
-
   if (narrator) {
-    console.log(chalk.gray('Narrator:  ') + narrator);
+    lines.push(`Narrator:  ${narrator}`);
   }
-
-  console.log(chalk.gray('Chapters:  ') + selected.chapterCount);
-
+  lines.push(`Chapters:  ${selected.chapterCount}`);
   if (coverUrl) {
-    console.log(chalk.gray('Cover:     ') + chalk.blue(coverUrl));
+    lines.push(`Cover:     ${chalk.blue(coverUrl)}`);
   }
 
-  // Show status
-  console.log();
-  console.log(chalk.gray('Status:'));
-  console.log(`  Metadata: ${statusPresenter.formatMetadataStatus(selected.hasMetadata)}`);
-  console.log(`  Tagged:   ${statusPresenter.formatTaggedStatus(selected.isTagged)}`);
-  console.log(`  Merged:   ${statusPresenter.formatMergedStatus(selected.isMerged)}`);
+  lines.push('');
+  lines.push(`Metadata:  ${selected.hasMetadata ? chalk.green('yes') : chalk.yellow('no')}`);
+  lines.push(`Tagged:    ${selected.isTagged ? chalk.green('yes') : chalk.yellow('no')}`);
+  lines.push(`Merged:    ${selected.isMerged ? chalk.green('yes') : chalk.yellow('no')}`);
 
-  console.log();
-  console.log(chalk.gray('Location:  ') + selected.path);
-  console.log();
+  lines.push('');
+  lines.push(chalk.dim(selected.path));
+
+  p.note(lines.join('\n'), bookPresenter.getTitle(selected));
 }

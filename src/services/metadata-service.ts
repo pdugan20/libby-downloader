@@ -1,10 +1,11 @@
 /**
  * MetadataService - Unified metadata embedding service
- * Merges functionality from tag.ts and embedder.ts
  */
 
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import * as p from '@clack/prompts';
+import chalk from 'chalk';
 import NodeID3 from 'node-id3';
 import { logger } from '../utils/logger';
 
@@ -38,54 +39,49 @@ export class MetadataService {
    */
   async embedToFolder(folderPath: string, options: EmbedOptions = {}): Promise<void> {
     const resolvedPath = path.resolve(folderPath);
-    try {
-      logger.info(`Tagging MP3 files in: ${resolvedPath}`);
 
-      // Validate folder
-      const folderStat = await fs.stat(resolvedPath);
-      if (!folderStat.isDirectory()) {
-        throw new Error(`Not a directory: ${resolvedPath}`);
-      }
-
-      // Load metadata from file or options
-      const metadata = await this.loadMetadata(resolvedPath, options);
-
-      // Download cover art if available
-      const coverBuffer = await this.downloadCoverArt(metadata.coverUrl);
-
-      // Find all MP3 files
-      const mp3Files = await this.findMp3Files(resolvedPath);
-      if (mp3Files.length === 0) {
-        throw new Error('No MP3 files found in folder');
-      }
-
-      logger.info(`Found ${mp3Files.length} MP3 files`);
-
-      // Tag each file
-      for (let i = 0; i < mp3Files.length; i++) {
-        const filePath = path.join(resolvedPath, mp3Files[i]);
-        const chapterNum = i + 1;
-        const chapterTitle = metadata.chapters?.[i]?.title || `Chapter ${chapterNum}`;
-
-        logger.info(`Tagging ${mp3Files[i]} (${chapterNum}/${mp3Files.length})`);
-
-        await this.embedToFile(filePath, {
-          title: chapterTitle,
-          artist: metadata.authors.join(', '),
-          album: metadata.title,
-          performerInfo: metadata.narrator || metadata.authors.join(', '),
-          trackNumber: `${chapterNum}/${mp3Files.length}`,
-          genre: 'Audiobook',
-          comment: metadata.description,
-          coverBuffer,
-        });
-      }
-
-      logger.success(`Successfully tagged ${mp3Files.length} files`);
-    } catch (error) {
-      logger.error('Failed to tag files', error);
-      throw error;
+    // Validate folder
+    const folderStat = await fs.stat(resolvedPath);
+    if (!folderStat.isDirectory()) {
+      throw new Error(`Not a directory: ${resolvedPath}`);
     }
+
+    // Load metadata from file or options
+    const metadata = await this.loadMetadata(resolvedPath, options);
+
+    // Download cover art
+    const s = p.spinner();
+    const coverBuffer = await this.downloadCoverArt(metadata.coverUrl, s);
+
+    // Find all MP3 files
+    const mp3Files = await this.findMp3Files(resolvedPath);
+    if (mp3Files.length === 0) {
+      throw new Error('No MP3 files found in folder');
+    }
+
+    // Tag each file with spinner
+    s.start(`Tagging ${mp3Files[0]} (1/${mp3Files.length})`);
+
+    for (let i = 0; i < mp3Files.length; i++) {
+      const filePath = path.join(resolvedPath, mp3Files[i]);
+      const chapterNum = i + 1;
+      const chapterTitle = metadata.chapters?.[i]?.title || `Chapter ${chapterNum}`;
+
+      s.message(`Tagging ${mp3Files[i]} (${chapterNum}/${mp3Files.length})`);
+
+      await this.embedToFile(filePath, {
+        title: chapterTitle,
+        artist: metadata.authors.join(', '),
+        album: metadata.title,
+        performerInfo: metadata.narrator || metadata.authors.join(', '),
+        trackNumber: `${chapterNum}/${mp3Files.length}`,
+        genre: 'Audiobook',
+        comment: metadata.description,
+        coverBuffer,
+      });
+    }
+
+    s.stop(`Tagged ${chalk.cyan(mp3Files.length.toString())} files`);
   }
 
   /**
@@ -161,19 +157,14 @@ export class MetadataService {
    * Remove metadata from an MP3 file
    */
   async removeMetadata(filePath: string): Promise<void> {
-    try {
-      logger.info(`Removing metadata from: ${filePath}`);
-      const success = NodeID3.removeTags(filePath);
+    logger.info(`Removing metadata from: ${filePath}`);
+    const success = NodeID3.removeTags(filePath);
 
-      if (!success) {
-        throw new Error('Failed to remove ID3 tags');
-      }
-
-      logger.success('Metadata removed successfully');
-    } catch (error) {
-      logger.error('Failed to remove metadata', error);
-      throw error;
+    if (!success) {
+      throw new Error('Failed to remove ID3 tags');
     }
+
+    logger.success('Metadata removed successfully');
   }
 
   /**
@@ -190,13 +181,11 @@ export class MetadataService {
     description?: string;
     chapters?: Array<{ title: string }>;
   }> {
-    // Try to load from metadata file
     const bookMetadata = await this.readBookMetadata(folderPath);
 
     if (bookMetadata) {
-      logger.info('Found metadata file, using book information');
+      logger.debug('Found metadata file, using book information');
 
-      // Handle description (can be string or object)
       let description = '';
       if (typeof bookMetadata.metadata.description === 'string') {
         description = bookMetadata.metadata.description;
@@ -215,8 +204,7 @@ export class MetadataService {
       };
     }
 
-    // Fallback to options or defaults
-    logger.info('No metadata file found, using provided options');
+    logger.debug('No metadata file found, using provided options');
 
     return {
       title: options.title || path.basename(folderPath),
@@ -249,18 +237,21 @@ export class MetadataService {
   /**
    * Download cover art from URL
    */
-  private async downloadCoverArt(coverUrl?: string): Promise<Buffer | undefined> {
+  private async downloadCoverArt(
+    coverUrl?: string,
+    spinner?: ReturnType<typeof p.spinner>
+  ): Promise<Buffer | undefined> {
     if (!coverUrl) return undefined;
 
     try {
-      logger.info('Downloading cover art...');
+      if (spinner) spinner.start('Downloading cover art...');
       const response = await fetch(coverUrl);
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      logger.success('Cover art downloaded');
+      if (spinner) spinner.stop('Cover art downloaded');
       return buffer;
-    } catch (error) {
-      logger.warn('Failed to download cover art:', error);
+    } catch {
+      if (spinner) spinner.stop(chalk.yellow('Cover art skipped'));
       return undefined;
     }
   }

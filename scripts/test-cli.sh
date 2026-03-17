@@ -12,7 +12,7 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 FIXTURES_DIR="$PROJECT_DIR/fixtures"
 
 cli() {
-  FORCE_COLOR=0 npx tsx "$PROJECT_DIR/src/cli.ts" "$@" 2>&1
+  FORCE_COLOR=0 npx tsx "$PROJECT_DIR/src/cli.ts" "$@" 2>&1 | sed $'s/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\[J//g'
 }
 
 PASSED=0
@@ -126,12 +126,12 @@ assert_output_contains "shows no-metadata book" "$OUTPUT" "Unknown Book"
 assert_output_contains "shows multi-author book" "$OUTPUT" "Collaborative Work"
 assert_output_not_contains "skips no-chapters book" "$OUTPUT" "Empty Promises"
 assert_output_contains "shows chapter count" "$OUTPUT" "chapters)"
-assert_output_contains "shows tagged status" "$OUTPUT" "Tagged"
-assert_output_contains "shows merged status" "$OUTPUT" "Merged"
+assert_output_contains "shows tagged status" "$OUTPUT" "tagged"
+assert_output_contains "shows merged status" "$OUTPUT" "merged"
 assert_output_contains "shows authors" "$OUTPUT" "Jane Smith"
 assert_output_contains "shows multi-authors" "$OUTPUT" "Author One, Author Two, Author Three"
-assert_output_contains "shows summary" "$OUTPUT" "Total books: 5"
-assert_output_contains "shows next steps" "$OUTPUT" "Next steps:"
+assert_output_contains "shows summary" "$OUTPUT" "Total: 5"
+assert_output_contains "shows next steps" "$OUTPUT" "libby tag"
 echo ""
 
 # ──────────────────────────────────────────────────────────────
@@ -165,9 +165,7 @@ OUTPUT=$(cli tag "$FIXTURES_DIR/The Great Adventure") || true
 EXIT_CODE=$?
 
 assert_exit_code "exits successfully" "$EXIT_CODE" "0"
-assert_output_contains "shows tagging progress" "$OUTPUT" "Tagging chapter-1.mp3"
-assert_output_contains "shows file count" "$OUTPUT" "Found 3 MP3 files"
-assert_output_contains "shows success message" "$OUTPUT" "Successfully tagged 3 files"
+assert_output_contains "shows success message" "$OUTPUT" "Tagged 3 files"
 echo ""
 
 # Verify the book now shows as tagged
@@ -186,7 +184,7 @@ OUTPUT=$(cli tag "$FIXTURES_DIR/Unknown Book" --title "Custom Title" --author "C
 EXIT_CODE=$?
 
 assert_exit_code "exits successfully" "$EXIT_CODE" "0"
-assert_output_contains "shows success" "$OUTPUT" "Successfully tagged"
+assert_output_contains "shows success" "$OUTPUT" "Tagged 2 files"
 echo ""
 
 # ──────────────────────────────────────────────────────────────
@@ -198,9 +196,9 @@ OUTPUT=$(cli merge "$FIXTURES_DIR/The Great Adventure") || true
 EXIT_CODE=$?
 
 assert_exit_code "exits successfully" "$EXIT_CODE" "0"
-assert_output_contains "shows loading metadata" "$OUTPUT" "Loading metadata: The Great Adventure"
-assert_output_contains "shows chapter count" "$OUTPUT" "3 found"
-assert_output_contains "shows merge complete" "$OUTPUT" "Complete"
+assert_output_contains "shows loaded metadata" "$OUTPUT" "The Great Adventure"
+assert_output_contains "shows chapter count" "$OUTPUT" "3 chapters"
+assert_output_contains "shows merge complete" "$OUTPUT" "Merge complete"
 assert_output_contains "shows output file" "$OUTPUT" "The Great Adventure.m4b"
 assert_file_exists "creates m4b file" "$FIXTURES_DIR/The Great Adventure/The Great Adventure.m4b"
 echo ""

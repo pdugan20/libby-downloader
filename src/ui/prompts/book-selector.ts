@@ -1,9 +1,8 @@
 /**
- * BookSelector - Reusable book selection UI component
- * Eliminates 120+ lines of duplication in interactive.ts
+ * BookSelector - Reusable book selection UI component using @clack/prompts
  */
 
-import inquirer from 'inquirer';
+import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { BookInfo } from '../../types/book';
 import { BookPresenter } from '../presenters/book-presenter';
@@ -14,7 +13,6 @@ export interface BookSelectionOptions {
   allowAll?: boolean;
   allButtonText?: string;
   showStatus?: boolean;
-  pageSize?: number;
 }
 
 export type BookSelectionResult = BookInfo | BookInfo[] | null;
@@ -30,114 +28,49 @@ export class BookSelector {
    * Select a single book or all books from a list
    */
   async selectBook(books: BookInfo[], options: BookSelectionOptions): Promise<BookSelectionResult> {
-    // Apply filter if provided
     const filteredBooks = options.filter ? books.filter(options.filter) : books;
 
     if (filteredBooks.length === 0) {
       return null;
     }
 
-    // Build choices — mixed types (BookInfo, string sentinels, Separator) required by inquirer API
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const choices: any[] = filteredBooks.map((book) => {
-      let name = this.presenter.getDisplayName(book);
+    // Build string-keyed options with a lookup map
+    const bookMap = new Map<string, BookInfo>();
+    const selectOptions: { value: string; label: string; hint?: string }[] = [];
 
-      // Add status indicator if requested
+    filteredBooks.forEach((book, i) => {
+      const key = `book_${i}`;
+      bookMap.set(key, book);
+      const label = this.presenter.getDisplayName(book);
+
       if (options.showStatus) {
-        const status = book.isTagged ? chalk.green('✓') : chalk.yellow('○');
-        name = `${status} ${name}`;
+        const status = book.isTagged ? chalk.green('tagged') : chalk.yellow('untagged');
+        selectOptions.push({ value: key, label, hint: status });
+      } else {
+        selectOptions.push({ value: key, label });
       }
-
-      return {
-        name,
-        value: book,
-        short: book.name,
-      };
     });
 
-    // Add "All" option if requested
     if (options.allowAll) {
-      choices.push(new inquirer.Separator());
-      const allText = options.allButtonText || `Tag all ${filteredBooks.length} books`;
-      choices.push({
-        name: chalk.cyan(`[${allText}]`),
-        value: 'ALL',
-        short: 'All books',
-      });
+      const allText = options.allButtonText || `All ${filteredBooks.length} books`;
+      selectOptions.push({ value: '__ALL__', label: allText });
     }
 
-    // Add cancel option
-    choices.push({
-      name: chalk.gray('[Cancel]'),
-      value: 'CANCEL',
-      short: 'Cancel',
+    selectOptions.push({ value: '__CANCEL__', label: chalk.dim('Cancel') });
+
+    const result = await p.select({
+      message: options.message,
+      options: selectOptions,
     });
 
-    // Prompt for selection
-    const { selectedBook } = await inquirer.prompt<{ selectedBook: BookInfo | string }>([
-      {
-        type: 'list',
-        name: 'selectedBook',
-        message: options.message,
-        choices,
-        pageSize: options.pageSize || 15,
-      },
-    ]);
-
-    // Handle special values
-    if (selectedBook === 'CANCEL') {
+    if (p.isCancel(result) || result === '__CANCEL__') {
       return null;
     }
 
-    if (selectedBook === 'ALL') {
+    if (result === '__ALL__') {
       return filteredBooks;
     }
 
-    return selectedBook as BookInfo;
-  }
-
-  /**
-   * Select multiple books from a list (checkbox)
-   */
-  async selectBooks(
-    books: BookInfo[],
-    options: Omit<BookSelectionOptions, 'allowAll' | 'allButtonText'>
-  ): Promise<BookInfo[]> {
-    // Apply filter if provided
-    const filteredBooks = options.filter ? books.filter(options.filter) : books;
-
-    if (filteredBooks.length === 0) {
-      return [];
-    }
-
-    // Build choices
-    const choices = filteredBooks.map((book) => {
-      let name = this.presenter.getDisplayName(book);
-
-      // Add status indicator if requested
-      if (options.showStatus) {
-        const status = book.isTagged ? chalk.green('✓') : chalk.yellow('○');
-        name = `${status} ${name}`;
-      }
-
-      return {
-        name,
-        value: book,
-        short: book.name,
-      };
-    });
-
-    // Prompt for selection
-    const { selectedBooks } = await inquirer.prompt<{ selectedBooks: BookInfo[] }>([
-      {
-        type: 'checkbox',
-        name: 'selectedBooks',
-        message: options.message,
-        choices,
-        pageSize: options.pageSize || 15,
-      },
-    ]);
-
-    return selectedBooks;
+    return bookMap.get(result) || null;
   }
 }

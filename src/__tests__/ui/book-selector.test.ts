@@ -5,27 +5,23 @@
 import { BookSelector } from '../../ui/prompts/book-selector';
 import { createMockBooks } from '../setup/fixtures/books.fixture';
 
-// Mock inquirer
-jest.mock('inquirer', () => {
-  const Separator = class {
-    constructor(public line?: string) {}
-  };
+// Mock @clack/prompts
+jest.mock('@clack/prompts', () => ({
+  select: jest.fn(),
+  isCancel: jest.fn(() => false),
+}));
 
-  return {
-    prompt: jest.fn(),
-    Separator,
-  };
-});
-
-import inquirer from 'inquirer';
+import * as p from '@clack/prompts';
 
 describe('BookSelector', () => {
   let selector: BookSelector;
-  const mockPrompt = inquirer.prompt as jest.MockedFunction<typeof inquirer.prompt>;
+  const mockSelect = p.select as jest.MockedFunction<typeof p.select>;
+  const mockIsCancel = p.isCancel as jest.MockedFunction<typeof p.isCancel>;
 
   beforeEach(() => {
     selector = new BookSelector();
     jest.clearAllMocks();
+    mockIsCancel.mockReturnValue(false);
   });
 
   describe('selectBook', () => {
@@ -38,12 +34,24 @@ describe('BookSelector', () => {
       });
 
       expect(result).toBeNull();
-      expect(mockPrompt).not.toHaveBeenCalled();
+      expect(mockSelect).not.toHaveBeenCalled();
     });
 
     it('should return null when user selects cancel', async () => {
       const books = createMockBooks(3);
-      mockPrompt.mockResolvedValue({ selectedBook: 'CANCEL' });
+      mockSelect.mockResolvedValue('__CANCEL__');
+
+      const result = await selector.selectBook(books, {
+        message: 'Select a book',
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when user presses Ctrl+C', async () => {
+      const books = createMockBooks(3);
+      mockSelect.mockResolvedValue(Symbol('cancel'));
+      mockIsCancel.mockReturnValue(true);
 
       const result = await selector.selectBook(books, {
         message: 'Select a book',
@@ -54,18 +62,18 @@ describe('BookSelector', () => {
 
     it('should return selected book', async () => {
       const books = createMockBooks(3);
-      mockPrompt.mockResolvedValue({ selectedBook: books[1] });
+      mockSelect.mockResolvedValue('book_1');
 
       const result = await selector.selectBook(books, {
         message: 'Select a book',
       });
 
-      expect(result).toBe(books[1]);
+      expect(result).toEqual(books[1]);
     });
 
     it('should return all filtered books when ALL is selected', async () => {
       const books = createMockBooks(5);
-      mockPrompt.mockResolvedValue({ selectedBook: 'ALL' });
+      mockSelect.mockResolvedValue('__ALL__');
 
       const result = await selector.selectBook(books, {
         message: 'Select books',
@@ -79,42 +87,41 @@ describe('BookSelector', () => {
 
     it('should filter books before displaying', async () => {
       const books = createMockBooks(10);
-      mockPrompt.mockResolvedValue({ selectedBook: 'CANCEL' });
+      mockSelect.mockResolvedValue('__CANCEL__');
 
       await selector.selectBook(books, {
         message: 'Select untagged book',
         filter: (b) => !b.isTagged,
       });
 
-      expect(mockPrompt).toHaveBeenCalled();
-      const call = mockPrompt.mock.calls[0][0] as any;
-      const choices = call[0].choices;
+      expect(mockSelect).toHaveBeenCalled();
+      const call = mockSelect.mock.calls[0][0] as any;
+      const options = call.options;
 
-      // Should only show untagged books
-      const bookChoices = choices.filter((c: any) => typeof c === 'object' && c.value?.name);
-      expect(bookChoices.every((c: any) => !c.value.isTagged)).toBe(true);
+      // Should have untagged books + cancel option
+      const bookOptions = options.filter((o: any) => typeof o.value !== 'string');
+      expect(bookOptions.every((o: any) => !o.value.isTagged)).toBe(true);
     });
 
-    it('should show status indicators when requested', async () => {
+    it('should show status hints when requested', async () => {
       const books = createMockBooks(3);
-      mockPrompt.mockResolvedValue({ selectedBook: 'CANCEL' });
+      mockSelect.mockResolvedValue('__CANCEL__');
 
       await selector.selectBook(books, {
         message: 'Select a book',
         showStatus: true,
       });
 
-      const call = mockPrompt.mock.calls[0][0] as any;
-      const choices = call[0].choices;
-      const firstChoice = choices[0];
+      const call = mockSelect.mock.calls[0][0] as any;
+      const options = call.options;
+      const firstBookOption = options[0];
 
-      // Should include status indicator in name
-      expect(firstChoice.name).toMatch(/[✓○]/);
+      expect(firstBookOption.hint).toBeDefined();
     });
 
     it('should include "All" option when allowAll is true', async () => {
       const books = createMockBooks(3);
-      mockPrompt.mockResolvedValue({ selectedBook: 'CANCEL' });
+      mockSelect.mockResolvedValue('__CANCEL__');
 
       await selector.selectBook(books, {
         message: 'Select books',
@@ -122,94 +129,27 @@ describe('BookSelector', () => {
         allButtonText: 'Process all books',
       });
 
-      const call = mockPrompt.mock.calls[0][0] as any;
-      const choices = call[0].choices;
+      const call = mockSelect.mock.calls[0][0] as any;
+      const options = call.options;
 
-      const allChoice = choices.find((c: any) => c.value === 'ALL');
-      expect(allChoice).toBeDefined();
-      expect(allChoice.name).toContain('Process all books');
-    });
-
-    it('should use custom page size', async () => {
-      const books = createMockBooks(20);
-      mockPrompt.mockResolvedValue({ selectedBook: 'CANCEL' });
-
-      await selector.selectBook(books, {
-        message: 'Select a book',
-        pageSize: 20,
-      });
-
-      const call = mockPrompt.mock.calls[0][0] as any;
-      expect(call[0].pageSize).toBe(20);
+      const allOption = options.find((o: any) => o.value === '__ALL__');
+      expect(allOption).toBeDefined();
+      expect(allOption.label).toContain('Process all books');
     });
 
     it('should always include cancel option', async () => {
       const books = createMockBooks(3);
-      mockPrompt.mockResolvedValue({ selectedBook: 'CANCEL' });
+      mockSelect.mockResolvedValue('__CANCEL__');
 
       await selector.selectBook(books, {
         message: 'Select a book',
       });
 
-      const call = mockPrompt.mock.calls[0][0] as any;
-      const choices = call[0].choices;
+      const call = mockSelect.mock.calls[0][0] as any;
+      const options = call.options;
 
-      const cancelChoice = choices.find((c: any) => c.value === 'CANCEL');
-      expect(cancelChoice).toBeDefined();
-    });
-  });
-
-  describe('selectBooks', () => {
-    it('should return empty array if no books match filter', async () => {
-      const books = createMockBooks(3);
-
-      const result = await selector.selectBooks(books, {
-        message: 'Select books',
-        filter: () => false,
-      });
-
-      expect(result).toEqual([]);
-      expect(mockPrompt).not.toHaveBeenCalled();
-    });
-
-    it('should return selected books', async () => {
-      const books = createMockBooks(5);
-      const selected = [books[0], books[2], books[4]];
-      mockPrompt.mockResolvedValue({ selectedBooks: selected });
-
-      const result = await selector.selectBooks(books, {
-        message: 'Select books',
-      });
-
-      expect(result).toEqual(selected);
-    });
-
-    it('should filter books before displaying', async () => {
-      const books = createMockBooks(10);
-      mockPrompt.mockResolvedValue({ selectedBooks: [] });
-
-      await selector.selectBooks(books, {
-        message: 'Select tagged books',
-        filter: (b) => b.isTagged,
-      });
-
-      const call = mockPrompt.mock.calls[0][0] as any;
-      const choices = call[0].choices;
-
-      // Should only show tagged books
-      expect(choices.every((c: any) => c.value.isTagged)).toBe(true);
-    });
-
-    it('should use checkbox type for multi-select', async () => {
-      const books = createMockBooks(3);
-      mockPrompt.mockResolvedValue({ selectedBooks: [] });
-
-      await selector.selectBooks(books, {
-        message: 'Select books',
-      });
-
-      const call = mockPrompt.mock.calls[0][0] as any;
-      expect(call[0].type).toBe('checkbox');
+      const cancelOption = options.find((o: any) => o.value === '__CANCEL__');
+      expect(cancelOption).toBeDefined();
     });
   });
 });

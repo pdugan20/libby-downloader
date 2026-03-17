@@ -26,5 +26,6 @@ module.exports = {
   },
   moduleNameMapper: {
     '^chalk$': '<rootDir>/src/__tests__/setup/mocks/chalk.mock.ts',
+    '^@clack/prompts$': '<rootDir>/src/__tests__/setup/mocks/clack.mock.ts',
   },
 };

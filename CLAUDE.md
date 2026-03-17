@@ -57,6 +57,8 @@ npm run release:dry               # Preview release without changes
 - Pre-commit hook auto-formats and lints staged files
 - Pre-push hook runs full `check-all` suite + extension validation
 - `any` types are ALLOWED in logger variadic parameters — don't "fix" these ESLint warnings
+- UI uses @clack/prompts for all user-facing output (spinners, prompts, log messages)
+- Logger (`src/utils/logger.ts`) is for debug/verbose output only, not user-facing display
 - Always set `DEBUG_MODE = false` in `src/shared/constants.ts` before production releases
 - Don't test against real Libby — use mocks for all external dependencies
 

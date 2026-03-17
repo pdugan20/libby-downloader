@@ -7,8 +7,9 @@ import * as path from 'path';
 import * as os from 'os';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
-import { Listr } from 'listr2';
+import * as p from '@clack/prompts';
 import chalk from 'chalk';
+import { logger } from '../utils/logger';
 
 // Set ffmpeg path to bundled binary
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
@@ -38,216 +39,107 @@ interface ChapterInfo {
   duration: number;
 }
 
-interface MergeContext {
-  folderPath: string;
-  metadata?: BookMetadata;
-  chapterFiles?: string[];
-  chapters?: ChapterInfo[];
-  tmpDir?: string;
-  concatFilePath?: string;
-  metadataFilePath?: string;
-  coverArtPath?: string | null;
-  outputPath?: string;
-  outputFilename?: string;
-}
-
 export class MergeService {
   /**
    * Merge all chapter MP3 files in a folder into a single M4B audiobook
    */
   async mergeFolder(folderPath: string): Promise<string> {
-    const ctx: MergeContext = { folderPath: path.resolve(folderPath) };
+    const resolved = path.resolve(folderPath);
 
-    const tasks = new Listr<MergeContext>(
-      [
-        {
-          title: 'Validating folder',
-          task: async (ctx) => {
-            const stat = await fs.stat(ctx.folderPath);
-            if (!stat.isDirectory()) {
-              throw new Error(`Not a directory: ${ctx.folderPath}`);
-            }
-          },
-        },
-        {
-          title: 'Preparing audiobook',
-          task: (_ctx, task) =>
-            task.newListr(
-              [
-                {
-                  title: 'Loading metadata',
-                  task: async (ctx, task) => {
-                    ctx.metadata = await this.loadMetadata(ctx.folderPath);
-                    task.title = `Loading metadata: ${chalk.cyan(ctx.metadata.metadata.title)}`;
-                  },
-                },
-                {
-                  title: 'Finding chapter files',
-                  task: async (ctx, task) => {
-                    ctx.chapterFiles = await this.findChapterFiles(ctx.folderPath);
-                    task.title = `Finding chapter files: ${chalk.green(`${ctx.chapterFiles.length} found`)}`;
-                  },
-                },
-                {
-                  title: 'Calculating chapter timestamps',
-                  task: async (ctx) => {
-                    if (!ctx.metadata || !ctx.chapterFiles) {
-                      throw new Error('Missing metadata or chapter files');
-                    }
-                    ctx.chapters = await this.calculateChapterInfo(
-                      ctx.folderPath,
-                      ctx.chapterFiles,
-                      ctx.metadata
-                    );
-                  },
-                },
-                {
-                  title: 'Creating temporary directory',
-                  task: async (ctx) => {
-                    ctx.tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'libby-merge-'));
-                  },
-                },
-                {
-                  title: 'Generating merge files',
-                  task: (_ctx, task) =>
-                    task.newListr([
-                      {
-                        title: 'Creating concat file',
-                        task: async (ctx) => {
-                          if (!ctx.chapterFiles || !ctx.tmpDir) {
-                            throw new Error('Missing chapter files or tmp dir');
-                          }
-                          ctx.concatFilePath = path.join(ctx.tmpDir, 'concat.txt');
-                          await this.createConcatFile(
-                            ctx.chapterFiles,
-                            ctx.folderPath,
-                            ctx.concatFilePath
-                          );
-                        },
-                      },
-                      {
-                        title: 'Creating metadata file',
-                        task: async (ctx) => {
-                          if (!ctx.metadata || !ctx.chapters || !ctx.tmpDir) {
-                            throw new Error('Missing metadata, chapters, or tmp dir');
-                          }
-                          ctx.metadataFilePath = path.join(ctx.tmpDir, 'metadata.txt');
-                          await this.generateMetadataFile(
-                            ctx.metadata,
-                            ctx.chapters,
-                            ctx.metadataFilePath
-                          );
-                        },
-                      },
-                      {
-                        title: 'Downloading cover art',
-                        enabled: (ctx) => !!ctx.metadata?.metadata.coverUrl,
-                        task: async (ctx, task) => {
-                          if (!ctx.metadata || !ctx.tmpDir) {
-                            throw new Error('Missing metadata or tmp dir');
-                          }
-                          const coverArtPath = path.join(ctx.tmpDir, 'cover.jpg');
-                          ctx.coverArtPath = await this.downloadCoverArt(
-                            ctx.metadata.metadata.coverUrl,
-                            coverArtPath
-                          );
-                          if (ctx.coverArtPath) {
-                            task.title = 'Downloading cover art: ' + chalk.green('✓ Downloaded');
-                          } else {
-                            task.title = 'Downloading cover art: ' + chalk.yellow('⚠ Skipped');
-                          }
-                        },
-                      },
-                    ]),
-                },
-                {
-                  title: 'Preparing output file',
-                  task: async (ctx) => {
-                    if (!ctx.metadata) {
-                      throw new Error('Missing metadata');
-                    }
-                    const sanitizedTitle = this.sanitizeFilename(ctx.metadata.metadata.title);
-                    ctx.outputFilename = `${sanitizedTitle}.m4b`;
-                    ctx.outputPath = path.join(ctx.folderPath, ctx.outputFilename);
-
-                    // Check if output file already exists
-                    try {
-                      await fs.access(ctx.outputPath);
-                      throw new Error(`Output file already exists: ${ctx.outputFilename}`);
-                    } catch (error) {
-                      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-                        throw error;
-                      }
-                    }
-                  },
-                },
-              ],
-              { concurrent: false }
-            ),
-        },
-        {
-          title: 'Merging chapters into M4B',
-          task: async (ctx, task) => {
-            if (!ctx.concatFilePath || !ctx.metadataFilePath || !ctx.outputPath || !ctx.metadata) {
-              throw new Error('Missing required merge files');
-            }
-
-            const totalDuration = ctx.chapters
-              ? ctx.chapters.reduce((sum, ch) => sum + ch.duration, 0)
-              : 0;
-            const hours = Math.floor(totalDuration / 3600);
-            const minutes = Math.floor((totalDuration % 3600) / 60);
-
-            task.title = `Merging chapters (${hours}h ${minutes}m total)`;
-
-            await this.executeMerge(
-              ctx.concatFilePath,
-              ctx.metadataFilePath,
-              ctx.coverArtPath || null,
-              ctx.outputPath,
-              (timemark) => {
-                task.output = `Progress: ${chalk.cyan(timemark)} / 64kbps AAC`;
-              }
-            );
-
-            task.title = `Merging chapters: ${chalk.green('✓ Complete')}`;
-          },
-        },
-        {
-          title: 'Cleaning up',
-          task: async (ctx, task) => {
-            if (ctx.tmpDir) {
-              try {
-                await fs.rm(ctx.tmpDir, { recursive: true, force: true });
-                task.title = 'Cleaning up: ' + chalk.green('✓ Complete');
-              } catch {
-                task.title = 'Cleaning up: ' + chalk.yellow('⚠ Partial cleanup');
-              }
-            }
-          },
-        },
-      ],
-      {
-        rendererOptions: {
-          collapseSubtasks: false,
-        },
-      }
-    );
-
-    await tasks.run(ctx);
-
-    if (!ctx.outputPath || !ctx.outputFilename) {
-      throw new Error('Merge completed but output path is missing');
+    // Validate folder
+    const stat = await fs.stat(resolved);
+    if (!stat.isDirectory()) {
+      throw new Error(`Not a directory: ${resolved}`);
     }
 
-    // Show final success message
-    const fileSize = (await fs.stat(ctx.outputPath)).size;
-    const fileSizeMB = (fileSize / 1024 / 1024).toFixed(1);
-    console.log(
-      chalk.green(`\n✔ Successfully created: ${ctx.outputFilename} (${fileSizeMB} MB)\n`)
-    );
+    const s = p.spinner();
 
-    return ctx.outputPath;
+    // Load metadata
+    s.start('Loading metadata...');
+    const metadata = await this.loadMetadata(resolved);
+    s.stop(`Loaded: ${chalk.cyan(metadata.metadata.title)}`);
+
+    // Find chapter files
+    s.start('Finding chapter files...');
+    const chapterFiles = await this.findChapterFiles(resolved);
+    s.stop(`Found ${chalk.cyan(chapterFiles.length.toString())} chapters`);
+
+    // Calculate chapter timestamps
+    s.start('Calculating chapter timestamps...');
+    const chapters = await this.calculateChapterInfo(resolved, chapterFiles, metadata);
+    const totalDuration = chapters.reduce((sum, ch) => sum + ch.duration, 0);
+    const hours = Math.floor(totalDuration / 3600);
+    const minutes = Math.floor((totalDuration % 3600) / 60);
+    s.stop(`Total duration: ${hours}h ${minutes}m`);
+
+    // Create temp directory
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'libby-merge-'));
+
+    try {
+      // Generate merge files
+      s.start('Generating merge files...');
+
+      const concatFilePath = path.join(tmpDir, 'concat.txt');
+      await this.createConcatFile(chapterFiles, resolved, concatFilePath);
+
+      const metadataFilePath = path.join(tmpDir, 'metadata.txt');
+      await this.generateMetadataFile(metadata, chapters, metadataFilePath);
+
+      let coverArtPath: string | null = null;
+      if (metadata.metadata.coverUrl) {
+        coverArtPath = await this.downloadCoverArt(
+          metadata.metadata.coverUrl,
+          path.join(tmpDir, 'cover.jpg')
+        );
+      }
+
+      s.stop('Merge files ready');
+
+      // Prepare output file
+      const sanitizedTitle = this.sanitizeFilename(metadata.metadata.title);
+      const outputFilename = `${sanitizedTitle}.m4b`;
+      const outputPath = path.join(resolved, outputFilename);
+
+      try {
+        await fs.access(outputPath);
+        throw new Error(`Output file already exists: ${outputFilename}`);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+          throw error;
+        }
+      }
+
+      // Execute merge
+      s.start(`Merging ${chapterFiles.length} chapters into M4B...`);
+      await this.executeMerge(
+        concatFilePath,
+        metadataFilePath,
+        coverArtPath,
+        outputPath,
+        (timemark) => {
+          s.message(`Merging: ${chalk.cyan(timemark)} / 64kbps AAC`);
+        }
+      );
+      s.stop('Merge complete');
+
+      // Show result
+      const fileSize = (await fs.stat(outputPath)).size;
+      const sizeStr =
+        fileSize < 1024 * 1024
+          ? `${(fileSize / 1024).toFixed(0)} KB`
+          : `${(fileSize / 1024 / 1024).toFixed(1)} MB`;
+
+      p.log.success(`Created ${chalk.cyan(outputFilename)} (${sizeStr})`);
+
+      return outputPath;
+    } finally {
+      // Cleanup temp directory
+      try {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      } catch {
+        logger.debug('Failed to clean up temp directory');
+      }
+    }
   }
 
   /**
@@ -260,7 +152,6 @@ export class MergeService {
       const content = await fs.readFile(metadataPath, 'utf-8');
       const metadata = JSON.parse(content) as BookMetadata;
 
-      // Validate required fields
       if (!metadata.metadata?.title) {
         throw new Error('metadata.json missing required field: title');
       }
@@ -288,7 +179,6 @@ export class MergeService {
     const chapterFiles = files
       .filter((f) => f.startsWith('chapter-') && f.endsWith('.mp3'))
       .sort((a, b) => {
-        // Extract chapter numbers: chapter-1.mp3 -> 1
         const numA = parseInt(a.match(/chapter-(\d+)/)?.[1] || '0', 10);
         const numB = parseInt(b.match(/chapter-(\d+)/)?.[1] || '0', 10);
         return numA - numB;
@@ -338,7 +228,6 @@ export class MergeService {
       const file = chapterFiles[i];
       const filePath = path.join(folderPath, file);
 
-      // Get actual duration from file (fallback to metadata.json)
       let duration: number;
       try {
         duration = await this.getAudioDuration(filePath);
@@ -376,7 +265,6 @@ export class MergeService {
   ): Promise<string> {
     const lines = chapterFiles.map((file) => {
       const fullPath = path.join(folderPath, file);
-      // Escape single quotes in path
       const escapedPath = fullPath.replace(/'/g, "'\\''");
       return `file '${escapedPath}'`;
     });
@@ -397,7 +285,6 @@ export class MergeService {
   ): Promise<string> {
     const lines: string[] = [';FFMETADATA1'];
 
-    // Global metadata
     lines.push(`title=${metadata.metadata.title}`);
     lines.push(`artist=${metadata.metadata.authors.join(', ')}`);
     lines.push(`album=${metadata.metadata.title}`);
@@ -407,7 +294,6 @@ export class MergeService {
       lines.push(`album_artist=${metadata.metadata.narrator}`);
     }
 
-    // Description
     const description =
       typeof metadata.metadata.description === 'string'
         ? metadata.metadata.description
@@ -417,7 +303,6 @@ export class MergeService {
       lines.push(`comment=${description}`);
     }
 
-    // Chapter markers
     for (const chapter of chapters) {
       lines.push('');
       lines.push('[CHAPTER]');
@@ -495,7 +380,6 @@ export class MergeService {
         '+faststart',
       ];
 
-      // Add cover art if available
       if (coverArtPath) {
         command.input(coverArtPath);
         outputOptions.push('-map', '2:v:0', '-c:v', 'copy', '-disposition:v:0', 'attached_pic');
@@ -516,11 +400,7 @@ export class MergeService {
           resolve();
         })
         .on('error', (err) => {
-          console.error('\n=== FFmpeg Error Details ===');
-          console.error('Error:', err.message);
-          console.error('\n=== FFmpeg stderr output ===');
-          console.error(stderrOutput);
-          console.error('===========================\n');
+          logger.debug('FFmpeg stderr:\n' + stderrOutput);
           reject(new Error(`Failed to merge audiobook: ${err.message}`));
         })
         .run();

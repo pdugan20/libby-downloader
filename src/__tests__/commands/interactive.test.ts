@@ -14,18 +14,32 @@ jest.mock('../../services/book-service');
 jest.mock('../../commands/tag');
 jest.mock('../../commands/merge');
 jest.mock('../../commands/list');
-jest.mock('inquirer', () => ({
-  prompt: jest.fn(),
-  Separator: class {
-    constructor() {}
+jest.mock('@clack/prompts', () => ({
+  intro: jest.fn(),
+  outro: jest.fn(),
+  select: jest.fn(),
+  spinner: jest.fn(() => ({
+    start: jest.fn(),
+    stop: jest.fn(),
+    message: jest.fn(),
+  })),
+  log: {
+    info: jest.fn(),
+    success: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    step: jest.fn(),
+    message: jest.fn(),
   },
+  note: jest.fn(),
+  isCancel: jest.fn(() => false),
 }));
 
-import inquirer from 'inquirer';
+import * as p from '@clack/prompts';
 
 describe('runInteractive command', () => {
   let mockBookService: jest.Mocked<BookService>;
-  const mockPrompt = inquirer.prompt as jest.MockedFunction<typeof inquirer.prompt>;
+  const mockSelect = p.select as jest.MockedFunction<typeof p.select>;
   const mockTagFiles = tagFiles as jest.MockedFunction<typeof tagFiles>;
   const mockMergeBook = mergeBook as jest.MockedFunction<typeof mergeBook>;
   const mockListBooks = listBooks as jest.MockedFunction<typeof listBooks>;
@@ -42,7 +56,7 @@ describe('runInteractive command', () => {
     await runInteractive();
 
     expect(mockBookService.discoverBooks).toHaveBeenCalled();
-    expect(mockPrompt).not.toHaveBeenCalled();
+    expect(mockSelect).not.toHaveBeenCalled();
   });
 
   it('should display statistics and main menu', async () => {
@@ -57,13 +71,12 @@ describe('runInteractive command', () => {
       withMetadata: 3,
     });
 
-    // Exit immediately
-    mockPrompt.mockResolvedValue({ action: 'Exit' });
+    mockSelect.mockResolvedValue('exit');
 
     await runInteractive();
 
     expect(mockBookService.getStatistics).toHaveBeenCalledWith(books);
-    expect(mockPrompt).toHaveBeenCalled();
+    expect(mockSelect).toHaveBeenCalled();
   });
 
   it('should handle EXIT action', async () => {
@@ -78,11 +91,11 @@ describe('runInteractive command', () => {
       withMetadata: 2,
     });
 
-    mockPrompt.mockResolvedValue({ action: 'Exit' });
+    mockSelect.mockResolvedValue('exit');
 
     await runInteractive();
 
-    expect(mockPrompt).toHaveBeenCalledTimes(1);
+    expect(mockSelect).toHaveBeenCalledTimes(1);
   });
 
   it('should handle LIST action', async () => {
@@ -97,16 +110,14 @@ describe('runInteractive command', () => {
       withMetadata: 2,
     });
 
-    mockPrompt
-      .mockResolvedValueOnce({ action: 'List all downloaded books' })
-      .mockResolvedValueOnce({ action: 'Exit' });
+    mockSelect.mockResolvedValueOnce('list').mockResolvedValueOnce('exit');
 
     mockListBooks.mockResolvedValue();
 
     await runInteractive();
 
     expect(mockListBooks).toHaveBeenCalled();
-    expect(mockPrompt).toHaveBeenCalledTimes(2);
+    expect(mockSelect).toHaveBeenCalledTimes(2);
   });
 
   it('should show message when all books are tagged', async () => {
@@ -121,13 +132,11 @@ describe('runInteractive command', () => {
       withMetadata: 3,
     });
 
-    mockPrompt
-      .mockResolvedValueOnce({ action: 'Tag MP3 files (add metadata)' })
-      .mockResolvedValueOnce({ action: 'Exit' });
+    // First select: tag action, second select (for book): cancel
+    mockSelect.mockResolvedValueOnce('tag').mockResolvedValueOnce('exit');
 
     await runInteractive();
 
-    // Should not call tagFiles
     expect(mockTagFiles).not.toHaveBeenCalled();
   });
 
@@ -143,13 +152,10 @@ describe('runInteractive command', () => {
       withMetadata: 3,
     });
 
-    mockPrompt
-      .mockResolvedValueOnce({ action: 'Merge chapters into single file' })
-      .mockResolvedValueOnce({ action: 'Exit' });
+    mockSelect.mockResolvedValueOnce('merge').mockResolvedValueOnce('exit');
 
     await runInteractive();
 
-    // All books already merged, so merge command should not be called
     expect(mockMergeBook).not.toHaveBeenCalled();
   });
 
@@ -165,16 +171,16 @@ describe('runInteractive command', () => {
       withMetadata: 2,
     });
 
-    mockPrompt
-      .mockResolvedValueOnce({ action: 'List all downloaded books' })
-      .mockResolvedValueOnce({ action: 'List all downloaded books' })
-      .mockResolvedValueOnce({ action: 'Exit' });
+    mockSelect
+      .mockResolvedValueOnce('list')
+      .mockResolvedValueOnce('list')
+      .mockResolvedValueOnce('exit');
 
     mockListBooks.mockResolvedValue();
 
     await runInteractive();
 
-    expect(mockPrompt).toHaveBeenCalledTimes(3);
+    expect(mockSelect).toHaveBeenCalledTimes(3);
     expect(mockListBooks).toHaveBeenCalledTimes(2);
   });
 });

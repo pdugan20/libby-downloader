@@ -10,6 +10,7 @@ const chalk = {
   green: identity,
   yellow: identity,
   gray: identity,
+  dim: identity,
   red: identity,
   blue: identity,
 };
