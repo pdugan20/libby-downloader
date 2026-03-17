@@ -60,6 +60,8 @@
     "node-id3": "^0.2.9"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@release-it/conventional-changelog": "^10.0.6",
     "@types/chrome": "^0.1.37",
     "@types/fluent-ffmpeg": "^2.1.24",

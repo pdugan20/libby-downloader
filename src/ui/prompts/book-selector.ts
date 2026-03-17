@@ -37,7 +37,8 @@ export class BookSelector {
       return null;
     }
 
-    // Build choices
+    // Build choices — mixed types (BookInfo, string sentinels, Separator) required by inquirer API
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const choices: any[] = filteredBooks.map((book) => {
       let name = this.presenter.getDisplayName(book);
 
