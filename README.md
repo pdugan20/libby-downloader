@@ -1,6 +1,7 @@
 # Libby Downloader
 
 [![CI](https://github.com/pdugan20/libby-downloader/workflows/CI/badge.svg)](https://github.com/pdugan20/libby-downloader/actions)
+[![Release](https://img.shields.io/github/v/release/pdugan20/libby-downloader?logo=github)](https://github.com/pdugan20/libby-downloader/releases)
 [![Node.js](https://img.shields.io/badge/node-18%2B-green?logo=node.js)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
 
@@ -44,27 +45,32 @@ Open an audiobook in Libby, then click the download button in the top-right navi
 The CLI provides tagging and merging for downloaded books. Run `libby` for the interactive menu, or use commands directly:
 
 ```bash
+libby                      # Interactive menu
+libby list                 # List all downloaded books
 libby tag                  # Tag MP3 files with metadata (interactive)
 libby tag ~/path/to/book/  # Tag a specific folder
 libby merge                # Merge chapters into M4B audiobook (interactive)
 libby merge ~/path/to/book/
-libby list                 # List all downloaded books
 ```
 
-Tag command options: `--title`, `--author`, `--narrator`, `--cover-url`
+Options:
+
+- `--data-dir <path>` — Override the downloads directory
+- `--title`, `--author`, `--narrator`, `--cover-url` — Override tag metadata
+- `--verbose` — Enable debug logging
 
 ## Development
 
 ```bash
 npm run build              # Build CLI and extension
-npm run build:extension    # Build extension only
 npm run dev -- list        # Run CLI without building
 npm run dev:extension      # Watch mode for extension
 npm run check-all          # Full validation (typecheck, lint, format, test)
-npm test                   # Run tests
+npm test                   # Run unit tests
+npm run test:cli           # Run CLI integration tests against fixtures
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
+See [docs/architecture.md](docs/architecture.md) for system design and [docs/releasing.md](docs/releasing.md) for the release process.
 
 ## Disclaimer
 
