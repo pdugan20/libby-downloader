@@ -28,7 +28,12 @@
     "extension:lint": "web-ext lint --source-dir=chrome-extension --warnings-as-errors",
     "extension:validate": "node scripts/validate-extension.js",
     "lint:claude": "claudelint check-all",
-    "lint:claude:fix": "claudelint format --fix"
+    "lint:claude:fix": "claudelint format --fix",
+    "release": "release-it",
+    "release:dry": "release-it --dry-run",
+    "release:patch": "release-it patch",
+    "release:minor": "release-it minor",
+    "release:major": "release-it major"
   },
   "keywords": [
     "libby",
@@ -55,6 +60,7 @@
     "node-id3": "^0.2.9"
   },
   "devDependencies": {
+    "@release-it/conventional-changelog": "^10.0.6",
     "@types/chrome": "^0.1.37",
     "@types/fluent-ffmpeg": "^2.1.24",
     "@types/inquirer": "^9.0.9",
@@ -71,6 +77,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
+    "release-it": "^19.2.4",
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
