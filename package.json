@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "npm run build:cli && npm run build:extension",
-    "build:cli": "tsc",
+    "build:cli": "tsc && tsc-esm-fix --target='dist'",
     "build:extension": "node scripts/build-extension.mjs",
     "build:extension:watch": "vite build --watch",
     "dev": "tsx src/cli.ts",
@@ -87,6 +87,7 @@
     "prettier": "^3.8.1",
     "release-it": "^19.2.4",
     "ts-jest": "^29.4.6",
+    "tsc-esm-fix": "^3.1.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",

@@ -36,7 +36,7 @@ export function TagProgress({ folderPath, options = {}, onComplete, onError }: T
         },
         onComplete: (totalFiles) => {
           setState((prev) => ({ ...prev, current: totalFiles, done: true }));
-          setTimeout(() => onComplete(), 100);
+          setTimeout(() => onComplete(), 2000);
         },
       })
       .catch((err) => {

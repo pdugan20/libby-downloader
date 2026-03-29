@@ -45,6 +45,7 @@ export interface MergeResult {
 
 export interface MergeProgressCallback {
   onStageChange?: (stage: string) => void;
+  onMergeStart?: (totalDurationSecs: number, chapterCount: number) => void;
   onMergeProgress?: (timemark: string) => void;
   onComplete?: (filename: string, fileSize: number) => void;
 }
@@ -110,7 +111,9 @@ export class MergeService {
       }
 
       // Execute merge
+      const totalDurationSecs = chapters.reduce((sum, ch) => sum + ch.duration, 0);
       onProgress?.onStageChange?.(`Merging ${chapterFiles.length} chapters...`);
+      onProgress?.onMergeStart?.(totalDurationSecs, chapterFiles.length);
       await this.executeMerge(
         concatFilePath,
         metadataFilePath,

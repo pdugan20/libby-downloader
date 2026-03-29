@@ -4,9 +4,10 @@ interface ProgressBarProps {
   current: number;
   total: number;
   width?: number;
+  showPercent?: boolean;
 }
 
-export function ProgressBar({ current, total, width = 20 }: ProgressBarProps) {
+export function ProgressBar({ current, total, width = 20, showPercent = false }: ProgressBarProps) {
   const percent = total > 0 ? Math.min(current / total, 1) : 0;
   const filled = Math.round(percent * width);
   const empty = width - filled;
@@ -16,8 +17,14 @@ export function ProgressBar({ current, total, width = 20 }: ProgressBarProps) {
       <Text color="white">{'▓'.repeat(filled)}</Text>
       <Text dimColor>{'░'.repeat(empty)}</Text>
       <Text>{'  '}</Text>
-      <Text bold>{current}</Text>
-      <Text dimColor>/{total}</Text>
+      {showPercent ? (
+        <Text bold>{Math.round(percent * 100)}%</Text>
+      ) : (
+        <>
+          <Text bold>{current}</Text>
+          <Text dimColor>/{total}</Text>
+        </>
+      )}
     </Text>
   );
 }
