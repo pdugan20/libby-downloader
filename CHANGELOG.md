@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0](https://github.com/pdugan20/libby-downloader/compare/v1.1.0...v1.2.0) (2026-03-29)
+
+### Features
+
+* add merge progress bar with ETA and fix ESM build ([b19b00c](https://github.com/pdugan20/libby-downloader/commit/b19b00c32ded72d23c23d22cd405d8f76042fc22))
+
+### Bug Fixes
+
+* release workflow awk pattern to match changelog format ([a8d8f88](https://github.com/pdugan20/libby-downloader/commit/a8d8f88f04a65ff8b08d00b7f571273892f22e8b))
+
+### Documentation
+
+* consolidate documentation structure ([17067e4](https://github.com/pdugan20/libby-downloader/commit/17067e436919804b00f142de3230eecac2fd4a18))
+
 ## 1.1.0 (2026-03-17)
 
 ### Features
