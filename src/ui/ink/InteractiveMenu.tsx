@@ -235,9 +235,11 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
     return (
       <Box flexDirection="column" marginY={1}>
         <Header total={stats.total} tagged={stats.tagged} merged={stats.merged} />
-        <Box marginBottom={1}>
+        <Box marginBottom={1} paddingLeft={2}>
           <Text dimColor>Merging: </Text>
-          <Text bold>{bookPresenter.getTitle(selectedBook)}</Text>
+          <Text bold color="white">
+            {bookPresenter.getTitle(selectedBook)}
+          </Text>
         </Box>
         <MergeProgress
           folderPath={selectedBook.path}

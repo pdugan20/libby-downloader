@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Box, Text } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import Spinner from 'ink-spinner';
 import { MergeService } from '../../services/merge-service';
 import { ProgressBar } from './ProgressBar';
@@ -16,6 +16,7 @@ interface MergeState {
   totalDurationSecs: number;
   chapterCount: number;
   done: boolean;
+  cancelled: boolean;
   outputFile?: string;
   fileSize?: number;
   error?: string;
@@ -45,6 +46,11 @@ function formatEta(seconds: number): string {
   return `${h}h ${m}m`;
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 export function MergeProgress({ folderPath, onComplete, onError }: MergeProgressProps) {
   const [state, setState] = useState<MergeState>({
     stage: 'Preparing...',
@@ -52,10 +58,21 @@ export function MergeProgress({ folderPath, onComplete, onError }: MergeProgress
     totalDurationSecs: 0,
     chapterCount: 0,
     done: false,
+    cancelled: false,
   });
   const startTimeRef = useRef<number>(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useInput((_input, key) => {
+    if (key.escape && !state.done && !state.cancelled) {
+      abortRef.current?.abort();
+      setState((prev) => ({ ...prev, cancelled: true, done: true }));
+    }
+  });
 
   useEffect(() => {
+    const controller = new AbortController();
+    abortRef.current = controller;
     const service = new MergeService();
     service
       .mergeFolder(folderPath, {
@@ -78,28 +95,63 @@ export function MergeProgress({ folderPath, onComplete, onError }: MergeProgress
           }));
           setTimeout(() => onComplete(), 2000);
         },
+        signal: controller.signal,
       })
       .catch((err) => {
+        if (controller.signal.aborted) {
+          setTimeout(() => onComplete(), 1000);
+          return;
+        }
         setState((prev) => ({ ...prev, error: err.message, done: true }));
         onError?.(err);
       });
+
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   if (state.error) {
     return <Text color="red">Error: {state.error}</Text>;
   }
 
+  if (state.cancelled) {
+    return (
+      <Box paddingLeft={2}>
+        <Text color="yellow">Merge cancelled.</Text>
+      </Box>
+    );
+  }
+
   if (state.done && state.outputFile) {
-    const sizeStr =
-      (state.fileSize || 0) < 1024 * 1024
-        ? `${((state.fileSize || 0) / 1024).toFixed(0)} KB`
-        : `${((state.fileSize || 0) / 1024 / 1024).toFixed(1)} MB`;
+    const elapsed = (Date.now() - startTimeRef.current) / 1000;
 
     return (
-      <Text>
-        <Text color="green">✔</Text> Created <Text color="cyan">{state.outputFile}</Text> ({sizeStr}
-        )
-      </Text>
+      <Box flexDirection="column" paddingLeft={2}>
+        <Box>
+          <Text color="green">✔</Text>
+          <Text bold> Merge complete</Text>
+        </Box>
+        <Box flexDirection="column" paddingLeft={2} marginTop={1}>
+          <Text>
+            <Text dimColor>File: </Text>
+            <Text color="cyan">{state.outputFile}</Text>
+          </Text>
+          <Text>
+            <Text dimColor>Size: </Text>
+            <Text>{formatFileSize(state.fileSize || 0)}</Text>
+          </Text>
+          <Text>
+            <Text dimColor>Time: </Text>
+            <Text>{formatDuration(elapsed)}</Text>
+          </Text>
+          <Text>
+            <Text dimColor>Audio: </Text>
+            <Text>{formatDuration(state.totalDurationSecs)}</Text>
+            <Text dimColor> ({state.chapterCount} chapters)</Text>
+          </Text>
+        </Box>
+      </Box>
     );
   }
 
@@ -109,27 +161,53 @@ export function MergeProgress({ folderPath, onComplete, onError }: MergeProgress
     const percent = Math.min(processedSecs / state.totalDurationSecs, 1);
     const percentDisplay = Math.round(percent * 100);
 
-    // Calculate ETA from wall-clock encoding speed
+    // Calculate ETA and speed from wall-clock encoding time
     let etaStr = '';
+    let speedStr = '';
     const elapsed = (Date.now() - startTimeRef.current) / 1000;
     if (elapsed > 2 && processedSecs > 0) {
       const speed = processedSecs / elapsed;
+      speedStr = `${speed.toFixed(1)}x`;
       const remaining = (state.totalDurationSecs - processedSecs) / speed;
       if (remaining > 0) {
         etaStr = formatEta(remaining);
       }
     }
 
+    // Estimate current chapter based on linear progress through total duration
+    const estChapter = Math.min(
+      Math.ceil((processedSecs / state.totalDurationSecs) * state.chapterCount),
+      state.chapterCount
+    );
+
     return (
-      <Box flexDirection="column">
+      <Box flexDirection="column" paddingLeft={2}>
         <Box>
           <ProgressBar current={percentDisplay} total={100} width={24} showPercent />
         </Box>
-        <Box paddingLeft={2} marginTop={1}>
-          <Text dimColor>
-            {formatDuration(processedSecs)} / {formatDuration(state.totalDurationSecs)}
+        <Box marginTop={1} flexDirection="column">
+          <Text>
+            <Text dimColor>
+              {formatDuration(processedSecs)} / {formatDuration(state.totalDurationSecs)}
+            </Text>
+            <Text dimColor> Ch. </Text>
+            <Text>{estChapter}</Text>
+            <Text dimColor>/{state.chapterCount}</Text>
           </Text>
-          {etaStr && <Text dimColor> ETA: ~{etaStr}</Text>}
+          <Text>
+            <Text dimColor>Speed: {speedStr || '---'} </Text>
+            <Text dimColor>ETA: </Text>
+            {etaStr ? (
+              <Text bold color="cyan">
+                ~{etaStr}
+              </Text>
+            ) : (
+              <Text dimColor>---</Text>
+            )}
+          </Text>
+        </Box>
+        <Box marginTop={1}>
+          <Text dimColor>Press Esc to cancel</Text>
         </Box>
       </Box>
     );
@@ -137,11 +215,11 @@ export function MergeProgress({ folderPath, onComplete, onError }: MergeProgress
 
   // Pre-merge stages (loading metadata, finding chapters, etc.)
   return (
-    <Box>
-      <Text>
+    <Box paddingLeft={2}>
+      <Text color="cyan">
         <Spinner type="dots" />
       </Text>
-      <Text> {state.stage}</Text>
+      <Text dimColor> {state.stage}</Text>
     </Box>
   );
 }

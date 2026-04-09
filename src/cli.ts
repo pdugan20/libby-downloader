@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'module';
 import { Command } from 'commander';
 import { createElement } from 'react';
 import { render } from 'ink';
 import { logger, LogLevel } from './utils/logger';
 import { App } from './ui/ink/App';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 
 /**
  * Get the --data-dir value from the root program options
@@ -18,7 +22,7 @@ const program = new Command();
 program
   .name('libby')
   .description('Manage audiobooks downloaded from Libby (via Chrome extension)')
-  .version('1.0.0')
+  .version(version)
   .option(
     '--data-dir <path>',
     'Override the downloads directory (default: ~/Downloads/libby-downloads)'

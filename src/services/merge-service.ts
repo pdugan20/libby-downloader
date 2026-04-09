@@ -48,6 +48,7 @@ export interface MergeProgressCallback {
   onMergeStart?: (totalDurationSecs: number, chapterCount: number) => void;
   onMergeProgress?: (timemark: string) => void;
   onComplete?: (filename: string, fileSize: number) => void;
+  signal?: AbortSignal;
 }
 
 export class MergeService {
@@ -121,7 +122,8 @@ export class MergeService {
         outputPath,
         (timemark) => {
           onProgress?.onMergeProgress?.(timemark);
-        }
+        },
+        onProgress?.signal
       );
 
       // Get result info
@@ -351,10 +353,12 @@ export class MergeService {
     metadataFilePath: string,
     coverArtPath: string | null,
     outputPath: string,
-    onProgress?: (timemark: string) => void
+    onProgress?: (timemark: string) => void,
+    signal?: AbortSignal
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       let stderrOutput = '';
+      let killed = false;
 
       const command = ffmpeg()
         .input(concatFilePath)
@@ -382,6 +386,18 @@ export class MergeService {
         outputOptions.push('-map', '2:v:0', '-c:v', 'copy', '-disposition:v:0', 'attached_pic');
       }
 
+      if (signal) {
+        const onAbort = () => {
+          killed = true;
+          command.kill('SIGKILL');
+        };
+        if (signal.aborted) {
+          reject(new Error('Merge cancelled'));
+          return;
+        }
+        signal.addEventListener('abort', onAbort, { once: true });
+      }
+
       command
         .outputOptions(outputOptions)
         .output(outputPath)
@@ -396,7 +412,17 @@ export class MergeService {
         .on('end', () => {
           resolve();
         })
-        .on('error', (err) => {
+        .on('error', async (err) => {
+          if (killed) {
+            // Clean up partial output file
+            try {
+              await fs.unlink(outputPath);
+            } catch {
+              // File may not exist yet
+            }
+            reject(new Error('Merge cancelled'));
+            return;
+          }
           logger.debug('FFmpeg stderr:\n' + stderrOutput);
           reject(new Error(`Failed to merge audiobook: ${err.message}`));
         })

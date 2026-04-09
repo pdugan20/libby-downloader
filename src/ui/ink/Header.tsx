@@ -11,9 +11,19 @@ export function Header({ total, tagged, merged }: HeaderProps) {
     <Box marginBottom={1}>
       <Text bold>Libby Downloader</Text>
       {total !== undefined && (
-        <Text dimColor>
+        <Text>
           {'  '}
-          {total} books · Tagged: {tagged}/{total} · Merged: {merged}/{total}
+          <Text dimColor>
+            {total} {total === 1 ? 'book' : 'books'} ·{' '}
+          </Text>
+          <Text dimColor>Tagged: </Text>
+          <Text color={tagged === total ? 'green' : 'yellow'}>
+            {tagged}/{total}
+          </Text>
+          <Text dimColor> · Merged: </Text>
+          <Text color={merged === total ? 'green' : 'yellow'}>
+            {merged}/{total}
+          </Text>
         </Text>
       )}
     </Box>
