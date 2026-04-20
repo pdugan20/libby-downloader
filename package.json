@@ -73,7 +73,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
     "@types/react": "^18.3.28",
-    "@typescript-eslint/eslint-plugin": "^8.58.1",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.53.0",
     "claude-code-lint": "^0.3.0",
     "eslint": "^9.39.2",
@@ -84,14 +84,14 @@
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^29.7.0",
     "lint-staged": "^16.4.0",
-    "prettier": "^3.8.2",
+    "prettier": "^3.8.3",
     "release-it": "^19.2.4",
     "ts-jest": "^29.4.9",
     "tsc-esm-fix": "^3.1.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vite-plugin-singlefile": "^2.3.2",
+    "vite-plugin-singlefile": "^2.3.3",
     "web-ext": "^9.4.0"
   }
 }
