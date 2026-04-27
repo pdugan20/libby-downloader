@@ -65,7 +65,7 @@
     "react": "^18.3.1"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.5.0",
+    "@commitlint/cli": "^20.5.2",
     "@commitlint/config-conventional": "^20.5.0",
     "@release-it/conventional-changelog": "^10.0.6",
     "@types/chrome": "^0.1.40",
@@ -73,7 +73,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
     "@types/react": "^18.3.28",
-    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/eslint-plugin": "^8.59.0",
     "@typescript-eslint/parser": "^8.53.0",
     "claude-code-lint": "^0.3.0",
     "eslint": "^9.39.2",
