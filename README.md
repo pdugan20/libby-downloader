@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/pdugan20/libby-downloader/workflows/CI/badge.svg)](https://github.com/pdugan20/libby-downloader/actions)
 [![Release](https://img.shields.io/github/v/release/pdugan20/libby-downloader?logo=github)](https://github.com/pdugan20/libby-downloader/releases)
-[![Node.js](https://img.shields.io/badge/node-22%2B-green?logo=node.js)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
 
 Download audiobooks from Libby to your computer for offline listening.
