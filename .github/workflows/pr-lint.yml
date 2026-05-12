@@ -1,0 +1,37 @@
+name: PR Lint
+
+on:
+  pull_request_target:
+    types: [opened, reopened, edited, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  validate-title:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        with:
+          # Type must match [a-zA-Z]+ — no hyphens (parser limitation).
+          # Dependabot uses `chore(deps)` / `chore(deps-dev)` — hyphen in
+          # the scope is fine.
+          types: |
+            feat
+            fix
+            perf
+            refactor
+            revert
+            docs
+            style
+            test
+            build
+            ci
+            chore
+          requireScope: false
+          subjectPattern: ^[a-z].*$
+          subjectPatternError: |
+            The subject must start with a lowercase letter.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
