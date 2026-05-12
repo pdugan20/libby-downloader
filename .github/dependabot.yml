@@ -9,8 +9,10 @@ updates:
       timezone: "America/New_York"
     open-pull-requests-limit: 10
     commit-message:
-      prefix: "deps"
-      prefix-development: "deps-dev"
+      # Type must be a single word (no hyphens) for the conventional-commits
+      # parser used by PR Lint. `include: scope` adds `(deps)` / `(deps-dev)`
+      # automatically — hyphen in the scope is fine.
+      prefix: "chore"
       include: "scope"
     labels:
       - "dependencies"
@@ -19,6 +21,10 @@ updates:
       - "pdugan20"
     reviewers:
       - "pdugan20"
+    # Skip major-version bumps — they regularly break CI and need a human.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       dev-dependencies:
         dependency-type: "development"
