@@ -1,19 +1,11 @@
 /**
- * Tests for shared validators
+ * @jest-environment-options {"url": "https://libbyapp.com"}
  */
 
 import type { BookData } from '../../types/extension-book';
 import { sanitizeFilename, validateBookData, validateOrigin } from '../../shared/validators';
 
 describe('validateOrigin', () => {
-  beforeEach(() => {
-    // Mock window.location.origin
-    Object.defineProperty(window, 'location', {
-      value: { origin: 'https://libbyapp.com' },
-      writable: true,
-    });
-  });
-
   it('should accept current window origin', () => {
     expect(validateOrigin('https://libbyapp.com')).toBe(true);
   });
