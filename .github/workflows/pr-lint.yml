@@ -29,6 +29,7 @@ jobs:
             build
             ci
             chore
+            deps
           requireScope: false
           subjectPattern: ^[a-z].*$
           subjectPatternError: |
