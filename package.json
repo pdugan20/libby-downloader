@@ -83,7 +83,7 @@
     "ink-testing-library": "^3.0.0",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.3.0",
-    "lint-staged": "^16.4.0",
+    "lint-staged": "^17.0.7",
     "prettier": "^3.8.4",
     "release-it": "^19.2.4",
     "ts-jest": "^29.4.11",
