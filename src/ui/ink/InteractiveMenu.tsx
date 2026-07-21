@@ -12,14 +12,7 @@ import { MergeProgress } from './MergeProgress';
 import { Indicator, Item } from './SelectTheme';
 
 type View =
-  | 'loading'
-  | 'menu'
-  | 'list'
-  | 'tag-select'
-  | 'tagging'
-  | 'merge-select'
-  | 'merging'
-  | 'details';
+  'loading' | 'menu' | 'list' | 'tag-select' | 'tagging' | 'merge-select' | 'merging' | 'details';
 
 interface MenuProps {
   dataDir?: string;
