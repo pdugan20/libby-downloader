@@ -43,26 +43,15 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    ignore:
-      # ink 7 requires React 19 / @types/react 19 — major bump needs a deliberate migration
-      - dependency-name: "ink"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "ink-select-input"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "ink-testing-library"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "react"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@types/react"
-        update-types: ["version-update:semver-major"]
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "06:00"
-      timezone: "America/New_York"
+      timezone: "America/Los_Angeles"
+    cooldown:
+      default-days: 14
     open-pull-requests-limit: 5
     commit-message:
       prefix: "ci"
