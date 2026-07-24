@@ -173,6 +173,57 @@ describe('MetadataService', () => {
         expect.any(String)
       );
     });
+
+    it('should use plural narrators from extension metadata', async () => {
+      const metadataWithNarrators = {
+        metadata: {
+          title: 'Test Book',
+          authors: ['Author'],
+          narrators: ['Narrator One', 'Narrator Two'],
+        },
+        chapters: [{ index: 0, title: 'Chapter 1', duration: 100 }],
+      };
+
+      mockFs.readFile.mockImplementation((path: any) => {
+        if (path.includes('metadata.json')) {
+          return Promise.resolve(JSON.stringify(metadataWithNarrators));
+        }
+        return Promise.reject(new Error('File not found'));
+      });
+      mockFs.readdir.mockResolvedValue(['chapter-1.mp3', 'metadata.json'] as any);
+
+      await metadataService.embedToFolder('/test/book');
+
+      expect(mockNodeID3.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          performerInfo: 'Narrator One, Narrator Two',
+        }),
+        '/test/book/chapter-1.mp3'
+      );
+    });
+
+    it('should apply CLI overrides on top of metadata.json values', async () => {
+      await metadataService.embedToFolder('/test/book', {
+        title: 'Override Title',
+        author: 'Override Author',
+        narrator: 'Override Narrator',
+        coverUrl: 'https://example.com/override.jpg',
+        description: 'Override description',
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith('https://example.com/override.jpg');
+      expect(mockNodeID3.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          album: 'Override Title',
+          artist: 'Override Author',
+          performerInfo: 'Override Narrator',
+          comment: expect.objectContaining({
+            text: 'Override description',
+          }),
+        }),
+        expect.any(String)
+      );
+    });
   });
 
   describe('embedToFile', () => {

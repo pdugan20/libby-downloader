@@ -26,6 +26,14 @@ const menuItems = [
   { label: 'Exit', value: 'exit' },
 ];
 
+export function getTagSelectionBooks(books: BookInfo[]): BookInfo[] {
+  return books;
+}
+
+export function getMergeSelectionBooks(books: BookInfo[]): BookInfo[] {
+  return books;
+}
+
 export function InteractiveMenu({ dataDir }: MenuProps) {
   const { exit } = useApp();
   const bookPresenter = new BookPresenter();
@@ -57,20 +65,10 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
     setMessage('');
     switch (item.value) {
       case 'tag': {
-        const untagged = books.filter((b) => !b.isTagged);
-        if (untagged.length === 0) {
-          setMessage('All books are already tagged.');
-          return;
-        }
         setView('tag-select');
         break;
       }
       case 'merge': {
-        const unmerged = books.filter((b) => !b.isMerged);
-        if (unmerged.length === 0) {
-          setMessage('All books are already merged.');
-          return;
-        }
         setView('merge-select');
         break;
       }
@@ -92,9 +90,14 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
       return;
     }
     if (Array.isArray(result)) {
-      setTagBatch(result);
+      const untagged = result.filter((book) => !book.isTagged);
+      if (untagged.length === 0) {
+        setView('menu');
+        return;
+      }
+      setTagBatch(untagged);
       setTagBatchIndex(0);
-      setSelectedBook(result[0]);
+      setSelectedBook(untagged[0]);
       setView('tagging');
     } else {
       setTagBatch([]);
@@ -172,11 +175,11 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
       <Box flexDirection="column" marginY={1}>
         <Header total={stats.total} tagged={stats.tagged} merged={stats.merged} />
         <BookSelect
-          books={books}
+          books={getTagSelectionBooks(books)}
           message="Which book do you want to tag?"
-          filter={(b) => !b.isTagged}
-          allowAll
+          allowAll={stats.untagged > 0}
           allButtonText={`Tag all ${stats.untagged} untagged books`}
+          showStatus
           onSelect={handleTagSelect}
         />
       </Box>
@@ -202,7 +205,7 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
   }
 
   if (view === 'merge-select') {
-    const untaggedCount = books.filter((b) => !b.isMerged && !b.isTagged).length;
+    const untaggedCount = books.filter((b) => !b.isTagged).length;
     return (
       <Box flexDirection="column" marginY={1}>
         <Header total={stats.total} tagged={stats.tagged} merged={stats.merged} />
@@ -214,9 +217,8 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
           </Box>
         )}
         <BookSelect
-          books={books}
+          books={getMergeSelectionBooks(books)}
           message="Which book do you want to merge?"
-          filter={(b) => !b.isMerged}
           showStatus
           onSelect={handleMergeSelect}
         />
@@ -236,6 +238,7 @@ export function InteractiveMenu({ dataDir }: MenuProps) {
         </Box>
         <MergeProgress
           folderPath={selectedBook.path}
+          force={selectedBook.isMerged}
           onComplete={handleMergeComplete}
           onError={() => refreshBooks().then(() => setView('menu'))}
         />

@@ -81,7 +81,8 @@ program
 program
   .command('merge [folder]')
   .description('Merge MP3 chapters into single M4B audiobook (interactive if no folder specified)')
-  .action(async (folder, _options, cmd: Command) => {
+  .option('--force', 'Overwrite an existing M4B file')
+  .action(async (folder, options, cmd: Command) => {
     if (!folder) {
       const instance = render(
         createElement(App, { command: 'interactive', dataDir: getDataDir(cmd) })
@@ -90,7 +91,13 @@ program
       return;
     }
 
-    const instance = render(createElement(App, { command: 'merge', folder }));
+    const instance = render(
+      createElement(App, {
+        command: 'merge',
+        folder,
+        mergeOptions: { force: options.force },
+      })
+    );
     await instance.waitUntilExit();
   });
 
