@@ -11,9 +11,12 @@ export interface AppProps {
   dataDir?: string;
   folder?: string;
   tagOptions?: EmbedOptions;
+  mergeOptions?: {
+    force?: boolean;
+  };
 }
 
-export function App({ command, dataDir, folder, tagOptions }: AppProps) {
+export function App({ command, dataDir, folder, tagOptions, mergeOptions }: AppProps) {
   const { exit } = useApp();
 
   if (command === 'interactive') {
@@ -42,7 +45,12 @@ export function App({ command, dataDir, folder, tagOptions }: AppProps) {
     return (
       <Box flexDirection="column" marginY={1}>
         <Header />
-        <MergeProgress folderPath={folder} onComplete={() => exit()} onError={() => exit()} />
+        <MergeProgress
+          folderPath={folder}
+          force={mergeOptions?.force}
+          onComplete={() => exit()}
+          onError={() => exit()}
+        />
       </Box>
     );
   }

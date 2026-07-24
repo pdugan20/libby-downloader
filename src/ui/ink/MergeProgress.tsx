@@ -6,6 +6,7 @@ import { ProgressBar } from './ProgressBar';
 
 interface MergeProgressProps {
   folderPath: string;
+  force?: boolean;
   onComplete: () => void;
   onError?: (error: Error) => void;
 }
@@ -51,7 +52,12 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function MergeProgress({ folderPath, onComplete, onError }: MergeProgressProps) {
+export function MergeProgress({
+  folderPath,
+  force = false,
+  onComplete,
+  onError,
+}: MergeProgressProps) {
   const [state, setState] = useState<MergeState>({
     stage: 'Preparing...',
     timemark: '',
@@ -63,12 +69,15 @@ export function MergeProgress({ folderPath, onComplete, onError }: MergeProgress
   const startTimeRef = useRef<number>(0);
   const abortRef = useRef<AbortController | null>(null);
 
-  useInput((_input, key) => {
-    if (key.escape && !state.done && !state.cancelled) {
-      abortRef.current?.abort();
-      setState((prev) => ({ ...prev, cancelled: true, done: true }));
-    }
-  });
+  useInput(
+    (_input, key) => {
+      if (key.escape && !state.done && !state.cancelled) {
+        abortRef.current?.abort();
+        setState((prev) => ({ ...prev, cancelled: true, done: true }));
+      }
+    },
+    { isActive: Boolean(process.stdin.isTTY) }
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,6 +85,7 @@ export function MergeProgress({ folderPath, onComplete, onError }: MergeProgress
     const service = new MergeService();
     service
       .mergeFolder(folderPath, {
+        force,
         onStageChange: (stage) => {
           setState((prev) => ({ ...prev, stage }));
         },

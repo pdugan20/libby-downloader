@@ -78,6 +78,21 @@ describe('BookPresenter', () => {
 
       expect(presenter.getNarrator(book)).toBeUndefined();
     });
+
+    it('should join plural narrators from extension metadata', () => {
+      const book = createMockBookInfo({
+        metadataJson: {
+          metadata: {
+            title: 'Title',
+            authors: ['Author'],
+            narrators: ['Narrator One', 'Narrator Two'],
+          },
+          chapters: [],
+        },
+      });
+
+      expect(presenter.getNarrator(book)).toBe('Narrator One, Narrator Two');
+    });
   });
 
   describe('getCoverUrl', () => {

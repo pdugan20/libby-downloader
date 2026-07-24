@@ -45,8 +45,13 @@ export function BookSelect({
 
     let label = bookPresenter.getDisplayName(book);
     if (showStatus) {
-      const status = book.isTagged ? ' [tagged]' : '';
-      label += status;
+      const statuses = [
+        book.isTagged ? 'tagged' : undefined,
+        book.isMerged ? 'merged' : undefined,
+      ].filter(Boolean);
+      if (statuses.length > 0) {
+        label += ` [${statuses.join(', ')}]`;
+      }
     }
 
     items.push({ label, value: key });

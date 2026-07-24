@@ -1,10 +1,20 @@
-/**
- * Tests for interactive command (placeholder)
- * The Ink-based InteractiveMenu component is tested via CLI integration tests.
- */
+import { createMergedBook, createTaggedBook } from '../setup/fixtures/books.fixture';
+import { getMergeSelectionBooks, getTagSelectionBooks } from '../../ui/ink/InteractiveMenu';
 
 describe('Interactive menu', () => {
-  it('should be tested via CLI integration tests', () => {
-    expect(true).toBe(true);
+  it('should allow selecting an already-tagged book for re-tagging', () => {
+    const taggedBook = createTaggedBook();
+
+    const selectableBooks = getTagSelectionBooks([taggedBook]);
+
+    expect(selectableBooks).toEqual([taggedBook]);
+  });
+
+  it('should allow selecting an already-merged book for re-merging', () => {
+    const mergedBook = createMergedBook();
+
+    const selectableBooks = getMergeSelectionBooks([mergedBook]);
+
+    expect(selectableBooks).toEqual([mergedBook]);
   });
 });

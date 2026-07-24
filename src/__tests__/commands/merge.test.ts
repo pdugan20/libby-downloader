@@ -31,4 +31,16 @@ describe('mergeBook command', () => {
 
     await expect(mergeBook('/test/book')).rejects.toThrow('Failed to merge');
   });
+
+  it('should pass force through to MergeService', async () => {
+    mockMergeService.mergeFolder.mockResolvedValue({
+      outputPath: '/test/book/Book.m4b',
+      outputFilename: 'Book.m4b',
+      fileSize: 1024,
+    });
+
+    await mergeBook('/test/book', { force: true });
+
+    expect(mockMergeService.mergeFolder).toHaveBeenCalledWith('/test/book', { force: true });
+  });
 });

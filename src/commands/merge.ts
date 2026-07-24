@@ -5,10 +5,18 @@
 
 import { MergeService } from '../services/merge-service';
 
+export interface MergeOptions {
+  force?: boolean;
+}
+
 /**
  * Merge MP3 chapters in a folder into a single M4B audiobook (non-interactive, no UI)
  */
-export async function mergeBook(folderPath: string): Promise<void> {
+export async function mergeBook(folderPath: string, options: MergeOptions = {}): Promise<void> {
   const mergeService = new MergeService();
+  if (options.force) {
+    await mergeService.mergeFolder(folderPath, { force: true });
+    return;
+  }
   await mergeService.mergeFolder(folderPath);
 }

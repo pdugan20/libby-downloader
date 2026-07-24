@@ -159,6 +159,15 @@ describe('MergeService', () => {
       await expect(mergeService.mergeFolder('/test/book')).rejects.toThrow('already exists');
     });
 
+    it('should replace an existing output file when force is enabled', async () => {
+      mockFs.access.mockResolvedValue(undefined);
+
+      const result = await mergeService.mergeFolder('/test/book', { force: true });
+
+      expect(mockFs.unlink).toHaveBeenCalledWith('/test/book/Sample Audiobook.m4b');
+      expect(result.outputPath).toBe('/test/book/Sample Audiobook.m4b');
+    });
+
     it('should handle cover art download failure gracefully', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
@@ -239,6 +248,32 @@ describe('MergeService', () => {
       const result = await mergeService.mergeFolder('/test/book');
 
       expect(result.outputPath).toContain('.m4b');
+    });
+
+    it('should write plural narrators to M4B metadata', async () => {
+      mockFs.readFile.mockImplementation((path: any) => {
+        if (path.includes('metadata.json')) {
+          const metadata = createMockMetadata();
+          delete metadata.metadata.narrator;
+          return Promise.resolve(
+            JSON.stringify({
+              ...metadata,
+              metadata: {
+                ...metadata.metadata,
+                narrators: ['Narrator One', 'Narrator Two'],
+              },
+            })
+          );
+        }
+        return Promise.reject(new Error('File not found'));
+      });
+
+      await mergeService.mergeFolder('/test/book');
+
+      const metadataWrite = mockFs.writeFile.mock.calls.find((call) =>
+        call[0].toString().includes('metadata.txt')
+      );
+      expect(metadataWrite?.[1]).toContain('album_artist=Narrator One, Narrator Two');
     });
   });
 });

@@ -17,6 +17,7 @@ interface BookMetadata {
     title: string;
     authors: string[];
     narrator?: string;
+    narrators?: string[];
     coverUrl?: string;
     description?: string | { full: string; short: string };
   };
@@ -43,19 +44,20 @@ export interface MergeResult {
   fileSize: number;
 }
 
-export interface MergeProgressCallback {
+export interface MergeOptions {
   onStageChange?: (stage: string) => void;
   onMergeStart?: (totalDurationSecs: number, chapterCount: number) => void;
   onMergeProgress?: (timemark: string) => void;
   onComplete?: (filename: string, fileSize: number) => void;
   signal?: AbortSignal;
+  force?: boolean;
 }
 
 export class MergeService {
   /**
    * Merge all chapter MP3 files in a folder into a single M4B audiobook
    */
-  async mergeFolder(folderPath: string, onProgress?: MergeProgressCallback): Promise<MergeResult> {
+  async mergeFolder(folderPath: string, options?: MergeOptions): Promise<MergeResult> {
     const resolved = path.resolve(folderPath);
 
     // Validate folder
@@ -65,15 +67,15 @@ export class MergeService {
     }
 
     // Load metadata
-    onProgress?.onStageChange?.('Loading metadata...');
+    options?.onStageChange?.('Loading metadata...');
     const metadata = await this.loadMetadata(resolved);
 
     // Find chapter files
-    onProgress?.onStageChange?.('Finding chapters...');
+    options?.onStageChange?.('Finding chapters...');
     const chapterFiles = await this.findChapterFiles(resolved);
 
     // Calculate chapter timestamps
-    onProgress?.onStageChange?.('Calculating timestamps...');
+    options?.onStageChange?.('Calculating timestamps...');
     const chapters = await this.calculateChapterInfo(resolved, chapterFiles, metadata);
 
     // Create temp directory
@@ -81,7 +83,7 @@ export class MergeService {
 
     try {
       // Generate merge files
-      onProgress?.onStageChange?.('Preparing merge files...');
+      options?.onStageChange?.('Preparing merge files...');
 
       const concatFilePath = path.join(tmpDir, 'concat.txt');
       await this.createConcatFile(chapterFiles, resolved, concatFilePath);
@@ -104,7 +106,13 @@ export class MergeService {
 
       try {
         await fs.access(outputPath);
-        throw new Error(`Output file already exists: ${outputFilename}`);
+        if (options?.force) {
+          await fs.unlink(outputPath);
+        } else {
+          throw new Error(
+            `Output file already exists: ${outputFilename} (use --force to overwrite)`
+          );
+        }
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
           throw error;
@@ -113,22 +121,22 @@ export class MergeService {
 
       // Execute merge
       const totalDurationSecs = chapters.reduce((sum, ch) => sum + ch.duration, 0);
-      onProgress?.onStageChange?.(`Merging ${chapterFiles.length} chapters...`);
-      onProgress?.onMergeStart?.(totalDurationSecs, chapterFiles.length);
+      options?.onStageChange?.(`Merging ${chapterFiles.length} chapters...`);
+      options?.onMergeStart?.(totalDurationSecs, chapterFiles.length);
       await this.executeMerge(
         concatFilePath,
         metadataFilePath,
         coverArtPath,
         outputPath,
         (timemark) => {
-          onProgress?.onMergeProgress?.(timemark);
+          options?.onMergeProgress?.(timemark);
         },
-        onProgress?.signal
+        options?.signal
       );
 
       // Get result info
       const fileSize = (await fs.stat(outputPath)).size;
-      onProgress?.onComplete?.(outputFilename, fileSize);
+      options?.onComplete?.(outputFilename, fileSize);
 
       return { outputPath, outputFilename, fileSize };
     } finally {
@@ -289,8 +297,10 @@ export class MergeService {
     lines.push(`album=${metadata.metadata.title}`);
     lines.push('genre=Audiobook');
 
-    if (metadata.metadata.narrator) {
-      lines.push(`album_artist=${metadata.metadata.narrator}`);
+    const narrator =
+      metadata.metadata.narrators?.filter(Boolean).join(', ') || metadata.metadata.narrator;
+    if (narrator) {
+      lines.push(`album_artist=${narrator}`);
     }
 
     const description =

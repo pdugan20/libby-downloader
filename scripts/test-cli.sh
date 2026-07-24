@@ -10,6 +10,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 FIXTURES_DIR="$PROJECT_DIR/fixtures"
+EXPECTED_VERSION=$(node -p "require('$PROJECT_DIR/package.json').version")
 
 cli() {
   FORCE_COLOR=0 npx tsx "$PROJECT_DIR/src/cli.ts" "$@" 2>&1 | sed $'s/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\[J//g'
@@ -210,10 +211,23 @@ assert_output_contains "shows already exists error" "$OUTPUT" "already exists"
 echo ""
 
 # ──────────────────────────────────────────────────────────────
-# Test 9: help output
+# Test 9: force re-merge
 # ──────────────────────────────────────────────────────────────
 
-echo -e "${BOLD}9. help output${RESET}"
+echo -e "${BOLD}9. force re-merge${RESET}"
+OUTPUT=$(cli merge "$FIXTURES_DIR/The Great Adventure" --force) || true
+EXIT_CODE=$?
+
+assert_exit_code "force re-merge exits successfully" "$EXIT_CODE" "0"
+assert_output_contains "force re-merge shows output file" "$OUTPUT" "The Great Adventure.m4b"
+assert_file_exists "force re-merge replaces m4b file" "$FIXTURES_DIR/The Great Adventure/The Great Adventure.m4b"
+echo ""
+
+# ──────────────────────────────────────────────────────────────
+# Test 10: help output
+# ──────────────────────────────────────────────────────────────
+
+echo -e "${BOLD}10. help output${RESET}"
 OUTPUT=$(cli --help)
 
 assert_output_contains "shows program name" "$OUTPUT" "libby"
@@ -225,23 +239,23 @@ assert_output_contains "shows verbose option" "$OUTPUT" "--verbose"
 echo ""
 
 # ──────────────────────────────────────────────────────────────
-# Test 10: verbose mode
+# Test 11: verbose mode
 # ──────────────────────────────────────────────────────────────
 
-echo -e "${BOLD}10. verbose mode${RESET}"
+echo -e "${BOLD}11. verbose mode${RESET}"
 OUTPUT=$(cli list --data-dir "$FIXTURES_DIR" --verbose)
 
 assert_output_contains "shows verbose output" "$OUTPUT" "Libby Downloader"
 echo ""
 
 # ──────────────────────────────────────────────────────────────
-# Test 11: version flag
+# Test 12: version flag
 # ──────────────────────────────────────────────────────────────
 
-echo -e "${BOLD}11. version flag${RESET}"
+echo -e "${BOLD}12. version flag${RESET}"
 OUTPUT=$(cli --version)
 
-assert_output_contains "shows version" "$OUTPUT" "1.0.0"
+assert_output_contains "shows version" "$OUTPUT" "$EXPECTED_VERSION"
 echo ""
 
 # ──────────────────────────────────────────────────────────────
