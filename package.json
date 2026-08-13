@@ -74,6 +74,7 @@
     "@types/react": "^18.3.28",
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.53.0",
+    "acorn": "^8.16.0",
     "claude-code-lint": "^0.7.0",
     "esbuild": "^0.28.1",
     "eslint": "^10.7.0",

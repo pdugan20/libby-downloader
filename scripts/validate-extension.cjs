@@ -2,13 +2,25 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const acorn = require('acorn');
 
 const DEFAULT_EXTENSION_DIR = path.resolve(__dirname, '..', 'chrome-extension');
-const CLASSIC_MODULE_SYNTAX = /^\s*(?:import\s|export\s)/m;
 const CHROME_VERSION = /^(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*)){0,3}$/;
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isOutside(base, candidate) {
+  const relative = path.relative(base, candidate);
+  return relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
+}
+
+function containsNodeType(value, type) {
+  if (Array.isArray(value)) return value.some((item) => containsNodeType(item, type));
+  if (!isObject(value)) return false;
+  if (value.type === type) return true;
+  return Object.values(value).some((item) => containsNodeType(item, type));
 }
 
 function validateStringArray(value, label, errors, { required = false } = {}) {
@@ -32,8 +44,7 @@ function validateReferencedFile(extensionDir, relativePath, label, errors, class
 
   const normalized = path.normalize(relativePath);
   const absolute = path.resolve(extensionDir, normalized);
-  const relative = path.relative(extensionDir, absolute);
-  if (path.isAbsolute(relativePath) || relative.startsWith('..') || path.isAbsolute(relative)) {
+  if (path.isAbsolute(relativePath) || isOutside(extensionDir, absolute)) {
     errors.push(`${label} escapes the extension directory: ${relativePath}`);
     return;
   }
@@ -41,8 +52,29 @@ function validateReferencedFile(extensionDir, relativePath, label, errors, class
     errors.push(`${label} does not reference a file: ${relativePath}`);
     return;
   }
-  if (classicScript && CLASSIC_MODULE_SYNTAX.test(fs.readFileSync(absolute, 'utf8'))) {
-    errors.push(`${label} contains ESM syntax but is loaded as a classic script: ${relativePath}`);
+  const realExtensionDir = fs.realpathSync(extensionDir);
+  const realAbsolute = fs.realpathSync(absolute);
+  if (isOutside(realExtensionDir, realAbsolute)) {
+    errors.push(`${label} resolves outside the extension directory: ${relativePath}`);
+    return;
+  }
+  if (classicScript) {
+    const source = fs.readFileSync(absolute, 'utf8');
+    let program;
+    try {
+      program = acorn.parse(source, {
+        allowHashBang: true,
+        ecmaVersion: 'latest',
+        sourceType: 'script',
+      });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      errors.push(`${label} is not valid classic-script syntax: ${relativePath} (${detail})`);
+      return;
+    }
+    if (containsNodeType(program, 'ImportExpression')) {
+      errors.push(`${label} contains a dynamic import but must be self-contained: ${relativePath}`);
+    }
   }
 }
 
