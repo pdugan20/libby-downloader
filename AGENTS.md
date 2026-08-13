@@ -42,7 +42,6 @@ npm run format:check              # Check if code is formatted
 
 # Chrome Extension Validation
 npm run extension:validate        # Lint extension manifest and code
-npm run extension:lint            # Lint with warnings-as-errors
 
 # Releases
 npm run release                   # Interactive release (bumps version, tags, pushes)
@@ -122,7 +121,10 @@ Extension handles ALL downloading. CLI is for tagging, merging, and listing only
 
 The build script (`scripts/build-extension.mjs`) compiles each entry as a self-contained IIFE bundle with all dependencies inlined.
 
-**Extension validation** uses web-ext, which is Firefox-focused. The custom validator (`scripts/validate-extension.js`) filters out Firefox-specific errors: `MANIFEST_FIELD_UNSUPPORTED`, `ADDON_ID_REQUIRED`, `MISSING_DATA_COLLECTION_PERMISSIONS`, `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`.
+**Extension validation** uses the dependency-free Chrome manifest validator in
+`scripts/validate-extension.cjs`. It checks the manifest shape, referenced
+files, path containment, and classic-script constraints for generated content
+and background scripts.
 
 **Debugging:**
 

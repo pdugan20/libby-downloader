@@ -1,48 +1,137 @@
 #!/usr/bin/env node
 
-/**
- * Custom extension validation script
- *
- * Runs web-ext lint and filters out Firefox-specific errors/warnings
- * since this is a Chrome-only extension.
- *
- * Exit codes:
- * 0 - No Chrome-relevant errors
- * 1 - Chrome-relevant errors found
- */
+const fs = require('node:fs');
+const path = require('node:path');
 
-const { execSync } = require('child_process');
+const DEFAULT_EXTENSION_DIR = path.resolve(__dirname, '..', 'chrome-extension');
+const CLASSIC_MODULE_SYNTAX = /^\s*(?:import\s|export\s)/m;
+const CHROME_VERSION = /^(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*)){0,3}$/;
 
-// Firefox-specific error/warning codes to ignore
-const IGNORED_CODES = new Set([
-  'MANIFEST_FIELD_UNSUPPORTED', // service_worker vs scripts difference
-  'ADDON_ID_REQUIRED', // Firefox requires ID, Chrome doesn't
-  'MISSING_DATA_COLLECTION_PERMISSIONS', // Firefox privacy setting
-  'KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION', // Firefox version requirements
-  'KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION', // Firefox Android requirements
-]);
-
-try {
-  // Run web-ext lint (will exit with code 1 if there are errors)
-  execSync('npx web-ext lint --source-dir=chrome-extension', {
-    stdio: 'inherit',
-  });
-
-  console.log('\n✅ Extension validation passed!');
-  process.exit(0);
-} catch (error) {
-  // web-ext lint failed, but we need to check if it's only Firefox-specific issues
-  console.log(
-    '\n⚠️  web-ext validation found issues. Checking if they are Chrome-relevant...'
-  );
-
-  // Parse the output to determine if there are non-Firefox errors
-  // For now, we'll be permissive and let Chrome load the extension as the final test
-  console.log(
-    '✅ All issues are Firefox-specific. Chrome extension should work fine.'
-  );
-  console.log('   Load the extension in Chrome to verify: chrome://extensions/\n');
-
-  // Don't fail the build for Firefox-specific issues
-  process.exit(0);
+function isObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
+
+function validateStringArray(value, label, errors, { required = false } = {}) {
+  if (value === undefined && !required) return [];
+  if (!Array.isArray(value) || (required && value.length === 0)) {
+    errors.push(`${label} must be ${required ? 'a non-empty' : 'an'} array`);
+    return [];
+  }
+  if (value.some((item) => typeof item !== 'string' || item.length === 0)) {
+    errors.push(`${label} must contain only non-empty strings`);
+    return [];
+  }
+  return value;
+}
+
+function validateReferencedFile(extensionDir, relativePath, label, errors, classicScript = false) {
+  if (typeof relativePath !== 'string' || relativePath.length === 0) {
+    errors.push(`${label} must be a non-empty relative path`);
+    return;
+  }
+
+  const normalized = path.normalize(relativePath);
+  const absolute = path.resolve(extensionDir, normalized);
+  const relative = path.relative(extensionDir, absolute);
+  if (path.isAbsolute(relativePath) || relative.startsWith('..') || path.isAbsolute(relative)) {
+    errors.push(`${label} escapes the extension directory: ${relativePath}`);
+    return;
+  }
+  if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) {
+    errors.push(`${label} does not reference a file: ${relativePath}`);
+    return;
+  }
+  if (classicScript && CLASSIC_MODULE_SYNTAX.test(fs.readFileSync(absolute, 'utf8'))) {
+    errors.push(`${label} contains ESM syntax but is loaded as a classic script: ${relativePath}`);
+  }
+}
+
+function validateExtension(extensionDir = DEFAULT_EXTENSION_DIR) {
+  const errors = [];
+  const manifestPath = path.join(extensionDir, 'manifest.json');
+  let manifest;
+
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return [`manifest.json cannot be read as JSON: ${detail}`];
+  }
+
+  if (!isObject(manifest)) return ['manifest.json must contain an object'];
+  if (manifest.manifest_version !== 3) errors.push('manifest_version must be 3');
+  for (const key of ['name', 'description']) {
+    if (typeof manifest[key] !== 'string' || manifest[key].trim().length === 0) {
+      errors.push(`${key} must be a non-empty string`);
+    }
+  }
+  if (typeof manifest.version !== 'string' || !CHROME_VERSION.test(manifest.version)) {
+    errors.push("version must use Chrome's one-to-four-component numeric format");
+  }
+
+  validateStringArray(manifest.permissions, 'permissions', errors);
+  validateStringArray(manifest.host_permissions, 'host_permissions', errors);
+
+  if (!isObject(manifest.icons) || Object.keys(manifest.icons).length === 0) {
+    errors.push('icons must be a non-empty object');
+  } else {
+    for (const [size, icon] of Object.entries(manifest.icons)) {
+      if (!/^\d+$/.test(size)) errors.push(`icons key must be numeric: ${size}`);
+      validateReferencedFile(extensionDir, icon, `icons.${size}`, errors);
+    }
+  }
+
+  if (!isObject(manifest.background)) {
+    errors.push('background must be an object');
+  } else {
+    const isClassic = manifest.background.type !== 'module';
+    validateReferencedFile(
+      extensionDir,
+      manifest.background.service_worker,
+      'background.service_worker',
+      errors,
+      isClassic
+    );
+  }
+
+  if (!Array.isArray(manifest.content_scripts) || manifest.content_scripts.length === 0) {
+    errors.push('content_scripts must be a non-empty array');
+  } else {
+    manifest.content_scripts.forEach((entry, index) => {
+      const label = `content_scripts[${index}]`;
+      if (!isObject(entry)) {
+        errors.push(`${label} must be an object`);
+        return;
+      }
+      validateStringArray(entry.matches, `${label}.matches`, errors, { required: true });
+      const scripts = validateStringArray(entry.js, `${label}.js`, errors);
+      const styles = validateStringArray(entry.css, `${label}.css`, errors);
+      if (scripts.length === 0 && styles.length === 0) {
+        errors.push(`${label} must reference at least one JavaScript or CSS file`);
+      }
+      scripts.forEach((file, fileIndex) =>
+        validateReferencedFile(extensionDir, file, `${label}.js[${fileIndex}]`, errors, true)
+      );
+      styles.forEach((file, fileIndex) =>
+        validateReferencedFile(extensionDir, file, `${label}.css[${fileIndex}]`, errors)
+      );
+    });
+  }
+
+  return errors;
+}
+
+function main() {
+  const errors = validateExtension();
+  if (errors.length > 0) {
+    console.error('Extension validation failed:');
+    for (const error of errors) console.error(`- ${error}`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log('Extension validation passed.');
+}
+
+if (require.main === module) main();
+
+module.exports = { validateExtension };
