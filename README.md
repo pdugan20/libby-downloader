@@ -1,8 +1,8 @@
-# Libby Downloader
+# libby-downloader
 
-[![CI](https://github.com/pdugan20/libby-downloader/workflows/CI/badge.svg)](https://github.com/pdugan20/libby-downloader/actions)
-[![Release](https://img.shields.io/github/v/release/pdugan20/libby-downloader?logo=github)](https://github.com/pdugan20/libby-downloader/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/pdugan20/libby-downloader/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/pdugan20/libby-downloader/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/pdugan20/libby-downloader)](https://github.com/pdugan20/libby-downloader/releases/latest)
+[![License](https://img.shields.io/github/license/pdugan20/libby-downloader)](LICENSE)
 
 A Chrome extension and CLI for downloading audiobooks from Libby for offline listening. The extension grabs files directly from Libby; the CLI tags MP3s with title, author, narrator, and cover art, or merges chapters into a single M4B audiobook with chapter markers.
 
