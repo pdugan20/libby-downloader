@@ -15,8 +15,13 @@ test('Renovate owns only routine npm and Actions updates', () => {
   const majorRules = config.packageRules.filter((rule) =>
     rule.matchUpdateTypes?.includes('major')
   );
-  const preOneRules = config.packageRules.filter(
-    (rule) => rule.matchCurrentVersion === '/^0\\./'
+  const preOnePatchRules = config.packageRules.filter(
+    (rule) =>
+      rule.matchCurrentVersion === '/^0\\./' && rule.matchUpdateTypes?.includes('patch')
+  );
+  const preOneExceptionRules = config.packageRules.filter(
+    (rule) =>
+      rule.matchCurrentVersion === '/^0\\./' && rule.matchUpdateTypes?.includes('minor')
   );
 
   assert.equal(config.enabled, true);
@@ -34,9 +39,12 @@ test('Renovate owns only routine npm and Actions updates', () => {
   assert.ok(majorRules.length > 0);
   assert.ok(majorRules.every((rule) => rule.automerge === false));
   assert.ok(majorRules.every((rule) => rule.dependencyDashboardApproval === true));
-  assert.equal(preOneRules.length, 1);
-  assert.equal(preOneRules[0].automerge, false);
-  assert.equal(preOneRules[0].dependencyDashboardApproval, true);
+  assert.equal(preOnePatchRules.length, 1);
+  assert.equal(preOnePatchRules[0].automerge, true);
+  assert.equal(preOnePatchRules[0].minimumReleaseAge, '7 days');
+  assert.equal(preOneExceptionRules.length, 1);
+  assert.equal(preOneExceptionRules[0].automerge, false);
+  assert.equal(preOneExceptionRules[0].dependencyDashboardApproval, true);
 });
 
 test('Dependabot retains security coverage without routine version PRs', () => {
