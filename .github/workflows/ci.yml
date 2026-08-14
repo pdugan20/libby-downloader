@@ -63,6 +63,9 @@ jobs:
       - name: Validate Chrome extension
         run: npm run extension:validate
 
+      - name: Verify dependency automation policy
+        run: node --test scripts/automation-policy.test.cjs
+
       - name: Archive production artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:

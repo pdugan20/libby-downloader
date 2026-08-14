@@ -1,70 +1,38 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-      timezone: "America/New_York"
-    open-pull-requests-limit: 10
+      interval: 'weekly'
+      day: 'monday'
+      time: '07:00'
+      timezone: 'America/Los_Angeles'
+    open-pull-requests-limit: 0
     commit-message:
-      # Type must be a single word (no hyphens) for the conventional-commits
-      # parser used by PR Lint. `include: scope` adds `(deps)` / `(deps-dev)`
-      # automatically — hyphen in the scope is fine.
-      prefix: "chore"
-      include: "scope"
+      prefix: 'chore'
+      include: 'scope'
     labels:
-      - "dependencies"
-      - "npm"
+      - 'dependencies'
+      - 'npm'
     assignees:
-      - "pdugan20"
+      - 'pdugan20'
     reviewers:
-      - "pdugan20"
-    # Skip major-version bumps — they regularly break CI and need a human.
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      jest:
-        patterns:
-          - "jest"
-          - "jest-*"
-          - "@jest/*"
-          - "@types/jest"
-          - "ts-jest"
-      dev-dependencies:
-        dependency-type: "development"
-        update-types:
-          - "minor"
-          - "patch"
-      production-dependencies:
-        dependency-type: "production"
-        update-types:
-          - "minor"
-          - "patch"
-  - package-ecosystem: "github-actions"
-    directory: "/"
+      - 'pdugan20'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-      timezone: "America/Los_Angeles"
-    cooldown:
-      default-days: 14
-    open-pull-requests-limit: 5
+      interval: 'weekly'
+      day: 'monday'
+      time: '07:10'
+      timezone: 'America/Los_Angeles'
+    open-pull-requests-limit: 0
     commit-message:
-      prefix: "ci"
+      prefix: 'ci'
     labels:
-      - "dependencies"
-      - "github-actions"
+      - 'dependencies'
+      - 'github-actions'
     assignees:
-      - "pdugan20"
+      - 'pdugan20'
     reviewers:
-      - "pdugan20"
-    groups:
-      github-actions:
-        patterns: ["*"]
-        update-types:
-          - "minor"
-          - "patch"
+      - 'pdugan20'

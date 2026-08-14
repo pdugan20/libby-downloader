@@ -1,4 +1,79 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "enabled": false
+  "enabled": true,
+  "extends": ["config:recommended"],
+  "enabledManagers": ["npm", "github-actions"],
+  "semanticCommits": "enabled",
+  "timezone": "America/Los_Angeles",
+  "dependencyDashboard": true,
+  "dependencyDashboardAutoclose": true,
+  "labels": ["dependencies"],
+  "branchConcurrentLimit": 3,
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "rebaseWhen": "behind-base-branch",
+  "platformAutomerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "internalChecksFilter": "strict",
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"],
+    "minimumReleaseAge": "7 days",
+    "automerge": true
+  },
+  "packageRules": [
+    {
+      "description": "Stable npm runtime non-major updates",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "optionalDependencies"],
+      "matchCurrentVersion": "!/^0\\./",
+      "matchUpdateTypes": ["patch", "minor", "digest", "pin", "pinDigest"],
+      "groupName": "runtime dependencies",
+      "minimumReleaseAge": "7 days",
+      "automerge": true
+    },
+    {
+      "description": "Stable npm development non-major updates",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchCurrentVersion": "!/^0\\./",
+      "matchUpdateTypes": ["patch", "minor", "digest", "pin", "pinDigest"],
+      "groupName": "development dependencies",
+      "minimumReleaseAge": "7 days",
+      "automerge": true
+    },
+    {
+      "description": "Stable npm override patch updates",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["overrides"],
+      "matchUpdateTypes": ["patch", "digest", "pin", "pinDigest"],
+      "minimumReleaseAge": "7 days",
+      "automerge": true
+    },
+    {
+      "description": "GitHub Actions non-major updates",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch", "minor", "digest", "pin", "pinDigest"],
+      "groupName": "github actions",
+      "minimumReleaseAge": "14 days",
+      "automerge": true
+    },
+    {
+      "description": "Pre-1.0 minor updates require exception handling",
+      "matchCurrentVersion": "/^0\\./",
+      "matchUpdateTypes": ["minor", "major"],
+      "dependencyDashboardApproval": true,
+      "automerge": false
+    },
+    {
+      "description": "All major updates require exception handling",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true,
+      "automerge": false
+    }
+  ]
 }
