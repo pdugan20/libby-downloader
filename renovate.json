@@ -63,6 +63,14 @@
       "automerge": true
     },
     {
+      "description": "Pre-1.0 patch updates",
+      "matchManagers": ["npm"],
+      "matchCurrentVersion": "/^0\\./",
+      "matchUpdateTypes": ["patch", "digest", "pin", "pinDigest"],
+      "minimumReleaseAge": "7 days",
+      "automerge": true
+    },
+    {
       "description": "Pre-1.0 minor updates require exception handling",
       "matchCurrentVersion": "/^0\\./",
       "matchUpdateTypes": ["minor", "major"],
