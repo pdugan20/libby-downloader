@@ -22,8 +22,8 @@
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 6am on monday"],
-    "minimumReleaseAge": "7 days",
-    "automerge": true
+    "dependencyDashboardApproval": true,
+    "automerge": false
   },
   "packageRules": [
     {

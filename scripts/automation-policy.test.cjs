@@ -33,7 +33,9 @@ test('Renovate owns only routine npm and Actions updates', () => {
   assert.equal(config.automergeStrategy, 'squash');
   assert.equal(config.rebaseWhen, 'behind-base-branch');
   assert.equal(config.internalChecksFilter, 'strict');
-  assert.equal(config.lockFileMaintenance.minimumReleaseAge, '7 days');
+  assert.equal(config.lockFileMaintenance.minimumReleaseAge, undefined);
+  assert.equal(config.lockFileMaintenance.dependencyDashboardApproval, true);
+  assert.equal(config.lockFileMaintenance.automerge, false);
   assert.ok(automergeRules.length > 0);
   assert.ok(automergeRules.every((rule) => rule.minimumReleaseAge));
   assert.ok(majorRules.length > 0);
