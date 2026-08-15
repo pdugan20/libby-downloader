@@ -513,9 +513,9 @@ test('CI enforces the ownership contract and releases remain tag-only', () => {
   assert.equal(nodeVersion, '24.19.0');
   assert.deepEqual(packageJson.engines, {
     node: '>=24.19.0 <25',
-    npm: '>=11.17.0 <12',
+    npm: '>=11.19.0 <12',
   });
-  assert.equal(packageJson.packageManager, 'npm@11.17.0');
+  assert.equal(packageJson.packageManager, 'npm@11.19.0');
   assert.equal(packageJson.devDependencies['@types/node'], '^24.13.3');
   assert.deepEqual(packageLock.packages[''].engines, packageJson.engines);
   assert.equal(
