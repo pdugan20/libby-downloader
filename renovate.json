@@ -31,7 +31,7 @@
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies", "optionalDependencies"],
       "matchCurrentVersion": "!/^0\\./",
-      "matchUpdateTypes": ["patch", "minor", "digest", "pin", "pinDigest"],
+      "matchUpdateTypes": ["patch", "minor"],
       "groupName": "runtime dependencies",
       "minimumReleaseAge": "7 days",
       "automerge": true
@@ -41,7 +41,7 @@
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
       "matchCurrentVersion": "!/^0\\./",
-      "matchUpdateTypes": ["patch", "minor", "digest", "pin", "pinDigest"],
+      "matchUpdateTypes": ["patch", "minor"],
       "groupName": "development dependencies",
       "minimumReleaseAge": "7 days",
       "automerge": true
@@ -50,14 +50,14 @@
       "description": "Stable npm override patch updates",
       "matchManagers": ["npm"],
       "matchDepTypes": ["overrides"],
-      "matchUpdateTypes": ["patch", "digest", "pin", "pinDigest"],
+      "matchUpdateTypes": ["patch"],
       "minimumReleaseAge": "7 days",
       "automerge": true
     },
     {
       "description": "GitHub Actions non-major updates",
       "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["patch", "minor", "digest", "pin", "pinDigest"],
+      "matchUpdateTypes": ["patch", "minor"],
       "groupName": "github actions",
       "minimumReleaseAge": "14 days",
       "automerge": true
@@ -66,9 +66,29 @@
       "description": "Pre-1.0 patch updates",
       "matchManagers": ["npm"],
       "matchCurrentVersion": "/^0\\./",
-      "matchUpdateTypes": ["patch", "digest", "pin", "pinDigest"],
+      "matchUpdateTypes": ["patch"],
       "minimumReleaseAge": "7 days",
       "automerge": true
+    },
+    {
+      "description": "Override minor updates require exception handling",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["overrides"],
+      "matchUpdateTypes": ["minor"],
+      "dependencyDashboardApproval": true,
+      "automerge": false
+    },
+    {
+      "description": "Pin and digest updates require exception handling",
+      "matchUpdateTypes": ["digest", "pin", "pinDigest"],
+      "dependencyDashboardApproval": true,
+      "automerge": false
+    },
+    {
+      "description": "Lockfile maintenance requires exception handling",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "dependencyDashboardApproval": true,
+      "automerge": false
     },
     {
       "description": "Pre-1.0 minor updates require exception handling",
