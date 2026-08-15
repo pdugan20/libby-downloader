@@ -23,6 +23,11 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      # Keep tag builds on the same lockfile contract as pull requests and main.
+      # Node 22 bundles npm 10, while dependency automation authors lockfiles with npm 11.
+      - name: Pin npm
+        run: npm install -g npm@11
+
       - name: Install dependencies
         run: npm ci
 
