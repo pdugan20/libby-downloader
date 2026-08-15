@@ -217,16 +217,152 @@ function assertNativeSelectorContract(packageLock) {
   }
 }
 
-test('Renovate owns only routine npm and Actions updates', () => {
-  const config = JSON.parse(read('renovate.json'));
+const approvalGatedUpdateTypes = ['digest', 'pin', 'pinDigest', 'lockFileMaintenance'];
+const automaticRuleContracts = [
+  {
+    matchManagers: ['npm'],
+    matchDepTypes: ['dependencies', 'optionalDependencies'],
+    matchCurrentVersion: '!/^0\\./',
+    matchUpdateTypes: ['patch', 'minor'],
+    groupName: 'runtime dependencies',
+    minimumReleaseAge: '7 days',
+  },
+  {
+    matchManagers: ['npm'],
+    matchDepTypes: ['devDependencies'],
+    matchCurrentVersion: '!/^0\\./',
+    matchUpdateTypes: ['patch', 'minor'],
+    groupName: 'development dependencies',
+    minimumReleaseAge: '7 days',
+  },
+  {
+    matchManagers: ['npm'],
+    matchDepTypes: ['overrides'],
+    matchUpdateTypes: ['patch'],
+    minimumReleaseAge: '7 days',
+  },
+  {
+    matchManagers: ['github-actions'],
+    matchUpdateTypes: ['patch', 'minor'],
+    groupName: 'github actions',
+    minimumReleaseAge: '14 days',
+  },
+  {
+    matchManagers: ['npm'],
+    matchCurrentVersion: '/^0\\./',
+    matchUpdateTypes: ['patch'],
+    minimumReleaseAge: '7 days',
+  },
+];
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function assertUnconstrainedApprovalRule(rule, expectedUpdateTypes) {
+  assert.ok(rule, `missing approval rule for ${expectedUpdateTypes.join(', ')}`);
+  assert.deepEqual(
+    Object.keys(rule).sort(),
+    ['automerge', 'dependencyDashboardApproval', 'description', 'matchUpdateTypes'].sort(),
+    'approval rule must not contain any matcher, exclusion, age, group, or other scope constraint'
+  );
+  assert.deepEqual(rule.matchUpdateTypes, expectedUpdateTypes);
+  assert.equal(rule.dependencyDashboardApproval, true);
+  assert.equal(rule.automerge, false);
+}
+
+function automaticRuleContract(rule) {
+  return Object.fromEntries(
+    Object.keys(automaticRuleContracts[0])
+      .filter((key) => rule[key] !== undefined)
+      .map((key) => [key, rule[key]])
+  );
+}
+
+function assertRenovateRoutinePolicy(config) {
   const automergeRules = config.packageRules.filter((rule) => rule.automerge === true);
   const majorRules = config.packageRules.filter((rule) => rule.matchUpdateTypes?.includes('major'));
   const preOnePatchRules = config.packageRules.filter(
-    (rule) => rule.matchCurrentVersion === '/^0\\./' && rule.matchUpdateTypes?.includes('patch')
+    (rule) => rule.matchCurrentVersion === '/^0\\./' && rule.automerge === true
   );
   const preOneExceptionRules = config.packageRules.filter(
     (rule) => rule.matchCurrentVersion === '/^0\\./' && rule.matchUpdateTypes?.includes('minor')
   );
+  const overridePatchRules = config.packageRules.filter(
+    (rule) =>
+      rule.matchDepTypes?.includes('overrides') &&
+      rule.matchUpdateTypes?.includes('patch') &&
+      rule.automerge === true
+  );
+  const overrideMinorRules = config.packageRules.filter(
+    (rule) => rule.matchDepTypes?.includes('overrides') && rule.matchUpdateTypes?.includes('minor')
+  );
+  const pinDigestRules = config.packageRules.filter(
+    (rule) => JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['digest', 'pin', 'pinDigest'])
+  );
+  const lockMaintenanceRules = config.packageRules.filter(
+    (rule) => JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['lockFileMaintenance'])
+  );
+
+  assert.equal(config.lockFileMaintenance.enabled, true);
+  assert.deepEqual(config.lockFileMaintenance.schedule, ['before 6am on monday']);
+  assert.equal(config.lockFileMaintenance.minimumReleaseAge, undefined);
+  assert.equal(config.lockFileMaintenance.dependencyDashboardApproval, true);
+  assert.equal(config.lockFileMaintenance.automerge, false);
+
+  assert.equal(automergeRules.length, automaticRuleContracts.length);
+  assert.deepEqual(
+    automergeRules.map(automaticRuleContract),
+    automaticRuleContracts,
+    'automerge rules must remain exactly within the proven npm and Actions scopes'
+  );
+  for (const [index, rule] of automergeRules.entries()) {
+    assert.deepEqual(
+      Object.keys(rule).sort(),
+      ['automerge', 'description', ...Object.keys(automaticRuleContracts[index])].sort(),
+      'automerge rules must not contain extra matchers, exclusions, or behavior overrides'
+    );
+  }
+
+  for (const updateType of approvalGatedUpdateTypes) {
+    const matchingRules = config.packageRules.filter((rule) =>
+      rule.matchUpdateTypes?.includes(updateType)
+    );
+    assert.ok(matchingRules.length > 0, `missing rule for ${updateType}`);
+    assert.ok(
+      matchingRules.every((rule) => rule.automerge !== true),
+      `${updateType} must never automerge`
+    );
+  }
+
+  assert.equal(pinDigestRules.length, 1);
+  assertUnconstrainedApprovalRule(pinDigestRules[0], ['digest', 'pin', 'pinDigest']);
+  assert.equal(lockMaintenanceRules.length, 1);
+  assertUnconstrainedApprovalRule(lockMaintenanceRules[0], ['lockFileMaintenance']);
+
+  assert.equal(overridePatchRules.length, 1);
+  assert.deepEqual(overridePatchRules[0].matchUpdateTypes, ['patch']);
+  assert.equal(overridePatchRules[0].minimumReleaseAge, '7 days');
+  assert.equal(overrideMinorRules.length, 1);
+  assert.equal(overrideMinorRules[0].dependencyDashboardApproval, true);
+  assert.equal(overrideMinorRules[0].automerge, false);
+  assert.equal(overrideMinorRules[0].minimumReleaseAge, undefined);
+
+  assert.ok(majorRules.length > 0);
+  assert.ok(majorRules.every((rule) => rule.automerge === false));
+  assert.ok(majorRules.every((rule) => rule.dependencyDashboardApproval === true));
+  assert.ok(majorRules.every((rule) => rule.minimumReleaseAge === undefined));
+  assert.equal(preOnePatchRules.length, 1);
+  assert.deepEqual(preOnePatchRules[0].matchUpdateTypes, ['patch']);
+  assert.equal(preOnePatchRules[0].minimumReleaseAge, '7 days');
+  assert.equal(preOneExceptionRules.length, 1);
+  assert.equal(preOneExceptionRules[0].automerge, false);
+  assert.equal(preOneExceptionRules[0].dependencyDashboardApproval, true);
+  assert.equal(preOneExceptionRules[0].minimumReleaseAge, undefined);
+}
+
+test('Renovate owns only routine npm and Actions updates', () => {
+  const config = JSON.parse(read('renovate.json'));
 
   assert.equal(config.enabled, true);
   assert.deepEqual(new Set(config.enabledManagers), new Set(['npm', 'github-actions']));
@@ -237,20 +373,75 @@ test('Renovate owns only routine npm and Actions updates', () => {
   assert.equal(config.automergeStrategy, 'squash');
   assert.equal(config.rebaseWhen, 'behind-base-branch');
   assert.equal(config.internalChecksFilter, 'strict');
-  assert.equal(config.lockFileMaintenance.minimumReleaseAge, undefined);
-  assert.equal(config.lockFileMaintenance.dependencyDashboardApproval, true);
-  assert.equal(config.lockFileMaintenance.automerge, false);
-  assert.ok(automergeRules.length > 0);
-  assert.ok(automergeRules.every((rule) => rule.minimumReleaseAge));
-  assert.ok(majorRules.length > 0);
-  assert.ok(majorRules.every((rule) => rule.automerge === false));
-  assert.ok(majorRules.every((rule) => rule.dependencyDashboardApproval === true));
-  assert.equal(preOnePatchRules.length, 1);
-  assert.equal(preOnePatchRules[0].automerge, true);
-  assert.equal(preOnePatchRules[0].minimumReleaseAge, '7 days');
-  assert.equal(preOneExceptionRules.length, 1);
-  assert.equal(preOneExceptionRules[0].automerge, false);
-  assert.equal(preOneExceptionRules[0].dependencyDashboardApproval, true);
+  assertRenovateRoutinePolicy(config);
+});
+
+test('Renovate policy rejects unsafe update enrollment and narrowed approval gates', () => {
+  const config = JSON.parse(read('renovate.json'));
+
+  for (const updateType of approvalGatedUpdateTypes) {
+    const unsafeAutomerge = clone(config);
+    unsafeAutomerge.packageRules.push({
+      matchUpdateTypes: [updateType],
+      minimumReleaseAge: '7 days',
+      automerge: true,
+    });
+    assert.throws(() => assertRenovateRoutinePolicy(unsafeAutomerge), assert.AssertionError);
+  }
+
+  const missingApproval = clone(config);
+  const pinDigestRule = missingApproval.packageRules.find(
+    (rule) => JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['digest', 'pin', 'pinDigest'])
+  );
+  delete pinDigestRule.dependencyDashboardApproval;
+  assert.throws(() => assertRenovateRoutinePolicy(missingApproval), assert.AssertionError);
+
+  const narrowedApproval = clone(config);
+  const lockMaintenanceRule = narrowedApproval.packageRules.find(
+    (rule) => JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['lockFileMaintenance'])
+  );
+  lockMaintenanceRule.matchManagers = ['npm'];
+  assert.throws(() => assertRenovateRoutinePolicy(narrowedApproval), assert.AssertionError);
+
+  const narrowedByUnlistedMatcher = clone(config);
+  const narrowedPinDigestRule = narrowedByUnlistedMatcher.packageRules.find(
+    (rule) => JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['digest', 'pin', 'pinDigest'])
+  );
+  narrowedPinDigestRule.matchDatasources = ['npm'];
+  assert.throws(
+    () => assertRenovateRoutinePolicy(narrowedByUnlistedMatcher),
+    assert.AssertionError
+  );
+
+  const broadNpmAutomerge = clone(config);
+  broadNpmAutomerge.packageRules.push({
+    matchManagers: ['npm'],
+    matchUpdateTypes: ['patch', 'minor'],
+    minimumReleaseAge: '7 days',
+    automerge: true,
+  });
+  assert.throws(() => assertRenovateRoutinePolicy(broadNpmAutomerge), assert.AssertionError);
+
+  const unsafeOverrideMinor = clone(config);
+  const overrideMinorRule = unsafeOverrideMinor.packageRules.find(
+    (rule) => rule.matchDepTypes?.includes('overrides') && rule.matchUpdateTypes?.includes('minor')
+  );
+  overrideMinorRule.automerge = true;
+  assert.throws(() => assertRenovateRoutinePolicy(unsafeOverrideMinor), assert.AssertionError);
+
+  const youngActions = clone(config);
+  const actionsRule = youngActions.packageRules.find((rule) =>
+    rule.matchManagers?.includes('github-actions')
+  );
+  actionsRule.minimumReleaseAge = '7 days';
+  assert.throws(() => assertRenovateRoutinePolicy(youngActions), assert.AssertionError);
+
+  const unsafePreOneMinor = clone(config);
+  const preOnePatchRule = unsafePreOneMinor.packageRules.find(
+    (rule) => rule.matchCurrentVersion === '/^0\\./' && rule.automerge === true
+  );
+  preOnePatchRule.matchUpdateTypes.push('minor');
+  assert.throws(() => assertRenovateRoutinePolicy(unsafePreOneMinor), assert.AssertionError);
 });
 
 test('Dependabot retains security coverage without routine version PRs', () => {
