@@ -76,6 +76,45 @@ function assertTagOnlyReleaseWorkflow(release) {
   });
 }
 
+function extractNamedStep(workflow, name) {
+  const lines = workflow.split(/\r?\n/);
+  const marker = `      - name: ${name}`;
+  const starts = lines
+    .map((line, index) => (line === marker ? index : -1))
+    .filter((index) => index !== -1);
+
+  assert.equal(starts.length, 1, `${name} must appear exactly once`);
+
+  const start = starts[0];
+  const nextStep = lines.findIndex(
+    (line, index) => index > start && line.startsWith('      - name: ')
+  );
+  const end = nextStep === -1 ? lines.length : nextStep;
+
+  return lines.slice(start, end).join('\n');
+}
+
+function assertCodecovOIDCContract(ci) {
+  assert.match(ci, /^permissions:\n  contents: read\n\njobs:/m);
+  assert.match(
+    ci,
+    /jobs:\n  test:\n    name: Test and Build\n    permissions:\n      contents: read\n      id-token: write\n/m
+  );
+  assert.equal((ci.match(/^\s+id-token:/gm) ?? []).length, 1);
+
+  const codecovStep = extractNamedStep(ci, 'Upload coverage to Codecov');
+  assert.match(
+    codecovStep,
+    /^\s+uses: codecov\/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f\s+# v7\.0\.0$/m
+  );
+  assert.equal((codecovStep.match(/^\s+use_oidc:/gm) ?? []).length, 1);
+  assert.match(codecovStep, /^\s+use_oidc: true$/m);
+  assert.equal((codecovStep.match(/^\s+fail_ci_if_error:/gm) ?? []).length, 1);
+  assert.match(codecovStep, /^\s+fail_ci_if_error: true$/m);
+  assert.doesNotMatch(codecovStep, /^\s+(?:codecov_)?token:/m);
+  assert.doesNotMatch(codecovStep, /\$\{\{\s*secrets\./);
+}
+
 const expectedNativeSelectors = {
   'node_modules/@rolldown/binding-linux-arm64-gnu': {
     optional: true,
@@ -495,6 +534,24 @@ test('CI enforces the ownership contract and releases remain tag-only', () => {
   assert.ok(release.indexOf('name: Pin npm') < release.indexOf('run: npm ci'));
   assert.doesNotMatch(ci, /pull-requests:\s*write/);
   assert.doesNotMatch(ci, /contents:\s*write/);
+});
+
+test('Codecov uses job-scoped OIDC and fails closed without stored tokens', () => {
+  const ci = read('.github/workflows/ci.yml');
+
+  assertCodecovOIDCContract(ci);
+
+  const mutations = [
+    ci.replace('      id-token: write\n', ''),
+    ci.replace('          use_oidc: true\n', '          use_oidc: false\n'),
+    ci.replace('          fail_ci_if_error: true\n', '          fail_ci_if_error: false\n'),
+    ci.replace('          use_oidc: true\n', '          use_oidc: true\n          token: secret\n'),
+    ci.replace('permissions:\n  contents: read\n', 'permissions:\n  contents: read\n  id-token: write\n'),
+  ];
+
+  for (const mutated of mutations) {
+    assert.throws(() => assertCodecovOIDCContract(mutated), assert.AssertionError);
+  }
 });
 
 test('npm lockfile preserves every published native Linux selector tuple', () => {
