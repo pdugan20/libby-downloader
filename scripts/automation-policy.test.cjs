@@ -66,9 +66,16 @@ test('Dependabot retains security coverage without routine version PRs', () => {
 test('CI enforces the ownership contract and releases remain tag-only', () => {
   const ci = read('.github/workflows/ci.yml');
   const release = read('.github/workflows/release.yml');
+  const npmPin = /name: Pin npm\s*\n\s*run: npm install -g npm@(\d+)/;
+  const ciNpmMajor = ci.match(npmPin);
+  const releaseNpmMajor = release.match(npmPin);
 
   assert.match(ci, /node --test scripts\/automation-policy\.test\.cjs/);
   assert.match(release, /push:\s*\n\s*tags:\s*\n\s*- 'v\*'/);
+  assert.ok(ciNpmMajor);
+  assert.ok(releaseNpmMajor);
+  assert.equal(releaseNpmMajor[1], ciNpmMajor[1]);
+  assert.ok(release.indexOf('name: Pin npm') < release.indexOf('run: npm ci'));
   assert.doesNotMatch(ci, /pull-requests:\s*write/);
   assert.doesNotMatch(ci, /contents:\s*write/);
 });
