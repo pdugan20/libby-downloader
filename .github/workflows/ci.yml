@@ -12,6 +12,9 @@ permissions:
 jobs:
   test:
     name: Test and Build
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
 
     steps:
@@ -51,6 +54,8 @@ jobs:
           files: ./coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
+          use_oidc: true
+          fail_ci_if_error: true
 
       - name: Lint Claude Code config
         run: npm run lint:claude
