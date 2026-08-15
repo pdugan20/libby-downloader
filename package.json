@@ -46,6 +46,11 @@
   "author": "",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=24.19.0 <25",
+    "npm": ">=11.17.0 <12"
+  },
+  "packageManager": "npm@11.17.0",
   "lint-staged": {
     "src/**/*.{ts,tsx}": [
       "prettier --write",
@@ -70,7 +75,7 @@
     "@types/chrome": "^0.2.2",
     "@types/fluent-ffmpeg": "^2.1.24",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.9.5",
+    "@types/node": "^24.13.3",
     "@types/react": "^18.3.28",
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.53.0",
