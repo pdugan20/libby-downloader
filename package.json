@@ -112,7 +112,7 @@
     "node-forge": "1.4.0",
     "picomatch@<3": "2.3.2",
     "picomatch@>=4": "4.0.5",
-    "postcss": "8.5.26",
+    "postcss": "8.5.28",
     "shell-quote": "1.10.0",
     "undici": "7.29.0",
     "ws": "8.21.3"
