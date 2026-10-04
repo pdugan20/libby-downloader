@@ -1,12 +1,15 @@
 # Libby Downloader - Development Guide
 
-## Work modes
-
-- Default to exploration for design iterations, prototypes, and small changes. Make focused edits directly; do not require a formal spec, separate plan, worktree, or TDD.
-- Apply production rigor when the user explicitly asks to ship, harden, prepare a release, or use strict TDD. Match verification to risk and obey any stronger test requirements below.
-- Ask before deployments, production-data changes, live service mutations, schema migrations, or security-rule changes.
-
 TypeScript CLI tool for managing audiobooks downloaded from Libby via Chrome extension.
+
+## Code Review Rules
+
+- Flag any production path that logs, persists beyond the required download flow, or
+  exposes Libby session material, playback keys, signed chapter URLs, or raw account data.
+- Flag file operations that accept unvalidated paths, overwrite unrelated files, escape
+  the selected book/output directory, or leave partial destructive results after failure.
+- Flag Chrome content-script builds that introduce runtime ES-module imports, or service
+  code that imports the Ink UI instead of reporting progress through callbacks.
 
 ## Common Commands
 
