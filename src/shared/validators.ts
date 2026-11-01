@@ -25,6 +25,21 @@ export function validateOrigin(origin: string): boolean {
   return VALID_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
 }
 
+/** Any HTTPS Libby origin: the top-level app or one of its player subdomains. */
+const LIBBY_ORIGIN_PATTERN = /^https:\/\/([a-z0-9-]+\.)*libbyapp\.com$/;
+
+/**
+ * Whether a message received inside the player iframe came from the Libby
+ * page that embeds it. Other frames and windows can post to the iframe too,
+ * so both the sender window and its origin must match.
+ */
+export function isTrustedParentMessage(
+  event: Pick<MessageEvent, 'origin' | 'source'>,
+  parent: Window = window.parent
+): boolean {
+  return event.source === parent && LIBBY_ORIGIN_PATTERN.test(event.origin);
+}
+
 /**
  * Validate book data structure for completeness and correctness
  * @param bookData - The book data to validate

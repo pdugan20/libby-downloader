@@ -3,7 +3,39 @@
  */
 
 import type { BookData } from '../../types/extension-book';
-import { sanitizeFilename, validateBookData, validateOrigin } from '../../shared/validators';
+import {
+  isTrustedParentMessage,
+  sanitizeFilename,
+  validateBookData,
+  validateOrigin,
+} from '../../shared/validators';
+
+describe('isTrustedParentMessage', () => {
+  const parent = {} as Window;
+
+  it('accepts a message from the parent on a Libby origin', () => {
+    expect(isTrustedParentMessage({ origin: 'https://libbyapp.com', source: parent }, parent)).toBe(
+      true
+    );
+  });
+
+  it('rejects a message from another window, even on a Libby origin', () => {
+    const other = {} as Window;
+    expect(isTrustedParentMessage({ origin: 'https://libbyapp.com', source: other }, parent)).toBe(
+      false
+    );
+  });
+
+  it('rejects a message from the parent on a non-Libby origin', () => {
+    for (const origin of [
+      'https://evil.com',
+      'https://libbyapp.com.evil.com',
+      'http://libbyapp.com',
+    ]) {
+      expect(isTrustedParentMessage({ origin, source: parent }, parent)).toBe(false);
+    }
+  });
+});
 
 describe('validateOrigin', () => {
   it('should accept current window origin', () => {
