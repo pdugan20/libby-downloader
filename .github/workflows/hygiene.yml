@@ -1,0 +1,17 @@
+name: Hygiene
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hygiene:
+    uses: pdugan20/.github/.github/workflows/hygiene.yml@3cf271c5735636662bfeebd8d664d26435c5dce9 # v1.1.0

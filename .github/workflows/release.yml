@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
 jobs:
   release:
     name: Create GitHub Release
@@ -12,16 +15,16 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
+          package-manager-cache: false
 
       # Keep tag builds on the same exact lockfile contract as pull requests and main.
       - name: Pin npm
@@ -34,15 +37,19 @@ jobs:
         run: npm run build
 
       - name: Package extension
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           cd chrome-extension
-          zip -r ../libby-downloader-extension-${{ github.ref_name }}.zip . -x ".*"
+          zip -r "../libby-downloader-extension-$RELEASE_TAG.zip" . -x ".*"
           cd ..
 
       - name: Extract release notes from CHANGELOG.md
         id: notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          VERSION="${{ github.ref_name }}"
+          VERSION="$RELEASE_TAG"
           VERSION="${VERSION#v}"
           awk -v ver="$VERSION" '
             /^## / { if (found) exit; if (index($0, ver)) found=1; next }
@@ -51,9 +58,10 @@ jobs:
 
       - name: Create GitHub Release
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --title "${{ github.ref_name }}" \
+          gh release create "$RELEASE_TAG" \
+            --title "$RELEASE_TAG" \
             --notes-file release-notes.md \
-            libby-downloader-extension-${{ github.ref_name }}.zip
+            "libby-downloader-extension-$RELEASE_TAG.zip"
         env:
+          RELEASE_TAG: ${{ github.ref_name }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
