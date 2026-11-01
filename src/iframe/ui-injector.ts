@@ -4,6 +4,7 @@
  */
 
 import { MessageTypes } from '../types/messages';
+import { getParentOrigin, isTrustedParentMessage } from '../shared/validators';
 
 console.log('[Libby Downloader] Iframe UI script loaded');
 
@@ -142,7 +143,7 @@ function showCompletionMessage(failedChapters: number): void {
         Download complete!
       `;
     } else {
-      progressText.innerHTML = `Download complete with ${failedChapters} errors`;
+      progressText.textContent = `Download complete with ${Number(failedChapters)} errors`;
     }
     progressText.classList.add('libby-completion-message');
   }
@@ -166,6 +167,9 @@ function removeProgressOverlay(): void {
 window.addEventListener('message', (event) => {
   // Filter out non-extension messages
   if (!event.data || typeof event.data !== 'object' || !event.data.type) {
+    return;
+  }
+  if (!isTrustedParentMessage(event)) {
     return;
   }
 
@@ -274,7 +278,7 @@ function injectDownloadButton(): void {
       {
         type: MessageTypes.LIBBY_DOWNLOADER_BUTTON_CLICKED,
       },
-      '*'
+      getParentOrigin()
     );
   });
 

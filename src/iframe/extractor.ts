@@ -9,6 +9,7 @@
 
 import type { BookData, BookMetadata, Chapter } from '../types/extension-book';
 import { MessageTypes } from '../types/messages';
+import { isTrustedParentMessage } from '../shared/validators';
 
 // Extend window interface for Libby-specific globals
 declare global {
@@ -89,6 +90,13 @@ Response.prototype.json = async function (): Promise<unknown> {
 window.addEventListener('message', async (event: MessageEvent) => {
   // Only process extraction requests
   if (!event.data || event.data.type !== MessageTypes.EXTRACT_LIBBY_BOOK) return;
+  // Only the embedding Libby page may request extraction; the reply carries
+  // chapter URLs, so it goes back to that origin alone.
+  if (!isTrustedParentMessage(event)) {
+    console.warn('[Libby Downloader] Ignoring extraction request from', event.origin);
+    return;
+  }
+  const replyOrigin = event.origin;
 
   console.log('[Libby Downloader] Extraction requested');
 
@@ -100,13 +108,12 @@ window.addEventListener('message', async (event: MessageEvent) => {
       `[Libby Downloader] Extraction complete: "${bookData.metadata.title}" (${bookData.chapters.length} chapters)`
     );
 
-    // Send to parent frame (use specific origin for security)
     window.parent.postMessage(
       {
         type: MessageTypes.EXTRACTION_SUCCESS,
         data: bookData,
       },
-      '*' // Must use wildcard since parent is different origin
+      replyOrigin
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -116,7 +123,7 @@ window.addEventListener('message', async (event: MessageEvent) => {
         type: MessageTypes.EXTRACTION_ERROR,
         error: errorMessage,
       },
-      '*'
+      replyOrigin
     );
   }
 });
