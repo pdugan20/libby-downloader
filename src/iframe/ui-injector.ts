@@ -4,7 +4,7 @@
  */
 
 import { MessageTypes } from '../types/messages';
-import { getParentOrigin, isTrustedParentMessage } from '../shared/validators';
+import { isTrustedParentMessage } from '../shared/validators';
 
 console.log('[Libby Downloader] Iframe UI script loaded');
 
@@ -278,7 +278,10 @@ function injectDownloadButton(): void {
       {
         type: MessageTypes.LIBBY_DOWNLOADER_BUTTON_CLICKED,
       },
-      getParentOrigin()
+      // The click carries no data, and Firefox can't always tell the iframe
+      // its parent's origin, so any target is fine here. The parent page
+      // checks the sender's origin before acting on it.
+      '*'
     );
   });
 

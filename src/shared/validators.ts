@@ -28,9 +28,6 @@ export function validateOrigin(origin: string): boolean {
 /** Any HTTPS Libby origin: the top-level app or one of its player subdomains. */
 const LIBBY_ORIGIN_PATTERN = /^https:\/\/([a-z0-9-]+\.)*libbyapp\.com$/;
 
-/** Fallback parent origin when the browser doesn't expose it. */
-const DEFAULT_PARENT_ORIGIN = 'https://libbyapp.com';
-
 /**
  * Whether a message received inside the player iframe came from the Libby
  * page that embeds it. Other frames and windows can post to the iframe too,
@@ -41,27 +38,6 @@ export function isTrustedParentMessage(
   parent: Window = window.parent
 ): boolean {
   return event.source === parent && LIBBY_ORIGIN_PATTERN.test(event.origin);
-}
-
-/**
- * Origin of the Libby page embedding the player iframe, for targeting
- * postMessage. Uses ancestorOrigins (Chromium), then the referrer, then
- * the Libby app origin; never returns a non-Libby origin.
- */
-export function getParentOrigin(
-  location: Pick<Location, 'ancestorOrigins'> = window.location,
-  referrer: string = document.referrer
-): string {
-  const candidates = [location.ancestorOrigins?.[0]];
-  try {
-    candidates.push(new URL(referrer).origin);
-  } catch {
-    // No usable referrer
-  }
-  return (
-    candidates.find((origin): origin is string => !!origin && LIBBY_ORIGIN_PATTERN.test(origin)) ??
-    DEFAULT_PARENT_ORIGIN
-  );
 }
 
 /**

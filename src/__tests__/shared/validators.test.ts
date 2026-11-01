@@ -4,7 +4,6 @@
 
 import type { BookData } from '../../types/extension-book';
 import {
-  getParentOrigin,
   isTrustedParentMessage,
   sanitizeFilename,
   validateBookData,
@@ -35,30 +34,6 @@ describe('isTrustedParentMessage', () => {
     ]) {
       expect(isTrustedParentMessage({ origin, source: parent }, parent)).toBe(false);
     }
-  });
-});
-
-describe('getParentOrigin', () => {
-  const noAncestors = {} as Pick<Location, 'ancestorOrigins'>;
-
-  it('prefers the first ancestor origin', () => {
-    const location = {
-      ancestorOrigins: ['https://libbyapp.com'] as unknown as DOMStringList,
-    };
-    expect(getParentOrigin(location, '')).toBe('https://libbyapp.com');
-  });
-
-  it('falls back to the referrer origin', () => {
-    expect(getParentOrigin(noAncestors, 'https://libbyapp.com/open/loan/123')).toBe(
-      'https://libbyapp.com'
-    );
-  });
-
-  it('never returns a non-Libby origin', () => {
-    const location = {
-      ancestorOrigins: ['https://evil.com'] as unknown as DOMStringList,
-    };
-    expect(getParentOrigin(location, 'https://evil.com/page')).toBe('https://libbyapp.com');
   });
 });
 
