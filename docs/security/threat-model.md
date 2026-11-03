@@ -61,7 +61,9 @@ release publication.
    debug logging stays off in shipped builds (`src/shared/constants.ts`, `AGENTS.md`).
 4. **Local files and media tools.** CLI writes stay inside the selected book folder after
    resolving real paths, overwrites stay opt-in, values written into generated media formats
-   are escaped, and temporary files are cleaned up.
+   are escaped, and temporary files are cleaned up. Tagging and merges should stage output
+   and replace the destination atomically; failure must preserve original chapters and the
+   previous destination.
 5. **Releases.** Installs stay lockfile-exact and Actions stay SHA-pinned. Release builds
    run the same checks as CI, and workflow inputs such as tag names reach shell commands
    only through quoted environment variables.
@@ -71,6 +73,13 @@ release publication.
 Review message listeners and HTML sinks first, then URL validation and fetch policy, then
 where playback parameters are persisted. Test with hostile-input mocks (`AGENTS.md`), and
 inspect the shipped bundle rather than only the source (`scripts/build-extension.mjs`).
+
+## Known gaps
+
+Atomic replacement is a required control, not an established implementation guarantee:
+`MetadataService.embedToFile()` writes tags in place, and `MergeService.mergeFolder()`
+unlinks an existing destination under `--force` before FFmpeg succeeds. Review failure
+and cancellation recovery before relying on those paths to preserve an earlier output.
 
 ## Uncertain assumptions
 
