@@ -53,7 +53,8 @@ release publication.
 1. **Message handling.** Every window-message listener checks the sender's exact origin
    and window and validates the payload shape. Replies go to a specific target origin,
    never `*`. Requests and replies are correlated, and dynamic text is set with
-   `textContent`, never `innerHTML`.
+   `textContent`, never `innerHTML`. Keep extension permissions minimal and preserve the
+   isolation between page scripts and extension code.
 2. **Download and fetch policy.** The background worker validates every chapter URL, not
    only the first, against an allowed scheme and host. Cover fetches reject private-network
    destinations and bound size, time, and redirects; downloads and polling have deadlines.
