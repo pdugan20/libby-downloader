@@ -8,6 +8,15 @@
 
 TypeScript CLI tool for managing audiobooks downloaded from Libby via Chrome extension.
 
+## Code Review Rules
+
+- Flag Libby session material, playback keys, signed chapter URLs, or raw account data
+  exposed through logs, fixtures, error output, or persistence beyond the download flow.
+- Flag unvalidated file paths, unsafe symlinks, overwrites outside the selected output,
+  or tagging and merge failures that destroy existing files or original chapters.
+- Flag runtime ES-module imports in Chrome content scripts, or service code that imports
+  the Ink UI instead of reporting progress through callbacks.
+
 ## Common Commands
 
 ```bash
