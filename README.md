@@ -68,3 +68,26 @@ See [docs/architecture.md](docs/architecture.md) for system design and [docs/rel
 ## Disclaimer
 
 This tool is for educational purposes only. Users are responsible for complying with their library's terms of service and respecting copyright agreements.
+
+### Output recovery
+
+Tagging copies each MP3 into a private `.libby-stage-*` directory on the selected
+file's filesystem, writes or removes ID3 there, then atomically replaces that file after
+success. A tagging error or cancellation before commit leaves that original
+unchanged. Folder tagging commits one file at a time; it is not a transaction
+across every chapter. Library callers can pass an `AbortSignal` to tagging options.
+
+Merging encodes to the same kind of private staging directory and publishes the
+completed M4B only after FFmpeg succeeds. `--force` keeps the previous destination
+until atomic replacement; without it, an atomic no-clobber hard link also protects
+against a destination appearing while encoding (a filesystem that does not support
+hard links fails safely). Empty/missing output is rejected. Chapter/destination
+symlinks are rejected, and existing destination permissions are retained. Original
+chapters are never used as the merge output.
+
+Cancellation is checked before publication; once the atomic commit starts, a
+complete new file may be visible. Staging is cleaned after ordinary success or
+failure. A process kill can leave a private staging directory for manual cleanup,
+but does not require deleting or truncating the original destination. The selected
+folder must be owner-controlled; this does not isolate concurrent hostile changes
+to parent directories or provide power-loss durability guarantees.

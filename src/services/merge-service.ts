@@ -8,6 +8,7 @@ import * as os from 'os';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { logger } from '../utils/logger';
+import { assertRegularChild, writeAtomicOutput } from '../utils/atomic-output';
 
 // Set ffmpeg path to bundled binary
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
@@ -58,6 +59,7 @@ export class MergeService {
    * Merge all chapter MP3 files in a folder into a single M4B audiobook
    */
   async mergeFolder(folderPath: string, options?: MergeOptions): Promise<MergeResult> {
+    options?.signal?.throwIfAborted();
     const resolved = path.resolve(folderPath);
 
     // Validate folder
@@ -73,6 +75,7 @@ export class MergeService {
     // Find chapter files
     options?.onStageChange?.('Finding chapters...');
     const chapterFiles = await this.findChapterFiles(resolved);
+    for (const file of chapterFiles) await assertRegularChild(resolved, file);
 
     // Calculate chapter timestamps
     options?.onStageChange?.('Calculating timestamps...');
@@ -104,39 +107,34 @@ export class MergeService {
       const outputFilename = `${sanitizedTitle}.m4b`;
       const outputPath = path.join(resolved, outputFilename);
 
-      try {
-        await fs.access(outputPath);
-        if (options?.force) {
-          await fs.unlink(outputPath);
-        } else {
-          throw new Error(
-            `Output file already exists: ${outputFilename} (use --force to overwrite)`
-          );
-        }
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-          throw error;
-        }
-      }
-
       // Execute merge
       const totalDurationSecs = chapters.reduce((sum, ch) => sum + ch.duration, 0);
       options?.onStageChange?.(`Merging ${chapterFiles.length} chapters...`);
       options?.onMergeStart?.(totalDurationSecs, chapterFiles.length);
-      await this.executeMerge(
-        concatFilePath,
-        metadataFilePath,
-        coverArtPath,
+      const fileSize = await writeAtomicOutput(
         outputPath,
-        (timemark) => {
-          options?.onMergeProgress?.(timemark);
+        async (stagedPath) => {
+          await this.executeMerge(
+            concatFilePath,
+            metadataFilePath,
+            coverArtPath,
+            stagedPath,
+            (timemark) => {
+              options?.onMergeProgress?.(timemark);
+            },
+            options?.signal
+          );
         },
-        options?.signal
+        { overwrite: options?.force ?? false, signal: options?.signal }
       );
 
-      // Get result info
-      const fileSize = (await fs.stat(outputPath)).size;
-      options?.onComplete?.(outputFilename, fileSize);
+      // Completion observes the committed file. A UI callback must not turn a
+      // successful commit into a misleading failed-media result.
+      try {
+        options?.onComplete?.(outputFilename, fileSize);
+      } catch {
+        logger.debug('Merge completed, but its completion callback failed');
+      }
 
       return { outputPath, outputFilename, fileSize };
     } finally {
@@ -369,6 +367,10 @@ export class MergeService {
     return new Promise((resolve, reject) => {
       let stderrOutput = '';
       let killed = false;
+      let onAbort: (() => void) | undefined;
+      const cleanup = () => {
+        if (onAbort) signal?.removeEventListener('abort', onAbort);
+      };
 
       const command = ffmpeg()
         .input(concatFilePath)
@@ -397,7 +399,7 @@ export class MergeService {
       }
 
       if (signal) {
-        const onAbort = () => {
+        onAbort = () => {
           killed = true;
           command.kill('SIGKILL');
         };
@@ -411,6 +413,11 @@ export class MergeService {
       command
         .outputOptions(outputOptions)
         .output(outputPath)
+        // Abort can arrive while fluent-ffmpeg prepares inputs, before ffmpegProc
+        // exists. Recheck on start so a subsequently spawned process is killed.
+        .on('start', () => {
+          if (signal?.aborted) onAbort?.();
+        })
         .on('progress', (progress) => {
           if (progress.timemark && onProgress) {
             onProgress(progress.timemark);
@@ -420,9 +427,15 @@ export class MergeService {
           stderrOutput += stderrLine + '\n';
         })
         .on('end', () => {
+          cleanup();
+          if (signal?.aborted) {
+            reject(new Error('Merge cancelled'));
+            return;
+          }
           resolve();
         })
         .on('error', async (err) => {
+          cleanup();
           if (killed) {
             // Clean up partial output file
             try {
