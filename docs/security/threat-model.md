@@ -94,13 +94,6 @@ Review message listeners and HTML sinks first, then URL validation and fetch pol
 where playback parameters are persisted. Test with hostile-input mocks (`AGENTS.md`), and
 inspect the shipped bundle rather than only the source (`scripts/build-extension.mjs`).
 
-## Known gaps
-
-Atomic replacement is a required control, not an established implementation guarantee:
-`MetadataService.embedToFile()` writes tags in place, and `MergeService.mergeFolder()`
-unlinks an existing destination under `--force` before FFmpeg succeeds. Review failure
-and cancellation recovery before relying on those paths to preserve an earlier output.
-
 ## Uncertain assumptions
 
 - Whether Libby's playback parameters expire, can be replayed, or depend on cookies is not
