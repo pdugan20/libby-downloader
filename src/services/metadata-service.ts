@@ -6,6 +6,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import NodeID3 from 'node-id3';
 import { logger } from '../utils/logger';
+import { assertRegularChild, writeAtomicOutput } from '../utils/atomic-output';
 
 export interface EmbedOptions {
   title?: string;
@@ -13,6 +14,7 @@ export interface EmbedOptions {
   narrator?: string;
   coverUrl?: string;
   description?: string;
+  signal?: AbortSignal;
 }
 
 export interface TagProgressCallback {
@@ -46,6 +48,7 @@ export class MetadataService {
     options: EmbedOptions = {},
     onProgress?: TagProgressCallback
   ): Promise<void> {
+    options.signal?.throwIfAborted();
     const resolvedPath = path.resolve(folderPath);
 
     // Validate folder
@@ -76,16 +79,21 @@ export class MetadataService {
       // Yield to event loop so UI can re-render between files
       await new Promise((resolve) => setTimeout(resolve, process.env.LIBBY_SLOW_MODE ? 200 : 0));
 
-      await this.embedToFile(filePath, {
-        title: chapterTitle,
-        artist: metadata.authors.join(', '),
-        album: metadata.title,
-        performerInfo: metadata.narrator || metadata.authors.join(', '),
-        trackNumber: `${chapterNum}/${mp3Files.length}`,
-        genre: 'Audiobook',
-        comment: metadata.description,
-        coverBuffer,
-      });
+      await assertRegularChild(resolvedPath, mp3Files[i]);
+      await this.embedToFile(
+        filePath,
+        {
+          title: chapterTitle,
+          artist: metadata.authors.join(', '),
+          album: metadata.title,
+          performerInfo: metadata.narrator || metadata.authors.join(', '),
+          trackNumber: `${chapterNum}/${mp3Files.length}`,
+          genre: 'Audiobook',
+          comment: metadata.description,
+          coverBuffer,
+        },
+        { signal: options.signal }
+      );
     }
 
     onProgress?.onComplete?.(mp3Files.length);
@@ -106,7 +114,8 @@ export class MetadataService {
       year?: string;
       comment?: string;
       coverBuffer?: Buffer;
-    }
+    },
+    options: { signal?: AbortSignal } = {}
   ): Promise<void> {
     const tags: NodeID3.Tags = {
       title: metadata.title,
@@ -137,11 +146,16 @@ export class MetadataService {
       };
     }
 
-    const success = NodeID3.write(tags, filePath);
-
-    if (!success) {
-      throw new Error(`Failed to write ID3 tags to: ${filePath}`);
-    }
+    await writeAtomicOutput(
+      filePath,
+      async (stagedPath) => {
+        await fs.copyFile(filePath, stagedPath);
+        options.signal?.throwIfAborted();
+        const success = NodeID3.write(tags, stagedPath);
+        if (success !== true) throw new Error(`Failed to write ID3 tags to: ${filePath}`);
+      },
+      { overwrite: true, signal: options.signal }
+    );
   }
 
   /**
@@ -160,13 +174,18 @@ export class MetadataService {
   /**
    * Remove metadata from an MP3 file
    */
-  async removeMetadata(filePath: string): Promise<void> {
+  async removeMetadata(filePath: string, options: { signal?: AbortSignal } = {}): Promise<void> {
     logger.info(`Removing metadata from: ${filePath}`);
-    const success = NodeID3.removeTags(filePath);
-
-    if (!success) {
-      throw new Error('Failed to remove ID3 tags');
-    }
+    await writeAtomicOutput(
+      filePath,
+      async (stagedPath) => {
+        await fs.copyFile(filePath, stagedPath);
+        options.signal?.throwIfAborted();
+        const success = NodeID3.removeTags(stagedPath);
+        if (success !== true) throw new Error('Failed to remove ID3 tags');
+      },
+      { overwrite: true, signal: options.signal }
+    );
 
     logger.success('Metadata removed successfully');
   }

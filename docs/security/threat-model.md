@@ -69,18 +69,30 @@ release publication.
    run the same checks as CI, and workflow inputs such as tag names reach shell commands
    only through quoted environment variables.
 
+## Implemented local-output recovery
+
+Tagging copies the selected regular MP3 into an owner-only staging directory on
+the destination filesystem; ID3 writes the staged copy and errors (including an
+Error return value) prevent commit. Merging writes FFmpeg output to a private
+stage with its final extension. A nonempty staged file is flushed before atomic
+publication. Existing destinations remain until successful `--force` replacement;
+without force, hard-link publication refuses a concurrent destination atomically.
+Chapter and destination symlinks are rejected, selected-folder children are checked
+against the real folder, and existing file permissions are preserved.
+
+Cancellation before publication and encoder/ID3/rename failures preserve the old
+destination and original chapters. After atomic commit starts, cancellation does
+not roll back a complete new file. Tags commit per file, not per folder. Ordinary
+cleanup is best-effort; process termination may leave a private stage. These
+controls assume owner-controlled parent directories and do not claim isolation
+from concurrent hostile filesystem mutation or power-loss durability. Other
+requirements above, including cover-network controls, remain separate review work.
+
 ## Review priorities
 
 Review message listeners and HTML sinks first, then URL validation and fetch policy, then
 where playback parameters are persisted. Test with hostile-input mocks (`AGENTS.md`), and
 inspect the shipped bundle rather than only the source (`scripts/build-extension.mjs`).
-
-## Known gaps
-
-Atomic replacement is a required control, not an established implementation guarantee:
-`MetadataService.embedToFile()` writes tags in place, and `MergeService.mergeFolder()`
-unlinks an existing destination under `--force` before FFmpeg succeeds. Review failure
-and cancellation recovery before relying on those paths to preserve an earlier output.
 
 ## Uncertain assumptions
 

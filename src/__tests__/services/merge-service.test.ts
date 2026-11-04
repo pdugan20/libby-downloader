@@ -1,3 +1,4 @@
+import { setImmediate } from 'timers';
 import { MergeService } from '../../services/merge-service';
 import { createMockMetadata } from '../setup/fixtures/metadata.fixture';
 
@@ -13,6 +14,27 @@ jest.mock('fs', () => ({
     mkdtemp: jest.fn(),
     rm: jest.fn(),
   },
+}));
+
+jest.mock('../../utils/atomic-output', () => ({
+  assertRegularChild: jest.fn(async () => {}),
+  writeAtomicOutput: jest.fn(
+    async (
+      destination: string,
+      write: (file: string) => Promise<void>,
+      options: { overwrite: boolean }
+    ) => {
+      const mockFs = jest.requireMock('fs').promises;
+      try {
+        await mockFs.access(destination);
+        if (!options.overwrite) throw new Error('Output file already exists');
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      }
+      await write(destination);
+      return (await mockFs.stat(destination)).size;
+    }
+  ),
 }));
 
 jest.mock('fluent-ffmpeg');
@@ -164,7 +186,7 @@ describe('MergeService', () => {
 
       const result = await mergeService.mergeFolder('/test/book', { force: true });
 
-      expect(mockFs.unlink).toHaveBeenCalledWith('/test/book/Sample Audiobook.m4b');
+      expect(mockFs.unlink).not.toHaveBeenCalled();
       expect(result.outputPath).toBe('/test/book/Sample Audiobook.m4b');
     });
 
@@ -275,5 +297,64 @@ describe('MergeService', () => {
       );
       expect(metadataWrite?.[1]).toContain('album_artist=Narrator One, Narrator Two');
     });
+  });
+});
+
+describe('FFmpeg cancellation lifecycle', () => {
+  it('kills a process that starts after cancellation during asynchronous preparation', async () => {
+    const ctrl = new AbortController();
+    const handlers: Record<string, (...args: unknown[]) => void> = {};
+    let started = false;
+    let processKills = 0;
+    const command = {
+      input: jest.fn().mockReturnThis(),
+      inputOptions: jest.fn().mockReturnThis(),
+      outputOptions: jest.fn().mockReturnThis(),
+      output: jest.fn().mockReturnThis(),
+      on: jest.fn(function (
+        this: unknown,
+        event: string,
+        handler: (...args: unknown[]) => void
+      ): unknown {
+        handlers[event] = handler;
+        return this;
+      }),
+      kill: jest.fn(() => {
+        if (started) {
+          processKills++;
+          setImmediate(() => handlers.error(new Error('killed')));
+        }
+      }),
+      run: jest.fn(() => {
+        ctrl.abort();
+        setImmediate(() => {
+          started = true;
+          handlers.start();
+          setImmediate(() => handlers.end());
+        });
+      }),
+    };
+    jest.mocked(ffmpeg).mockReturnValue(command as unknown as ReturnType<typeof ffmpeg>);
+    const service = new MergeService() as unknown as {
+      executeMerge: (
+        concat: string,
+        metadata: string,
+        cover: string | null,
+        output: string,
+        progress: undefined,
+        signal: AbortSignal
+      ) => Promise<void>;
+    };
+    await expect(
+      service.executeMerge(
+        '/fixture/concat',
+        '/fixture/metadata',
+        null,
+        '/fixture/staged.m4b',
+        undefined,
+        ctrl.signal
+      )
+    ).rejects.toThrow(/cancel/i);
+    expect(processKills).toBe(1);
   });
 });

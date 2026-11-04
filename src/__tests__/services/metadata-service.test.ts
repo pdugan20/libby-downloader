@@ -10,9 +10,20 @@ jest.mock('fs', () => ({
   promises: {
     readFile: jest.fn(),
     writeFile: jest.fn(),
+    copyFile: jest.fn(),
     readdir: jest.fn(),
     stat: jest.fn(),
   },
+}));
+
+jest.mock('../../utils/atomic-output', () => ({
+  assertRegularChild: jest.fn(async () => {}),
+  writeAtomicOutput: jest.fn(
+    async (destination: string, write: (file: string) => Promise<void>) => {
+      await write(destination);
+      return 1;
+    }
+  ),
 }));
 
 jest.mock('node-id3', () => ({
