@@ -115,6 +115,22 @@ function assertCodecovOIDCContract(ci) {
   assert.doesNotMatch(codecovStep, /\$\{\{\s*secrets\./);
 }
 
+function assertReleaseToolContract(ci, packageJson) {
+  assert.equal(
+    packageJson.scripts['test:release-tool'],
+    'node --test scripts/release-tool-safety.test.mjs'
+  );
+  assert.equal(
+    packageJson.scripts['check-all'],
+    'npm run typecheck && npm run lint && npm run format:check && npm run test && npm run test:release-tool'
+  );
+  const step = extractNamedStep(ci, 'Verify release-tool safety');
+  assert.equal(
+    step.trim(),
+    '- name: Verify release-tool safety\n        run: npm run test:release-tool'
+  );
+}
+
 const expectedNativeSelectors = {
   'node_modules/@rolldown/binding-linux-arm64-gnu': {
     optional: true,
@@ -337,7 +353,8 @@ function assertRenovateRoutinePolicy(config) {
     (rule) => rule.matchDepTypes?.includes('overrides') && rule.matchUpdateTypes?.includes('minor')
   );
   const pinDigestRules = config.packageRules.filter(
-    (rule) => JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['digest', 'pin', 'pinDigest'])
+    (rule) =>
+      JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['digest', 'pin', 'pinDigest'])
   );
   const lockMaintenanceRules = config.packageRules.filter(
     (rule) => JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['lockFileMaintenance'])
@@ -430,7 +447,8 @@ test('Renovate policy rejects unsafe update enrollment and narrowed approval gat
 
   const missingApproval = clone(config);
   const pinDigestRule = missingApproval.packageRules.find(
-    (rule) => JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['digest', 'pin', 'pinDigest'])
+    (rule) =>
+      JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['digest', 'pin', 'pinDigest'])
   );
   delete pinDigestRule.dependencyDashboardApproval;
   assert.throws(() => assertRenovateRoutinePolicy(missingApproval), assert.AssertionError);
@@ -444,7 +462,8 @@ test('Renovate policy rejects unsafe update enrollment and narrowed approval gat
 
   const narrowedByUnlistedMatcher = clone(config);
   const narrowedPinDigestRule = narrowedByUnlistedMatcher.packageRules.find(
-    (rule) => JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['digest', 'pin', 'pinDigest'])
+    (rule) =>
+      JSON.stringify(rule.matchUpdateTypes) === JSON.stringify(['digest', 'pin', 'pinDigest'])
   );
   narrowedPinDigestRule.matchDatasources = ['npm'];
   assert.throws(
@@ -546,11 +565,42 @@ test('Codecov uses job-scoped OIDC and fails closed without stored tokens', () =
     ci.replace('          use_oidc: true\n', '          use_oidc: false\n'),
     ci.replace('          fail_ci_if_error: true\n', '          fail_ci_if_error: false\n'),
     ci.replace('          use_oidc: true\n', '          use_oidc: true\n          token: secret\n'),
-    ci.replace('permissions:\n  contents: read\n', 'permissions:\n  contents: read\n  id-token: write\n'),
+    ci.replace(
+      'permissions:\n  contents: read\n',
+      'permissions:\n  contents: read\n  id-token: write\n'
+    ),
   ];
 
   for (const mutated of mutations) {
     assert.throws(() => assertCodecovOIDCContract(mutated), assert.AssertionError);
+  }
+});
+
+test('release-tool compatibility tests remain mandatory locally and in CI', () => {
+  const ci = read('.github/workflows/ci.yml');
+  const packageJson = JSON.parse(read('package.json'));
+  assertReleaseToolContract(ci, packageJson);
+  for (const mutation of [
+    ci.replace('        run: npm run test:release-tool\n', '        run: true\n'),
+    ci.replace(
+      '        run: npm run test:release-tool\n',
+      '        run: npm run test:release-tool || true\n'
+    ),
+    ci.replace(
+      '      - name: Verify release-tool safety\n',
+      '      - name: Verify release-tool safety\n        continue-on-error: true\n'
+    ),
+    ci.replace(
+      '      - name: Verify release-tool safety\n',
+      '      - name: Verify release-tool safety\n        if: false\n'
+    ),
+  ]) {
+    assert.throws(() => assertReleaseToolContract(mutation, packageJson), assert.AssertionError);
+  }
+  for (const script of ['test:release-tool', 'check-all']) {
+    const mutation = clone(packageJson);
+    mutation.scripts[script] = 'true';
+    assert.throws(() => assertReleaseToolContract(ci, mutation), assert.AssertionError);
   }
 });
 
