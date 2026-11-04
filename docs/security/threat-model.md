@@ -67,7 +67,10 @@ release publication.
    previous destination.
 5. **Releases.** Installs stay lockfile-exact and Actions stay SHA-pinned. Release builds
    run the same checks as CI, and workflow inputs such as tag names reach shell commands
-   only through quoted environment variables.
+   only through quoted environment variables. The release-tool FTP dependency uses the
+   scoped patched version and offline compatibility checks described in
+   [the release guide](../releasing.md#ftp-dependency-safety); separate passive-transfer
+   hosts remain denied by default. These checks do not publish a release.
 
 ## Implemented local-output recovery
 
