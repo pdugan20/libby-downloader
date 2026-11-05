@@ -32,7 +32,7 @@ export interface BookData {
  */
 export interface CryptoParams {
   b: {
-    '-odread-cmpt-params': number[];
+    '-odread-cmpt-params': string[];
   };
 }
 

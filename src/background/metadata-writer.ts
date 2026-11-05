@@ -32,7 +32,15 @@ export class MetadataWriter {
     chapters: Chapter[],
     bookTitle: string
   ): Promise<number> {
-    const metadataContent = JSON.stringify({ metadata, chapters }, null, 2);
+    // Playback URLs are credentials, not metadata needed by the tagging/merge CLI.
+    const savedChapters = chapters.map(({ index, title, duration, startTime, endTime }) => ({
+      index,
+      title,
+      duration,
+      startTime,
+      endTime,
+    }));
+    const metadataContent = JSON.stringify({ metadata, chapters: savedChapters }, null, 2);
 
     // Use data URL instead of blob URL (blob URLs don't work in service workers)
     const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(metadataContent);

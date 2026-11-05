@@ -39,7 +39,7 @@ export type DownloadStatusType = (typeof DownloadStatus)[keyof typeof DownloadSt
  * Timeouts (in milliseconds)
  */
 export const Timeouts = {
-  EXTRACTION: 10000, // 10 seconds
+  EXTRACTION: 135000, // BIF loading plus bounded collection of player URLs
   DOWNLOAD_DELAY: 500, // 500ms between chapters
   NOTIFICATION_DURATION: 3000, // 3 seconds
   BUTTON_RESET: 3000, // 3 seconds

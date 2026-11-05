@@ -1,6 +1,6 @@
 /**
  * Content script for Libby Downloader
- * Runs on libbyapp.com/open/loan/* pages
+ * Runs on Libby pages, including before in-app navigation opens a loan
  * Orchestrates UI and message handling
  */
 
@@ -12,16 +12,10 @@ console.log('[Libby Downloader] Content script loaded');
 
 if (DEBUG_MODE) {
   console.log('[Libby Downloader] DEBUG MODE enabled');
-} else {
-  // Only run on audiobook player pages in production
-  if (!window.location.pathname.includes('/open/loan/')) {
-    console.log('[Libby Downloader] Not an audiobook page');
-    throw new Error('Not an audiobook page');
-  }
-  console.log('[Libby Downloader] Audiobook page detected');
 }
 
-// Initialize components
+// Libby opens loans through client-side navigation. Register on the initial
+// app page so clicks from a player iframe created later are handled as well.
 const uiManager = new UIManager();
 const messageHandler = new MessageHandler(uiManager);
 

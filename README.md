@@ -33,6 +33,13 @@ npm run build && npm link
 
 Open an audiobook in Libby, then click the download button in the top-right navigation bar. Files save to `~/Downloads/libby-downloads/[Book Title]/`.
 
+If Libby has not provided links for every audio part, the extension automatically
+loads the missing parts to collect the player's own links. It restores
+your starting position on success or failure; temporary position changes may sync
+to other devices. Collection stops if a part cannot load or the two-minute limit
+is reached, and no chapter downloads start unless every link is available.
+Saved metadata excludes signed playback URLs.
+
 ### CLI
 
 The CLI provides tagging and merging for downloaded books. Run `libby` for the interactive menu, or use commands directly:

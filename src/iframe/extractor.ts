@@ -10,13 +10,15 @@
 import type { BookData, BookMetadata, Chapter } from '../types/extension-book';
 import { MessageTypes } from '../types/messages';
 import { isTrustedParentMessage } from '../shared/validators';
+import { ChapterUrls, gatherChapterUrls } from './chapter-urls';
+import type { PlayerPlace } from './chapter-urls';
 
 // Extend window interface for Libby-specific globals
 declare global {
   interface Window {
     BIF?: BIFObject;
     getBIF?: () => Promise<BIFObject>;
-    __odreadCmptParams: number[] | null;
+    __odreadCmptParams: unknown[] | null;
   }
 }
 
@@ -48,6 +50,8 @@ interface BIFObject {
   };
   objects: {
     spool: {
+      focus: PlayerPlace;
+      _?: { proxy?: { _?: { element?: HTMLAudioElement } } };
       components: Array<{
         meta: {
           path: string;
@@ -58,6 +62,9 @@ interface BIFObject {
         spinePosition: number;
         duration?: number;
       }>;
+    };
+    compass: {
+      at: (position: { floc: number }) => PlayerPlace;
     };
   };
   root?: {
@@ -70,6 +77,22 @@ console.log('[Libby Downloader] Iframe script loaded');
 // Hook JSON.parse to capture crypto parameters
 const originalParse = JSON.parse;
 window.__odreadCmptParams = null;
+
+const chapterUrls = new ChapterUrls(location.origin);
+function captureResourceUrls(): void {
+  for (const entry of performance.getEntriesByType('resource')) {
+    chapterUrls.record(entry.name);
+  }
+}
+// Observe normal player requests without patching media elements or making requests.
+if (typeof PerformanceObserver !== 'undefined') {
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) chapterUrls.record(entry.name);
+  });
+  observer.observe({ type: 'resource', buffered: true });
+}
+
+let extracting = false;
 
 JSON.parse = function (text: string, reviver?: (key: string, value: unknown) => unknown): unknown {
   const result = originalParse.apply(this, [text, reviver]);
@@ -97,6 +120,8 @@ window.addEventListener('message', async (event: MessageEvent) => {
     return;
   }
   const replyOrigin = event.origin;
+  if (extracting) return;
+  extracting = true;
 
   console.log('[Libby Downloader] Extraction requested');
 
@@ -125,6 +150,8 @@ window.addEventListener('message', async (event: MessageEvent) => {
       },
       replyOrigin
     );
+  } finally {
+    extracting = false;
   }
 });
 
@@ -139,8 +166,36 @@ async function extractBookData(): Promise<BookData> {
     throw new Error('BIF object not found. The audiobook player may not have loaded properly.');
   }
 
-  // Wait for crypto params (polls for up to 5 seconds)
-  const odreadCmptParams = await waitForCryptoParams();
+  captureResourceUrls();
+  const resolveUrl = (position: number): string | undefined => {
+    captureResourceUrls();
+    // The player uses a detached audio element, so it is absent from the DOM.
+    // Reading its source also covers cached/in-flight media that has no timing entry yet.
+    const audio = BIF.objects.spool._?.proxy?._?.element;
+    if (audio) {
+      chapterUrls.record(audio.currentSrc);
+      chapterUrls.record(audio.src);
+    }
+    const component = BIF.objects.spool.components.find((c) => c.spinePosition === position);
+    return component
+      ? chapterUrls.resolve(component.meta.path, window.__odreadCmptParams?.[position])
+      : undefined;
+  };
+  const missing = BIF.objects.spool.components
+    .filter((component) => !resolveUrl(component.spinePosition))
+    .map((component) => component.spinePosition);
+  if (missing.length) {
+    const original = BIF.objects.spool.focus;
+    if (!original || !Number.isFinite(original.floc) || !BIF.objects.compass?.at) {
+      throw new Error('Audio URLs are unavailable. Play the audiobook and try again.');
+    }
+    await gatherChapterUrls(
+      missing,
+      { original, at: (floc) => BIF.objects.compass.at({ floc }) },
+      (position) => Boolean(resolveUrl(position)),
+      sleep
+    );
+  }
 
   // Extract metadata (null-safe, case-insensitive with fallbacks)
   const creators = BIF.map.creator ?? [];
@@ -164,8 +219,8 @@ async function extractBookData(): Promise<BookData> {
   let cumulativeTime = 0;
 
   for (const spine of BIF.objects.spool.components) {
-    const url =
-      location.origin + '/' + spine.meta.path + '?' + odreadCmptParams[spine.spinePosition];
+    const url = resolveUrl(spine.spinePosition);
+    if (!url) throw new Error(`Audio URL missing for part ${spine.spinePosition + 1}.`);
 
     // Try different possible duration properties (fallback to 0 if not available)
     const duration = spine.meta['audio-duration'] || spine.meta.duration || spine.duration || 0;
@@ -252,42 +307,12 @@ function extractCryptoParams(result: unknown, source: string): void {
     const obj = result as Record<string, unknown>;
     if (obj.b && typeof obj.b === 'object') {
       const b = obj.b as Record<string, unknown>;
-      if (b['-odread-cmpt-params']) {
-        window.__odreadCmptParams = Array.from(b['-odread-cmpt-params'] as number[]);
+      if (Array.isArray(b['-odread-cmpt-params']) && b['-odread-cmpt-params'].length > 0) {
+        window.__odreadCmptParams = b['-odread-cmpt-params'];
         console.log(`[Libby Downloader] Captured crypto parameters via ${source}`);
       }
     }
   }
-}
-
-/**
- * Wait for crypto parameters with polling
- * Gives Libby's player time to fetch params after playback starts
- */
-async function waitForCryptoParams(
-  timeoutMs: number = 5000,
-  pollIntervalMs: number = 250
-): Promise<number[]> {
-  if (window.__odreadCmptParams) {
-    return window.__odreadCmptParams;
-  }
-
-  console.log('[Libby Downloader] Waiting for crypto parameters...');
-  const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-
-  for (let i = 0; i < maxAttempts; i++) {
-    await sleep(pollIntervalMs);
-    if (window.__odreadCmptParams) {
-      console.log(
-        `[Libby Downloader] Crypto parameters captured after ${(i + 1) * pollIntervalMs}ms`
-      );
-      return window.__odreadCmptParams;
-    }
-  }
-
-  throw new Error(
-    'Crypto parameters not captured. Please play the audiobook for a few seconds and try again.'
-  );
 }
 
 /**

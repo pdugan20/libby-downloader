@@ -54,13 +54,15 @@ export async function writeAtomicOutput(
     const staged = await regularFileOrMissing(stagedPath);
     if (!staged || staged.size === 0)
       throw new Error('Media tool did not produce a complete nonempty output');
-    if (existing) await fs.chmod(stagedPath, existing.mode & 0o777);
-    const handle = await fs.open(stagedPath, 'r');
+    // Windows requires a writable handle to flush file buffers. Opening with r+
+    // preserves the encoded contents while allowing sync before publication.
+    const handle = await fs.open(stagedPath, 'r+');
     try {
       await handle.sync();
     } finally {
       await handle.close();
     }
+    if (existing) await fs.chmod(stagedPath, existing.mode & 0o777);
     // Reject a pre-existing or newly introduced destination symlink. Atomic rename
     // replaces an entry, never follows it; the source is in our private directory.
     await regularFileOrMissing(target);

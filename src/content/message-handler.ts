@@ -5,7 +5,7 @@
 
 import type { BookData } from '../types/extension-book';
 import { ExtractionError, IframeError, TimeoutError, ValidationError } from '../types/errors';
-import { MessageTypes } from '../types/messages';
+import { MessageTypes, Timeouts } from '../types/messages';
 import { logger } from '../shared/logger';
 import { DEBUG_MODE } from './constants';
 import type { UIManager } from './ui-manager';
@@ -176,11 +176,11 @@ export class MessageHandler {
     this.extractionTimeout = window.setTimeout(() => {
       const error = new TimeoutError(
         'Extraction timeout. Try playing the audiobook for a few seconds first.',
-        10000
+        Timeouts.EXTRACTION
       );
       logger.operationFailed('Book extraction', error);
       this.uiManager.showError(error.message);
-    }, 10000);
+    }, Timeouts.EXTRACTION);
   }
 
   private async handleExtractionSuccess(bookData: BookData): Promise<void> {
@@ -195,7 +195,7 @@ export class MessageHandler {
       });
 
       if (!validateBookData(bookData)) {
-        throw new ValidationError('Invalid book data received from extraction', bookData);
+        throw new ValidationError('Invalid book data received from extraction');
       }
 
       if (DEBUG_MODE) {

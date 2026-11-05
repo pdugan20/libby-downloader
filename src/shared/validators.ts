@@ -73,17 +73,25 @@ export function validateBookData(bookData: unknown): bookData is BookData {
     return false;
   }
 
-  const firstChapter = chapters[0] as Record<string, unknown>;
-  if (
-    typeof firstChapter.index !== 'number' ||
-    typeof firstChapter.title !== 'string' ||
-    typeof firstChapter.url !== 'string' ||
-    typeof firstChapter.duration !== 'number'
-  ) {
-    return false;
-  }
-
-  return true;
+  return chapters.every((chapter: unknown) => {
+    if (!chapter || typeof chapter !== 'object') return false;
+    const item = chapter as Record<string, unknown>;
+    if (
+      typeof item.index !== 'number' ||
+      typeof item.title !== 'string' ||
+      typeof item.url !== 'string' ||
+      typeof item.duration !== 'number'
+    )
+      return false;
+    try {
+      const url = new URL(item.url);
+      return (
+        ['http:', 'https:'].includes(url.protocol) && !['?undefined', '?null'].includes(url.search)
+      );
+    } catch {
+      return false;
+    }
+  });
 }
 
 /**
