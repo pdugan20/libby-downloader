@@ -3,6 +3,7 @@
  */
 
 import { MetadataService } from '../../services/metadata-service';
+import path from 'path';
 import { createMetadataJsonString } from '../setup/fixtures/metadata.fixture';
 
 // Mock dependencies
@@ -82,7 +83,7 @@ describe('MetadataService', () => {
           album: 'Sample Audiobook',
           genre: 'Audiobook',
         }),
-        '/test/book/chapter-1.mp3'
+        path.resolve('/test/book', 'chapter-1.mp3')
       );
     });
 
@@ -119,7 +120,7 @@ describe('MetadataService', () => {
           album: 'Custom Title',
           artist: 'Custom Author',
         }),
-        '/test/book/chapter-1.mp3'
+        path.resolve('/test/book', 'chapter-1.mp3')
       );
     });
 
@@ -209,7 +210,7 @@ describe('MetadataService', () => {
         expect.objectContaining({
           performerInfo: 'Narrator One, Narrator Two',
         }),
-        '/test/book/chapter-1.mp3'
+        path.resolve('/test/book', 'chapter-1.mp3')
       );
     });
 

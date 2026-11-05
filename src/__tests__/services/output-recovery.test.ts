@@ -51,6 +51,22 @@ function merger() {
   jest.spyOn(internals, 'getAudioDuration').mockResolvedValue(1);
   return { service, run: jest.spyOn(internals, 'executeMerge') };
 }
+
+async function createLinkFixture(link: string, filename: string): Promise<string> {
+  const directory = path.join(root, `outside-${filename}`);
+  await fs.mkdir(directory);
+  const outside = path.join(directory, filename);
+  await fs.writeFile(outside, 'outside original');
+  await fs.unlink(link);
+  // Junctions exercise real link rejection on Windows without symlink privileges.
+  // Unix also exercises file symlinks, which Windows requires extra privileges for.
+  await fs.symlink(
+    process.platform === 'win32' ? directory : outside,
+    link,
+    process.platform === 'win32' ? 'junction' : 'file'
+  );
+  return outside;
+}
 it('preserves the original when ID3 partially writes and returns false', async () => {
   jest.mocked(NodeID3.write).mockImplementation((_tags, destination) => {
     writeFileSync(destination as string, 'damaged partial tag');
@@ -124,10 +140,7 @@ it('leaves no new final output after a failed first merge', async () => {
   expect((await fs.readdir(root)).filter((file) => file.startsWith('.libby-stage-'))).toEqual([]);
 });
 it('rejects a forced destination symlink and never touches its target', async () => {
-  const outside = path.join(root, 'outside.m4b');
-  await fs.writeFile(outside, 'outside original');
-  await fs.unlink(output);
-  await fs.symlink(outside, output);
+  const outside = await createLinkFixture(output, 'outside.m4b');
   const { service, run } = merger();
   await expect(service.mergeFolder(root, { force: true })).rejects.toThrow(/symlink/);
   expect(run).not.toHaveBeenCalled();
@@ -135,10 +148,7 @@ it('rejects a forced destination symlink and never touches its target', async ()
   expect((await fs.lstat(output)).isSymbolicLink()).toBe(true);
 });
 it('rejects chapter symlinks before probing or encoding', async () => {
-  const outside = path.join(root, 'outside.mp3');
-  await fs.writeFile(outside, 'outside original');
-  await fs.unlink(chapter);
-  await fs.symlink(outside, chapter);
+  const outside = await createLinkFixture(chapter, 'outside.mp3');
   const { service, run } = merger();
   await expect(service.mergeFolder(root, { force: true })).rejects.toThrow(/symlink/);
   expect(run).not.toHaveBeenCalled();
@@ -161,8 +171,11 @@ it('preserves tag input on thrown errors, returned Error values and cancellation
   }
   expect((await fs.readdir(root)).filter((file) => file.startsWith('.libby-stage-'))).toEqual([]);
 });
-it('commits successful tags only after staging and preserves restrictive mode', async () => {
+it('commits successful tags only after staging and preserves the supported file mode', async () => {
   await fs.chmod(chapter, 0o600);
+  const originalMode = (await fs.stat(chapter)).mode & 0o777;
+  // Windows chmod supports a subset of Unix permissions; keep the strict Unix check.
+  if (process.platform !== 'win32') expect(originalMode).toBe(0o600);
   jest.mocked(NodeID3.write).mockImplementation((_tags, destination) => {
     expect(destination).not.toBe(chapter);
     expect(readFileSync(chapter, 'utf8')).toBe('original chapter');
@@ -171,7 +184,7 @@ it('commits successful tags only after staging and preserves restrictive mode', 
   });
   await new MetadataService().embedToFile(chapter, tags);
   expect(await fs.readFile(chapter, 'utf8')).toBe('tag:original chapter');
-  expect((await fs.stat(chapter)).mode & 0o777).toBe(0o600);
+  expect((await fs.stat(chapter)).mode & 0o777).toBe(originalMode);
 });
 it('preserves both originals if the final rename fails', async () => {
   jest

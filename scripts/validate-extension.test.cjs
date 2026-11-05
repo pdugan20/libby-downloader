@@ -40,16 +40,24 @@ test('accepts the built Chrome extension', () => {
 test('rejects missing files, path traversal, and module content scripts', (context) => {
   const directory = createFixture();
   const outsideFile = `${directory}-outside.png`;
+  const outsideDirectory = `${directory}-outside`;
   context.after(() => {
     fs.rmSync(directory, { recursive: true, force: true });
     fs.rmSync(outsideFile, { force: true });
+    fs.rmSync(outsideDirectory, { recursive: true, force: true });
   });
   const manifestPath = path.join(directory, 'manifest.json');
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   manifest.icons[48] = '../outside.png';
   fs.writeFileSync(outsideFile, 'outside fixture');
-  fs.symlinkSync(outsideFile, path.join(directory, 'icons', 'escape.png'));
-  manifest.icons[64] = 'icons/escape.png';
+  fs.mkdirSync(outsideDirectory);
+  fs.writeFileSync(path.join(outsideDirectory, 'icon.png'), 'outside fixture');
+  fs.symlinkSync(
+    outsideDirectory,
+    path.join(directory, 'icons', 'escape'),
+    process.platform === 'win32' ? 'junction' : 'dir'
+  );
+  manifest.icons[64] = 'icons/escape/icon.png';
   manifest.content_scripts[0].css = ['styles/missing.css'];
   fs.writeFileSync(path.join(directory, 'content', 'content.js'), 'export const value = 1;\n');
   fs.writeFileSync(manifestPath, JSON.stringify(manifest));

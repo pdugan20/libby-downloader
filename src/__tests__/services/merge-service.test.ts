@@ -1,4 +1,5 @@
 import { setImmediate } from 'timers';
+import path from 'path';
 import { MergeService } from '../../services/merge-service';
 import { createMockMetadata } from '../setup/fixtures/metadata.fixture';
 
@@ -187,7 +188,7 @@ describe('MergeService', () => {
       const result = await mergeService.mergeFolder('/test/book', { force: true });
 
       expect(mockFs.unlink).not.toHaveBeenCalled();
-      expect(result.outputPath).toBe('/test/book/Sample Audiobook.m4b');
+      expect(result.outputPath).toBe(path.resolve('/test/book', 'Sample Audiobook.m4b'));
     });
 
     it('should handle cover art download failure gracefully', async () => {

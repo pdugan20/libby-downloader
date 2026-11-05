@@ -7,7 +7,7 @@ import { readFile, writeFile, mkdir, mkdtemp, rm, cp, symlink } from 'node:fs/pr
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { test } from 'node:test';
 import { getUri } from 'get-uri';
 import { PacProxyAgent } from 'pac-proxy-agent';
@@ -255,7 +255,11 @@ test('the release CLI preserves dry-run state and its version/changelog/manifest
     await mkdir(join(fixture, 'chrome-extension'), { recursive: true });
     await cp(join(root, '.release-it.json'), join(fixture, '.release-it.json'));
     await cp(join(root, 'scripts/sync-version.mjs'), join(fixture, 'scripts/sync-version.mjs'));
-    await symlink(join(root, 'node_modules'), join(fixture, 'node_modules'), 'dir');
+    await symlink(
+      join(root, 'node_modules'),
+      join(fixture, 'node_modules'),
+      process.platform === 'win32' ? 'junction' : 'dir'
+    );
     const manifest = {
       name: 'libby-release-tool-fixture',
       version: '1.2.0',
@@ -300,7 +304,7 @@ test('the release CLI preserves dry-run state and its version/changelog/manifest
       GIT_CONFIG_GLOBAL: '/dev/null',
       GIT_CONFIG_NOSYSTEM: '1',
       GIT_TERMINAL_PROMPT: '0',
-      NODE_OPTIONS: `--import=${deny}`,
+      NODE_OPTIONS: `--import=${pathToFileURL(deny).href}`,
     };
     function git(args, cwd = fixture) {
       const result = spawnSync('git', args, {
