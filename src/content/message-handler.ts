@@ -35,9 +35,18 @@ export class MessageHandler {
   private extractionTimeout: number | null = null;
   /** True from a download request until it finishes or fails */
   private busy = false;
+  private autostartPending = false;
 
   constructor(uiManager: UIManager) {
     this.uiManager = uiManager;
+  }
+
+  /**
+   * Start a download as soon as the player reports it's ready.
+   * Set when the page was opened by `libby download`.
+   */
+  requestAutostart(): void {
+    this.autostartPending = true;
   }
 
   setupListeners(): void {
@@ -61,6 +70,14 @@ export class MessageHandler {
     switch (type) {
       case 'LIBBY_DOWNLOADER_BUTTON_CLICKED':
         this.handleButtonClick();
+        break;
+
+      case MessageTypes.LIBBY_DOWNLOADER_READY:
+        if (this.autostartPending) {
+          this.autostartPending = false;
+          logger.info('Starting the download requested by libby download');
+          window.setTimeout(() => this.handleButtonClick(), Timeouts.AUTOSTART_DELAY);
+        }
         break;
 
       case MessageTypes.EXTRACTION_PROGRESS:

@@ -286,6 +286,10 @@ function injectDownloadButton(): void {
   });
 
   console.log('[Libby Downloader] Button injected successfully');
+
+  // Tell the page the player is ready, so a download requested by `libby download` can
+  // start. Like the click, this carries no data.
+  window.parent.postMessage({ type: MessageTypes.LIBBY_DOWNLOADER_READY }, '*');
 }
 
 // Start injection when DOM is ready

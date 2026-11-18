@@ -66,6 +66,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify CLI cancellation
+        run: node --test scripts/cli-download-cancel.test.mjs
+
       - name: Validate Chrome extension
         run: npm run extension:validate
 

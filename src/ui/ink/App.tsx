@@ -3,20 +3,34 @@ import { EmbedOptions } from '../../services/metadata-service';
 import { BookList } from './BookList';
 import { TagProgress } from './TagProgress';
 import { MergeProgress } from './MergeProgress';
+import { DownloadProgress } from './DownloadProgress';
 import { InteractiveMenu } from './InteractiveMenu';
 import { Header } from './Header';
 
 export interface AppProps {
-  command: 'interactive' | 'list' | 'tag' | 'merge';
+  command: 'interactive' | 'list' | 'tag' | 'merge' | 'download';
   dataDir?: string;
   folder?: string;
   tagOptions?: EmbedOptions;
   mergeOptions?: {
     force?: boolean;
   };
+  downloadOptions?: {
+    loanUrl: string;
+    tag?: boolean;
+    merge?: boolean;
+    force?: boolean;
+  };
 }
 
-export function App({ command, dataDir, folder, tagOptions, mergeOptions }: AppProps) {
+export function App({
+  command,
+  dataDir,
+  folder,
+  tagOptions,
+  mergeOptions,
+  downloadOptions,
+}: AppProps) {
   const { exit } = useApp();
 
   if (command === 'interactive') {
@@ -25,6 +39,20 @@ export function App({ command, dataDir, folder, tagOptions, mergeOptions }: AppP
 
   if (command === 'list') {
     return <BookList dataDir={dataDir} />;
+  }
+
+  if (command === 'download' && downloadOptions) {
+    return (
+      <Box flexDirection="column" marginY={1}>
+        <Header />
+        <DownloadProgress
+          {...downloadOptions}
+          dataDir={dataDir}
+          onComplete={() => exit()}
+          onError={(error) => exit(error)}
+        />
+      </Box>
+    );
   }
 
   if (command === 'tag' && folder) {

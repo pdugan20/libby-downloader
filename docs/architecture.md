@@ -93,6 +93,15 @@ Two scripts running in the audiobook player iframe:
    └─> Shows "Download complete!" with checkmark when finished
 ```
 
+### Starting from the CLI
+
+`libby download <loan-url>` opens the loan in Chrome with `#libby-downloader-autostart`.
+The content script runs at `document_start`, removes the marker before Libby's app reads
+the address, and waits for the iframe's `LIBBY_DOWNLOADER_READY` message, which follows
+the button injection. It then starts the flow above as if the button had been clicked.
+The CLI watches `~/Downloads/libby-downloads` for that book's new chapters and finishes
+when `metadata.json` arrives, since the background worker writes it after the last chapter.
+
 ## Security
 
 - Origin validation for all postMessage communications
