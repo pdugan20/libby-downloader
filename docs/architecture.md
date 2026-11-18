@@ -106,8 +106,12 @@ Two scripts running in the audiobook player iframe:
 The content script runs at `document_start`, removes the marker before Libby's app reads
 the address, and waits for the iframe's `LIBBY_DOWNLOADER_READY` message, which follows
 the button injection. It then starts the flow above as if the button had been clicked.
-The CLI watches `~/Downloads/libby-downloads` for that book's new chapters and finishes
-when `metadata.json` arrives, since the background worker writes it after the last chapter.
+The CLI snapshots existing file versions before opening Chrome, then watches
+`~/Downloads/libby-downloads` for that book's new chapters and completion metadata.
+The background worker writes `metadata.json` after the last chapter. By default,
+preparation can take 15 minutes before files appear; once downloading starts, the
+CLI stops after three minutes without file activity, with a one-hour total limit.
+Closing the CLI cancels polling; Chrome downloads can continue.
 
 ## Security
 

@@ -84,9 +84,9 @@ function validate(name: string, args: Record<string, unknown>): void {
   }
 }
 
-export function createMcpServer(jobs = new DownloadJobs()): Server {
+export function createMcpServer(version: string, jobs = new DownloadJobs()): Server {
   const server = new Server(
-    { name: 'libby-downloader', version: '1.2.0' },
+    { name: 'libby-downloader', version },
     {
       capabilities: { tools: {} },
       instructions:

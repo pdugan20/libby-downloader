@@ -2,10 +2,15 @@
 
 This project uses [release-it](https://github.com/release-it/release-it) with conventional commits to automate releases.
 
+Run from a clean, up-to-date `main` checkout using the Node version in `.nvmrc`
+and npm version in `packageManager`. Preview a minor release with
+`npm run release:dry -- minor --ci` before publishing it with
+`npm run release:minor -- --ci`.
+
 ## How It Works
 
 1. You run `npm run release` locally
-2. release-it runs `check-all` (typecheck + lint + format + tests + offline release-tool checks)
+2. release-it runs `check-all`, including CLI cancellation, MCP, and offline release-tool checks
 3. Analyzes conventional commits to determine version bump
 4. Updates `CHANGELOG.md` with categorized changes
 5. Syncs version into `chrome-extension/manifest.json`
@@ -34,7 +39,7 @@ Other prefixes (`docs:`, `test:`, `refactor:`, `ci:`, `build:`) appear in the ch
 
 ## Version Sync
 
-A single version in `package.json` is the source of truth. The `scripts/sync-version.mjs` script copies it to `chrome-extension/manifest.json` automatically during release.
+A single version in `package.json` is the source of truth. The `scripts/sync-version.mjs` script copies it to `chrome-extension/manifest.json` automatically during release. The CLI and MCP server read it at startup.
 
 ## FTP dependency safety
 

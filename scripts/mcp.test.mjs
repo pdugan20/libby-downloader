@@ -28,6 +28,8 @@ test('stdio server initializes, lists tools, handles errors, and keeps stdout cl
   const client = new Client({ name: 'libby-mcp-test', version: '1.0.0' });
   try {
     await client.connect(transport);
+    const pkg = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
+    assert.equal(client.getServerVersion().version, pkg.version);
     const { tools } = await client.listTools();
     assert.deepEqual(tools.map((tool) => tool.name).sort(), [
       'download_loan',
@@ -62,7 +64,7 @@ test('tool dispatch rejects malformed arguments before invoking jobs', async () 
     },
     close: () => {},
   };
-  const server = createMcpServer(jobs);
+  const server = createMcpServer('test-version', jobs);
   const client = new Client({ name: 'libby-dispatch-test', version: '1.0.0' });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
