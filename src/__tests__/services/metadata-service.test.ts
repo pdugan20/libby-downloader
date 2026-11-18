@@ -222,7 +222,9 @@ describe('MetadataService', () => {
         description: 'Override description',
       });
 
-      expect(mockFetch).toHaveBeenCalledWith('https://example.com/override.jpg');
+      expect(mockFetch).toHaveBeenCalledWith('https://example.com/override.jpg', {
+        signal: undefined,
+      });
       expect(mockNodeID3.write).toHaveBeenCalledWith(
         expect.objectContaining({
           album: 'Override Title',

@@ -122,7 +122,7 @@ function assertReleaseToolContract(ci, packageJson) {
   );
   assert.equal(
     packageJson.scripts['check-all'],
-    'npm run typecheck && npm run lint && npm run format:check && npm run test && npm run test:release-tool && npm run test:cli:cancel'
+    'npm run typecheck && npm run lint && npm run format:check && npm run test && npm run test:release-tool && npm run test:cli:cancel && npm run test:mcp'
   );
   const step = extractNamedStep(ci, 'Verify release-tool safety');
   assert.equal(

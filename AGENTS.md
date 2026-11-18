@@ -61,6 +61,8 @@ npm run release:dry               # Preview release without changes
 ## Entry Points
 
 - `src/cli.ts` - CLI entry point (Commander.js + Ink render)
+- `src/mcp.ts` - Local stdio MCP entry point (no Ink, credentials, or service logs)
+- `src/mcp/` - Tool dispatch, bounded in-memory jobs, and book-folder validation
 - `src/ui/ink/` - Ink components (App, BookList, BookSelect, InteractiveMenu, etc.)
 - `src/index.ts` - Library exports
 - `src/background/index.ts` - Extension service worker

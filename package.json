@@ -4,7 +4,8 @@
   "description": "CLI tool for managing audiobooks downloaded from Libby via Chrome extension",
   "main": "dist/index.js",
   "bin": {
-    "libby": "dist/cli.js"
+    "libby": "dist/cli.js",
+    "libby-mcp": "dist/mcp.js"
   },
   "scripts": {
     "build": "npm run build:cli && npm run build:extension",
@@ -12,6 +13,8 @@
     "build:extension": "node scripts/build-extension.mjs",
     "build:extension:watch": "vite build --watch",
     "dev": "tsx src/cli.ts",
+    "dev:mcp": "tsx src/mcp.ts",
+    "test:mcp": "npm run build:cli && node --test scripts/mcp.test.mjs",
     "dev:extension": "vite build --watch",
     "start": "node dist/cli.js",
     "watch": "tsc --watch",
@@ -23,7 +26,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "typecheck": "tsc --noEmit",
-    "check-all": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run test:release-tool && npm run test:cli:cancel",
+    "check-all": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run test:release-tool && npm run test:cli:cancel && npm run test:mcp",
     "test:cli:cancel": "npm run build:cli && node --test scripts/cli-download-cancel.test.mjs",
     "prepare": "husky",
     "extension:validate": "node --test scripts/validate-extension.test.cjs && node scripts/validate-extension.cjs",
@@ -61,6 +64,7 @@
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "chalk": "^5.6.2",
     "commander": "^14.0.3",
     "fluent-ffmpeg": "^2.1.3",
