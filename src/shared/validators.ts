@@ -2,7 +2,7 @@
  * Shared validators for Libby Downloader
  */
 
-import type { BookData } from '../types/extension-book';
+import type { BookData, BookMetadata } from '../types/extension-book';
 
 /**
  * Valid origin patterns for Libby domains
@@ -93,4 +93,14 @@ export function validateBookData(bookData: unknown): bookData is BookData {
  */
 export function sanitizeFilename(filename: string): string {
   return filename.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 200);
+}
+
+/**
+ * Folder name for a book under libby-downloads. Adding Libby's title ID keeps
+ * different books whose titles sanitize to the same name from overwriting each other.
+ */
+export function bookFolderName(metadata: Pick<BookMetadata, 'title' | 'libbyTitleId'>): string {
+  const title = sanitizeFilename(metadata.title).substring(0, 180);
+  const id = metadata.libbyTitleId;
+  return id && /^\d{1,15}$/.test(id) ? `${title} (${id})` : title;
 }

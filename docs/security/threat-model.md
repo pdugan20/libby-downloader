@@ -60,6 +60,11 @@ release publication.
    destinations and bound size, time, and redirects; downloads and polling have deadlines.
 3. **Access material.** Exported metadata and logs omit chapter query parameters, and
    debug logging stays off in shipped builds (`src/shared/constants.ts`, `AGENTS.md`).
+   Signed chapter URLs come only from the player's own requests in the open page and stay
+   in memory for the download; the request observer runs only while URLs are collected
+   (`src/iframe/chapter-urls.ts`, `src/iframe/extractor.ts`). Re-downloads replace files only in
+   the same book's folder, which includes Libby's title ID (`bookFolderName` in
+   `src/shared/validators.ts`).
 4. **Local files and media tools.** CLI writes stay inside the selected book folder after
    resolving real paths, overwrites stay opt-in, values written into generated media formats
    are escaped, and temporary files are cleaned up. Tagging and merges should stage output

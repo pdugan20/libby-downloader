@@ -29,8 +29,9 @@ Two scripts running in the audiobook player iframe:
 **extractor.ts** (MAIN world):
 
 - Accesses window.BIF object for book metadata
-- Hooks JSON.parse to capture crypto parameters
-- Builds chapter URLs and sends data to content script via postMessage
+- Collects each part's signed URL by quietly seeking the paused player into the part and
+  reading the request it makes (`chapter-urls.ts` holds the testable logic)
+- Reports collection progress and sends book data to the content script via postMessage
 
 **ui-injector.ts** (ISOLATED world):
 
@@ -67,12 +68,13 @@ Two scripts running in the audiobook player iframe:
 3. Content script receives button click
    └─> Finds audiobook iframe
    └─> postMessage to iframe extractor (EXTRACT_LIBBY_BOOK)
-   └─> Sets 10-second timeout
+   └─> Sets a 20-second timeout that restarts on each progress message
 
 4. Iframe extractor (MAIN world)
    └─> Accesses window.BIF object
-   └─> Uses captured crypto params
-   └─> Builds chapter URLs
+   └─> Seeks the player through each part and records its signed URL
+   └─> postMessage to content script for each part (EXTRACTION_PROGRESS)
+   └─> Restores the player position
    └─> postMessage to content script (EXTRACTION_SUCCESS + BookData)
 
 5. Content script receives extraction

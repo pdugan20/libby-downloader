@@ -29,6 +29,7 @@ describe('DownloadService', () => {
         url: 'https://example.com/chapter1.mp3',
         filename: 'libby-downloads/Test Book/chapter-001.mp3',
         saveAs: false,
+        conflictAction: 'overwrite',
       });
 
       expect(result).toEqual({

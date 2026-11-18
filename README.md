@@ -31,7 +31,7 @@ npm run build && npm link
 
 ### Downloading
 
-Open an audiobook in Libby, then click the download button in the top-right navigation bar. Files save to `~/Downloads/libby-downloads/[Book Title]/`.
+Open an audiobook in Libby, then click the download button in the top-right navigation bar. Files save to `~/Downloads/libby-downloads/[Book Title] ([Libby title ID])/`, so books with the same title stay separate.
 
 ### CLI
 

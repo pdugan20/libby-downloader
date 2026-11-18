@@ -6,6 +6,7 @@
 import type { BookData } from '../types/extension-book';
 import { MessageTypes } from '../types/messages';
 import { logger } from '../shared/logger';
+import { bookFolderName } from '../shared/validators';
 import { DownloadService } from './download-service';
 import { DownloadTracker } from './download-tracker';
 import { MetadataWriter } from './metadata-writer';
@@ -25,6 +26,7 @@ async function handleStartDownload(
   tabId: number
 ): Promise<{ bookId: string; completed: number; failed: number; total: number }> {
   const { metadata, chapters } = bookData;
+  const folderName = bookFolderName(metadata);
 
   logger.info('Starting download', { title: metadata.title, chapters: chapters.length });
 
@@ -34,7 +36,7 @@ async function handleStartDownload(
   // Download chapters with progress tracking
   const result = await downloadService.downloadAllChapters(
     chapters,
-    metadata.title,
+    folderName,
     (completed, total) => {
       // Update tracker
       downloadTracker.updateProgress(bookId, completed);
@@ -56,7 +58,7 @@ async function handleStartDownload(
 
   // Save metadata file
   try {
-    await metadataWriter.saveMetadata(metadata, chapters, metadata.title);
+    await metadataWriter.saveMetadata(metadata, chapters, folderName);
   } catch (error) {
     console.error('[Libby Downloader] Failed to save metadata file:', error);
   }

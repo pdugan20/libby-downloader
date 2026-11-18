@@ -11,6 +11,8 @@ export interface BookMetadata {
   publisher?: string;
   publishDate?: string;
   description?: string;
+  /** Libby's title ID, which keeps books with the same title in separate folders */
+  libbyTitleId?: string;
 }
 
 export interface Chapter {
@@ -25,15 +27,6 @@ export interface Chapter {
 export interface BookData {
   metadata: BookMetadata;
   chapters: Chapter[];
-}
-
-/**
- * Crypto parameters extracted from Libby's odreadCmptParams
- */
-export interface CryptoParams {
-  b: {
-    '-odread-cmpt-params': number[];
-  };
 }
 
 /**

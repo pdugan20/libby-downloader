@@ -5,6 +5,7 @@
 export const MessageTypes = {
   // Iframe extraction messages
   EXTRACT_LIBBY_BOOK: 'EXTRACT_LIBBY_BOOK',
+  EXTRACTION_PROGRESS: 'EXTRACTION_PROGRESS',
   EXTRACTION_SUCCESS: 'EXTRACTION_SUCCESS',
   EXTRACTION_ERROR: 'EXTRACTION_ERROR',
 
@@ -39,7 +40,7 @@ export type DownloadStatusType = (typeof DownloadStatus)[keyof typeof DownloadSt
  * Timeouts (in milliseconds)
  */
 export const Timeouts = {
-  EXTRACTION: 10000, // 10 seconds
+  EXTRACTION: 20000, // 20 seconds without progress
   DOWNLOAD_DELAY: 500, // 500ms between chapters
   NOTIFICATION_DURATION: 3000, // 3 seconds
   BUTTON_RESET: 3000, // 3 seconds
@@ -51,6 +52,14 @@ export const Timeouts = {
 
 export interface ExtractionRequestMessage {
   type: typeof MessageTypes.EXTRACT_LIBBY_BOOK;
+}
+
+export interface ExtractionProgressMessage {
+  type: typeof MessageTypes.EXTRACTION_PROGRESS;
+  progress: {
+    completed: number;
+    total: number;
+  };
 }
 
 export interface ExtractionSuccessMessage {
@@ -94,6 +103,7 @@ export interface ButtonClickedMessage {
  */
 export type ExtensionMessage =
   | ExtractionRequestMessage
+  | ExtractionProgressMessage
   | ExtractionSuccessMessage
   | ExtractionErrorMessage
   | StartDownloadMessage
