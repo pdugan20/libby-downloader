@@ -30,7 +30,7 @@ export class DownloadService {
   /**
    * Download a single chapter using Chrome downloads API
    * @param chapter - The chapter to download
-   * @param bookTitle - Book title for folder organization
+   * @param folderName - Book folder under libby-downloads, from bookFolderName()
    * @param index - Zero-based chapter index for filename
    * @returns Download result with ID, filepath, and chapter index
    * @throws {Error} If download fails or times out
@@ -47,11 +47,11 @@ export class DownloadService {
    */
   async downloadChapter(
     chapter: Chapter,
-    bookTitle: string,
+    folderName: string,
     index: number
   ): Promise<ChapterDownloadResult> {
     const chapterNum = String(index + 1).padStart(3, '0');
-    const filename = `libby-downloads/${sanitizeFilename(bookTitle)}/chapter-${chapterNum}.mp3`;
+    const filename = `libby-downloads/${sanitizeFilename(folderName)}/chapter-${chapterNum}.mp3`;
 
     logger.operationStart(`Download chapter ${index + 1}`, {
       title: chapter.title,
@@ -81,7 +81,7 @@ export class DownloadService {
    * Downloads chapters one at a time with 500ms delays to avoid overwhelming the server.
    * Continues downloading even if individual chapters fail.
    * @param chapters - Array of chapters to download
-   * @param bookTitle - Book title for folder organization
+   * @param folderName - Book folder under libby-downloads, from bookFolderName()
    * @param onProgress - Optional callback called after each chapter completes
    * @returns Summary of download results including completed, failed, and error details
    * @example
@@ -100,7 +100,7 @@ export class DownloadService {
    */
   async downloadAllChapters(
     chapters: Chapter[],
-    bookTitle: string,
+    folderName: string,
     onProgress?: (completed: number, total: number) => void
   ): Promise<DownloadAllResult> {
     const results: DownloadAllResult = {
@@ -113,7 +113,7 @@ export class DownloadService {
 
     for (let i = 0; i < chapters.length; i++) {
       try {
-        const result = await this.downloadChapter(chapters[i], bookTitle, i);
+        const result = await this.downloadChapter(chapters[i], folderName, i);
         results.downloadIds.push(result.downloadId);
         results.completed++;
 

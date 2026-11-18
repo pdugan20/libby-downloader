@@ -13,7 +13,7 @@ export class MetadataWriter {
    * Used by the CLI tool to embed ID3 tags into MP3 files.
    * @param metadata - Book metadata (title, authors, narrators, cover, etc.)
    * @param chapters - Array of chapter information; signed URLs are left out of the file
-   * @param bookTitle - Book title for folder organization
+   * @param folderName - Book folder under libby-downloads, from bookFolderName()
    * @returns Chrome download ID for the metadata.json file
    * @throws {Error} If Chrome downloads API fails
    * @example
@@ -30,7 +30,7 @@ export class MetadataWriter {
   async saveMetadata(
     metadata: BookMetadata,
     chapters: Chapter[],
-    bookTitle: string
+    folderName: string
   ): Promise<number> {
     // Chapter URLs carry signed tokens; the CLI only needs titles and durations
     const savedChapters = chapters.map(({ url: _url, ...chapter }) => chapter);
@@ -41,7 +41,7 @@ export class MetadataWriter {
 
     const downloadId = await chrome.downloads.download({
       url: dataUrl,
-      filename: `libby-downloads/${sanitizeFilename(bookTitle)}/metadata.json`,
+      filename: `libby-downloads/${sanitizeFilename(folderName)}/metadata.json`,
       saveAs: false,
       // The CLI reads metadata.json, so a re-download must replace it
       conflictAction: 'overwrite',

@@ -33,6 +33,8 @@ type BackgroundMessage = DownloadProgressMessage | DownloadCompleteMessage;
 export class MessageHandler {
   private uiManager: UIManager;
   private extractionTimeout: number | null = null;
+  /** True from a download request until it finishes or fails */
+  private busy = false;
 
   constructor(uiManager: UIManager) {
     this.uiManager = uiManager;
@@ -85,6 +87,11 @@ export class MessageHandler {
   }
 
   private handleButtonClick(): void {
+    if (this.busy) {
+      logger.info('A download is already in progress');
+      return;
+    }
+
     try {
       logger.operationStart('Button click handling');
 
@@ -105,9 +112,11 @@ export class MessageHandler {
       // Pass iframe reference to UI manager for progress overlay
       this.uiManager.setIframe(libbyIframe);
 
+      this.busy = true;
       this.requestExtraction(libbyIframe);
       logger.operationComplete('Button click handling');
     } catch (error) {
+      this.busy = false;
       logger.operationFailed('Button click handling', error);
       const message = error instanceof Error ? error.message : 'Failed to find audiobook iframe';
       this.uiManager.showError(message);
@@ -194,6 +203,7 @@ export class MessageHandler {
 
     this.extractionTimeout = window.setTimeout(() => {
       this.extractionTimeout = null;
+      this.busy = false;
       const error = new TimeoutError(
         'Libby stopped responding while preparing the download. Reload the audiobook and try again.',
         Timeouts.EXTRACTION
@@ -261,9 +271,13 @@ export class MessageHandler {
         total: bookData.chapters.length,
       });
 
+      // The page address carries Libby's title ID, which keeps same-titled books apart
+      const libbyTitleId = loanTitleId(window.location.pathname);
       const response = await chrome.runtime.sendMessage({
         type: MessageTypes.START_DOWNLOAD,
-        data: bookData,
+        data: libbyTitleId
+          ? { ...bookData, metadata: { ...bookData.metadata, libbyTitleId } }
+          : bookData,
       });
 
       if (!response.success) {
@@ -272,6 +286,7 @@ export class MessageHandler {
 
       logger.operationComplete('Download start');
     } catch (error) {
+      this.busy = false;
       logger.operationFailed('Download', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.uiManager.showError(`Download failed: ${errorMessage}`);
@@ -282,6 +297,7 @@ export class MessageHandler {
     if (this.extractionTimeout !== null) {
       clearTimeout(this.extractionTimeout);
     }
+    this.busy = false;
 
     const extractionError = new ExtractionError(error);
     logger.operationFailed('Book extraction', extractionError);
@@ -299,6 +315,7 @@ export class MessageHandler {
     total: number;
   }): void {
     const { completed, failed, total } = result;
+    this.busy = false;
 
     this.uiManager.updateState('success', {
       completedChapters: completed,
@@ -308,4 +325,11 @@ export class MessageHandler {
 
     this.uiManager.resetAfterDelay();
   }
+}
+
+/**
+ * Libby's title ID from a loan page path such as /open/loan/<card>/<title>
+ */
+function loanTitleId(pathname: string): string | undefined {
+  return pathname.match(/^\/open\/loan\/\d+\/(\d+)/)?.[1];
 }

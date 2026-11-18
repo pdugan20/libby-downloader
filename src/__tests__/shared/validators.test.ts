@@ -4,6 +4,7 @@
 
 import type { BookData } from '../../types/extension-book';
 import {
+  bookFolderName,
   isTrustedParentMessage,
   sanitizeFilename,
   validateBookData,
@@ -211,5 +212,23 @@ describe('sanitizeFilename', () => {
 
   it('should handle empty strings', () => {
     expect(sanitizeFilename('')).toBe('');
+  });
+});
+
+describe('bookFolderName', () => {
+  it('keeps books whose titles sanitize to the same name in separate folders', () => {
+    expect(bookFolderName({ title: 'A:B', libbyTitleId: '111' })).toBe('A-B (111)');
+    expect(bookFolderName({ title: 'A?B', libbyTitleId: '222' })).toBe('A-B (222)');
+  });
+
+  it('keeps the title ID when a long title is shortened', () => {
+    expect(bookFolderName({ title: 'x'.repeat(300), libbyTitleId: '123' })).toBe(
+      'x'.repeat(180) + ' (123)'
+    );
+  });
+
+  it('uses the title alone when the ID is missing or not numeric', () => {
+    expect(bookFolderName({ title: 'Book' })).toBe('Book');
+    expect(bookFolderName({ title: 'Book', libbyTitleId: '../x' })).toBe('Book');
   });
 });

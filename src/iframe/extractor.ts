@@ -82,23 +82,8 @@ interface BIFPlace {
 
 console.log('[Libby Downloader] Iframe script loaded');
 
-// Record the URLs of the player's own requests. An observer sees every request even
-// after the page's resource timing buffer fills, which a 50-part book can do.
-const requestedUrls: string[] = [];
-try {
-  new PerformanceObserver((list) => {
-    for (const entry of list.getEntries()) {
-      requestedUrls.push(entry.name);
-    }
-  }).observe({ type: 'resource', buffered: true });
-} catch (error) {
-  console.warn('[Libby Downloader] Could not observe player requests:', error);
-}
-
-function readRequestedUrls(): string[] {
-  const fromBuffer = performance.getEntriesByType('resource').map((entry) => entry.name);
-  return [...fromBuffer, ...requestedUrls];
-}
+// One extraction at a time: overlapping sweeps would restore each other's positions
+let extracting = false;
 
 // Listen for extraction requests
 window.addEventListener('message', async (event: MessageEvent) => {
@@ -111,6 +96,12 @@ window.addEventListener('message', async (event: MessageEvent) => {
     return;
   }
   const replyOrigin = event.origin;
+
+  if (extracting) {
+    console.warn('[Libby Downloader] Ignoring extraction request: one is already running');
+    return;
+  }
+  extracting = true;
 
   console.log('[Libby Downloader] Extraction requested');
 
@@ -139,6 +130,8 @@ window.addEventListener('message', async (event: MessageEvent) => {
       },
       replyOrigin
     );
+  } finally {
+    extracting = false;
   }
 });
 
@@ -287,18 +280,42 @@ async function collectPartUrls(
     }
   };
 
-  return collectChapterUrls(
-    spool.components.map((part) => ({ path: part.meta.path })),
-    {
-      origin: location.origin,
-      readRequestedUrls,
-      // Aim for the middle of a part so the player clearly lands inside it
-      seekToPart: (index) => seekTo(spool.components[index].spinePosition + 0.5),
-      restorePosition: () => seekTo(startFloc),
-      sleep,
-      onProgress,
-    }
-  );
+  // Watch the player's requests only while collecting. The observer also sees requests
+  // the page's resource timing buffer has dropped, which a 50-part book can fill.
+  const observed: string[] = [];
+  let observer: PerformanceObserver | undefined;
+  try {
+    observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        observed.push(entry.name);
+      }
+    });
+    observer.observe({ type: 'resource', buffered: true });
+  } catch (error) {
+    console.warn('[Libby Downloader] Could not observe player requests:', error);
+  }
+
+  try {
+    return await collectChapterUrls(
+      spool.components.map((part) => ({ path: part.meta.path })),
+      {
+        origin: location.origin,
+        readRequestedUrls: () => [
+          ...performance.getEntriesByType('resource').map((entry) => entry.name),
+          ...observed,
+        ],
+        // Aim for the middle of a part so the player clearly lands inside it
+        seekToPart: (index) => seekTo(spool.components[index].spinePosition + 0.5),
+        restorePosition: () => seekTo(startFloc),
+        sleep,
+        onProgress,
+      }
+    );
+  } finally {
+    // Signed URLs leave this frame only in the book data for the download
+    observer?.disconnect();
+    observed.length = 0;
+  }
 }
 
 /**

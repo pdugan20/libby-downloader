@@ -11,6 +11,8 @@ export interface BookMetadata {
   publisher?: string;
   publishDate?: string;
   description?: string;
+  /** Libby's title ID, which keeps books with the same title in separate folders */
+  libbyTitleId?: string;
 }
 
 export interface Chapter {

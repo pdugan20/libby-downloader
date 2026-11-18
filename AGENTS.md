@@ -88,7 +88,8 @@ npm run release:dry               # Preview release without changes
    - Extension quietly seeks the paused player into each audio part and records the
      signed `?cmpt=` URL the player requests (no playback needed)
    - Downloads chapters sequentially via chrome.downloads API (500ms delays)
-   - Saves metadata.json (without chapter URLs) alongside MP3 files, replacing earlier copies
+   - Saves metadata.json (without chapter URLs) alongside MP3 files in
+     `<title> (<Libby title ID>)/`, replacing that book's earlier copies
 
 2. **CLI Tags (Optional):**
    - Auto-discovers books in ~/Downloads/libby-downloads/ (override with `--data-dir`)
