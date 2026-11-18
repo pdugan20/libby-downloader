@@ -115,6 +115,20 @@ controls assume owner-controlled parent directories and do not claim isolation
 from concurrent hostile filesystem mutation or power-loss durability. Other
 requirements above, including cover-network controls, remain separate review work.
 
+## Dependency advisory status
+
+Checked 2026-11-18: the production dependency audit has no findings. Patched transitive
+dependencies are pinned in `package.json`; the Glob and Minimatch overrides cover only
+affected modern versions so older consumers retain their APIs. The full checks, release-tool
+fixtures, MCP media jobs, and Claude configuration lint pass with these overrides.
+
+Development tools still depend on Picomatch versions affected by
+[GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf).
+No patched release is available as of that date. These tools use repository-controlled glob
+patterns; the production dependency tree contains no Picomatch. The advisory remains
+unresolved and visible in `npm audit`; update the overrides when a patched release is
+available. Do not treat the number of affected parent packages as separate root advisories.
+
 ## Review priorities
 
 Review message listeners and HTML sinks first, then URL validation and fetch policy, then
