@@ -5,6 +5,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { execFile } from 'node:child_process';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { logger } from '../utils/logger';
@@ -79,7 +80,13 @@ export class MergeService {
 
     // Calculate chapter timestamps
     options?.onStageChange?.('Calculating timestamps...');
-    const chapters = await this.calculateChapterInfo(resolved, chapterFiles, metadata);
+    const chapters = await this.calculateChapterInfo(
+      resolved,
+      chapterFiles,
+      metadata,
+      options?.signal
+    );
+    options?.signal?.throwIfAborted();
 
     // Create temp directory
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'libby-merge-'));
@@ -98,7 +105,8 @@ export class MergeService {
       if (metadata.metadata.coverUrl) {
         coverArtPath = await this.downloadCoverArt(
           metadata.metadata.coverUrl,
-          path.join(tmpDir, 'cover.jpg')
+          path.join(tmpDir, 'cover.jpg'),
+          options?.signal
         );
       }
 
@@ -199,22 +207,29 @@ export class MergeService {
   /**
    * Get duration of an MP3 file using ffprobe
    */
-  private async getAudioDuration(filePath: string): Promise<number> {
+  private async getAudioDuration(filePath: string, signal?: AbortSignal): Promise<number> {
+    signal?.throwIfAborted();
     return new Promise((resolve, reject) => {
-      ffmpeg.ffprobe(filePath, (err, metadata) => {
-        if (err) {
-          reject(new Error(`Failed to probe ${filePath}: ${err.message}`));
-          return;
+      execFile(
+        process.env.FFPROBE_PATH || 'ffprobe',
+        ['-v', 'error', '-show_entries', 'format=duration', '-of', 'json', filePath],
+        { signal },
+        (err, stdout) => {
+          if (err) {
+            reject(new Error(`Failed to probe ${filePath}: ${err.message}`));
+            return;
+          }
+          try {
+            const duration = Number(JSON.parse(stdout).format?.duration);
+            if (!Number.isFinite(duration) || duration <= 0) {
+              throw new Error(`Could not determine duration for ${filePath}`);
+            }
+            resolve(duration);
+          } catch (error) {
+            reject(error);
+          }
         }
-
-        const duration = metadata.format.duration;
-        if (!duration) {
-          reject(new Error(`Could not determine duration for ${filePath}`));
-          return;
-        }
-
-        resolve(duration);
-      });
+      );
     });
   }
 
@@ -224,19 +239,22 @@ export class MergeService {
   private async calculateChapterInfo(
     folderPath: string,
     chapterFiles: string[],
-    metadata: BookMetadata
+    metadata: BookMetadata,
+    signal?: AbortSignal
   ): Promise<ChapterInfo[]> {
     const chapters: ChapterInfo[] = [];
     let currentTime = 0;
 
     for (let i = 0; i < chapterFiles.length; i++) {
+      signal?.throwIfAborted();
       const file = chapterFiles[i];
       const filePath = path.join(folderPath, file);
 
       let duration: number;
       try {
-        duration = await this.getAudioDuration(filePath);
+        duration = await this.getAudioDuration(filePath, signal);
       } catch {
+        signal?.throwIfAborted();
         duration = metadata.chapters[i]?.duration || 0;
       }
 
@@ -330,14 +348,15 @@ export class MergeService {
    */
   private async downloadCoverArt(
     coverUrl: string | undefined,
-    outputPath: string
+    outputPath: string,
+    signal?: AbortSignal
   ): Promise<string | null> {
     if (!coverUrl) {
       return null;
     }
 
     try {
-      const response = await fetch(coverUrl);
+      const response = await fetch(coverUrl, { signal });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -349,6 +368,7 @@ export class MergeService {
       await fs.writeFile(outputPath, buffer);
       return outputPath;
     } catch {
+      signal?.throwIfAborted();
       return null;
     }
   }

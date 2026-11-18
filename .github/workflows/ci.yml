@@ -69,6 +69,12 @@ jobs:
       - name: Verify CLI cancellation
         run: node --test scripts/cli-download-cancel.test.mjs
 
+      - name: Install ffprobe for media verification
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Verify MCP protocol and media jobs
+        run: node --test scripts/mcp.test.mjs
+
       - name: Validate Chrome extension
         run: npm run extension:validate
 

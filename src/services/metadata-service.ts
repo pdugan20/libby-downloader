@@ -61,7 +61,8 @@ export class MetadataService {
     const metadata = await this.loadMetadata(resolvedPath, options);
 
     // Download cover art if available
-    const coverBuffer = await this.downloadCoverArt(metadata.coverUrl);
+    const coverBuffer = await this.downloadCoverArt(metadata.coverUrl, options.signal);
+    options.signal?.throwIfAborted();
 
     // Find all MP3 files
     const mp3Files = await this.findMp3Files(resolvedPath);
@@ -71,6 +72,7 @@ export class MetadataService {
 
     // Tag each file
     for (let i = 0; i < mp3Files.length; i++) {
+      options.signal?.throwIfAborted();
       const filePath = path.join(resolvedPath, mp3Files[i]);
       const chapterNum = i + 1;
       const chapterTitle = metadata.chapters?.[i]?.title || `Chapter ${chapterNum}`;
@@ -264,14 +266,18 @@ export class MetadataService {
   /**
    * Download cover art from URL
    */
-  private async downloadCoverArt(coverUrl?: string): Promise<Buffer | undefined> {
+  private async downloadCoverArt(
+    coverUrl?: string,
+    signal?: AbortSignal
+  ): Promise<Buffer | undefined> {
     if (!coverUrl) return undefined;
 
     try {
-      const response = await fetch(coverUrl);
+      const response = await fetch(coverUrl, { signal });
       const arrayBuffer = await response.arrayBuffer();
       return Buffer.from(arrayBuffer);
     } catch {
+      signal?.throwIfAborted();
       return undefined;
     }
   }

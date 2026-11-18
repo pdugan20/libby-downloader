@@ -61,6 +61,31 @@ Options:
 - `--title`, `--author`, `--narrator`, `--cover-url` — Override tag metadata
 - `--verbose` — Enable debug logging
 
+### MCP
+
+The local MCP server lets an agent list downloaded books, start a loan download,
+tag chapters, and merge an M4B. Downloads use the same signed-in Chrome and
+extension as the CLI. Chrome still opens, but no browser clicks or playback are
+needed. This does not provide a headless or browser-free download path.
+
+Build with `npm run build:cli`, then add this to your MCP client's configuration
+(replace the repository path with your checkout):
+
+```json
+{
+  "mcpServers": {
+    "libby": {
+      "command": "node",
+      "args": ["/absolute/path/to/libby-downloader/dist/mcp.js"]
+    }
+  }
+}
+```
+
+After `npm link`, the executable is also available as `libby-mcp`.
+Use an absolute Node executable path if your client doesn't inherit your shell's
+Node setup. See [docs/mcp.md](docs/mcp.md) for tool arguments and job handling.
+
 ## Development
 
 ```bash

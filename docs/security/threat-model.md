@@ -26,6 +26,11 @@ releases.
 - **CLI arguments and local files**: folders, `--data-dir`, tag overrides, cover URLs,
   `--force`, and the JSON and media files in a book folder (`src/cli.ts`,
   `src/services/book-service.ts`).
+- **Local MCP tool calls** start downloads, tagging, and merges or read job status
+  (`src/mcp.ts`, `src/mcp/`). The server uses stdio with no network listener or
+  credential input. Its configured download directory is chosen at process launch;
+  tool calls can select only exact direct-child book folders, rejecting symlink
+  folders and media/metadata files. Tool arguments are validated before dispatch.
 - **Loan addresses with the autostart marker.** `libby download` accepts only
   `https://libbyapp.com/open/loan/<card>/<title>`, opens it in Chrome without a shell, and
   adds `#libby-downloader-autostart`. The content script removes the marker and starts a
@@ -45,6 +50,14 @@ releases.
 - In the CLI, book-folder contents are untrusted input to ID3 tagging and to native media
   tools that run with the user's privileges (`src/services/metadata-service.ts`,
   `src/services/merge-service.ts`).
+- An MCP client can trigger the same local file mutations and cover requests as the CLI.
+  Its user must authorize these tools through their client. Tool results omit raw
+  metadata and service exceptions, and the MCP entry point silences service logging
+  to preserve both access-material confidentiality and the stdout protocol. Jobs
+  retain only progress in bounded memory, run one mutation at a time per process,
+  and propagate shutdown cancellation to polling, cover requests, and media tools.
+  Chrome downloads can continue after the server stops. Other processes and direct
+  browser downloads are not serialized by the MCP server.
 
 ## Sensitive data and privileged actions
 

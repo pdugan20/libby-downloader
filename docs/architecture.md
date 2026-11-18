@@ -2,6 +2,13 @@
 
 Chrome extension (Manifest V3) that downloads audiobooks from Libby, with an optional CLI for tagging and merging.
 
+The local stdio MCP server (`src/mcp.ts`, `src/mcp/`) exposes the same workflow to
+agents. It opens loans through the CLI's Chrome bridge, waits for complete files,
+and calls the existing metadata and merge services without importing Ink. Long
+operations return an in-memory job ID and are polled through `get_job`. The server
+serializes its mutation jobs and limits book selections to its configured download
+directory. See [mcp.md](mcp.md) for tools and process lifecycle.
+
 ## Component Responsibilities
 
 ### Background Service Worker (`src/background/`)

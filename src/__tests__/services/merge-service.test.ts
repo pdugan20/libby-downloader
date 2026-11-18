@@ -38,6 +38,7 @@ jest.mock('../../utils/atomic-output', () => ({
 }));
 
 jest.mock('fluent-ffmpeg');
+jest.mock('node:child_process', () => ({ execFile: jest.fn() }));
 jest.mock('@ffmpeg-installer/ffmpeg', () => ({
   path: '/mock/ffmpeg',
 }));
@@ -46,6 +47,7 @@ global.fetch = jest.fn() as jest.Mock;
 
 import { promises as fs } from 'fs';
 import ffmpeg from 'fluent-ffmpeg';
+import { execFile } from 'node:child_process';
 
 describe('MergeService', () => {
   let mergeService: MergeService;
@@ -92,11 +94,9 @@ describe('MergeService', () => {
     mockFfmpeg.mockReturnValue(mockCommand as any);
 
     // Mock ffprobe
-    (ffmpeg as any).ffprobe = jest.fn((_file: string, callback: any) => {
-      callback(null, {
-        format: { duration: 1800 },
-      });
-    });
+    (execFile as unknown as jest.Mock).mockImplementation((_command, _args, _options, callback) =>
+      callback(null, JSON.stringify({ format: { duration: 1800 } }))
+    );
 
     // Mock fetch
     mockFetch.mockResolvedValue({
@@ -263,9 +263,9 @@ describe('MergeService', () => {
     });
 
     it('should fallback to metadata duration if ffprobe fails', async () => {
-      (ffmpeg as any).ffprobe = jest.fn((_file: string, callback: any) => {
-        callback(new Error('Probe failed'));
-      });
+      (execFile as unknown as jest.Mock).mockImplementation((_command, _args, _options, callback) =>
+        callback(new Error('Probe failed'))
+      );
 
       const result = await mergeService.mergeFolder('/test/book');
 
