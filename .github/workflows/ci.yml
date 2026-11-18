@@ -70,7 +70,14 @@ jobs:
         run: node --test scripts/cli-download-cancel.test.mjs
 
       - name: Install ffprobe for media verification
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        timeout-minutes: 10
+        run: |
+          # The EC2 regional mirror can throttle media package downloads heavily.
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i -E 's#http://[^/]*\.ec2\.archive\.ubuntu\.com/ubuntu#https://archive.ubuntu.com/ubuntu#g' /etc/apt/apt-mirrors.txt
+          fi
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
 
       - name: Verify MCP protocol and media jobs
         run: node --test scripts/mcp.test.mjs
