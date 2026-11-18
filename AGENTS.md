@@ -101,7 +101,7 @@ npm run release:dry               # Preview release without changes
 3. **CLI Merges (Optional):**
    - Merges chapter MP3s into single M4B audiobook via fluent-ffmpeg
    - Embeds chapter markers, metadata, and cover art
-   - Output: 64kbps AAC mono
+   - Output: 64kbps AAC stereo
 
 Extension handles ALL downloading. `libby download` only opens the loan in Chrome with an
 autostart marker (`src/shared/autostart.ts`) and waits for the extension's files; the rest of

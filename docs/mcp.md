@@ -1,5 +1,7 @@
 # Local MCP server
 
+Requires Node.js 24.19+ (24.x), `ffprobe` from FFmpeg on PATH, and the Chrome setup below.
+
 Run `npm run build:cli`, then configure your MCP client to launch
 `node /absolute/path/to/libby-downloader/dist/mcp.js`. The server uses stdio; it
 does not open a network listener or accept library credentials. The built
@@ -45,6 +47,9 @@ the server's arguments. This changes where the server looks; it does not change
 Chrome's download settings. Disable Chrome's per-file save dialog so the extension
 can save the chapters without interaction. No server-side login is available;
 expired sessions must be renewed in Chrome.
+
+For an existing installation, follow [Upgrading](upgrading.md), then restart the
+MCP connection so it loads the rebuilt server.
 
 Download jobs replace the extension's chapter files and metadata for that title.
 Merge jobs preserve an existing M4B unless `force` is explicitly true. Tag jobs

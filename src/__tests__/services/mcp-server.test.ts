@@ -7,6 +7,7 @@ type Handler = (request: {
   params: { name: string; arguments?: Record<string, unknown> };
 }) => Promise<Result>;
 interface Harness {
+  info: { name: string; version: string };
   handlers: Map<string, Handler>;
   onclose: () => void;
 }
@@ -14,6 +15,7 @@ interface Harness {
 // Capture the SDK boundary; the actual transport is exercised in scripts/mcp.test.mjs.
 jest.mock('@modelcontextprotocol/sdk/server/index.js', () => ({
   Server: class {
+    constructor(public info: { name: string; version: string }) {}
     handlers = new Map<string, Handler>();
     setRequestHandler(schema: string, handler: Handler) {
       this.handlers.set(schema, handler);
@@ -47,11 +49,12 @@ describe('MCP tool boundary', () => {
       merge: jest.fn().mockResolvedValue(job),
       close: jest.fn(),
     };
-    server = createMcpServer(jobs as unknown as DownloadJobs) as unknown as Harness;
+    server = createMcpServer('test-version', jobs as unknown as DownloadJobs) as unknown as Harness;
     call = (name, args) => server.handlers.get('call')!({ params: { name, arguments: args } });
   });
 
   it('advertises the same tools supported by dispatch and closes jobs with the connection', async () => {
+    expect(server.info).toEqual({ name: 'libby-downloader', version: 'test-version' });
     const list = server.handlers.get('list') as unknown as () => Promise<{ tools: typeof TOOLS }>;
     expect((await list()).tools.map(({ name }) => name)).toEqual([
       'list_books',

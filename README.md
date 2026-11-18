@@ -8,10 +8,12 @@ A Chrome extension and CLI for downloading audiobooks from Libby for offline lis
 
 ## Setup
 
+Requires Node.js 24.19+ (24.x), npm 11.19+ (11.x), and Chrome. CLI and MCP users also need `ffprobe` from FFmpeg on their PATH.
+
 ```bash
 git clone https://github.com/pdugan20/libby-downloader.git
 cd libby-downloader
-npm install
+npm ci
 npm run build:extension
 ```
 
@@ -26,6 +28,8 @@ To use the CLI (optional):
 ```bash
 npm run build && npm link
 ```
+
+For an existing installation, see [Upgrading](docs/upgrading.md).
 
 ## Usage
 
@@ -57,7 +61,7 @@ libby merge ~/path/to/book/
 
 Options:
 
-- `--data-dir <path>` — Override the downloads directory
+- `--data-dir <path>` — Change where the CLI reads files; Chrome's download location stays unchanged
 - `--title`, `--author`, `--narrator`, `--cover-url` — Override tag metadata
 - `--verbose` — Enable debug logging
 
