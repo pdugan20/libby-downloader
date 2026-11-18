@@ -27,7 +27,7 @@ export interface JobStatus {
 
 interface Dependencies {
   books: Pick<BookService, 'analyzeBook'>;
-  downloads: Pick<LoanDownloadService, 'waitForBook'>;
+  downloads: Pick<LoanDownloadService, 'snapshotFiles' | 'waitForBook'>;
   metadata: Pick<MetadataService, 'embedToFolder'>;
   merger: Pick<MergeService, 'mergeFolder'>;
   open: typeof openInChrome;
@@ -93,11 +93,14 @@ export class DownloadJobs {
   download(loanUrl: string, options: { tag?: boolean; merge?: boolean; force?: boolean }) {
     const loan = parseLoanUrl(loanUrl);
     return this.start('opening', async (job) => {
+      const previousFiles = await this.dependencies.downloads.snapshotFiles();
+      this.controller.signal.throwIfAborted();
       const startedAt = Date.now();
       await this.dependencies.open(autostartUrl(loan));
       job.phase = 'downloading';
       const downloaded = await this.dependencies.downloads.waitForBook({
         startedAt,
+        previousFiles,
         titleId: loanTitleId(loan),
         signal: this.controller.signal,
         onProgress: ({ folder, chapters }) => {

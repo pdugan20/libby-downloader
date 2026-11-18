@@ -32,6 +32,8 @@ describe('MCP download jobs', () => {
   }
 
   it('uses real Chrome orchestration and chains tagging/merge only after a complete download', async () => {
+    const previousFiles = new Map([['existing-file', 'previous-version']]);
+    const snapshotFiles = jest.fn().mockResolvedValue(previousFiles);
     const open = jest.fn().mockResolvedValue(undefined);
     const waitForBook = jest.fn().mockResolvedValue({
       folderPath: path.join(root, book),
@@ -45,7 +47,7 @@ describe('MCP download jobs', () => {
       .mockResolvedValue({ outputPath: path.join(root, book, 'Book.m4b') });
     jobs = new DownloadJobs(root, {
       open,
-      downloads: { waitForBook },
+      downloads: { waitForBook, snapshotFiles },
       metadata: { embedToFolder },
       merger: { mergeFolder },
     });
@@ -53,7 +55,12 @@ describe('MCP download jobs', () => {
     expect(started.state).toBe('running');
     const result = await finish(started.id);
     expect(open).toHaveBeenCalledWith(loan + '#libby-downloader-autostart');
-    expect(waitForBook).toHaveBeenCalledWith(expect.objectContaining({ titleId: '222' }));
+    expect(snapshotFiles.mock.invocationCallOrder[0]).toBeLessThan(
+      open.mock.invocationCallOrder[0]
+    );
+    expect(waitForBook).toHaveBeenCalledWith(
+      expect.objectContaining({ titleId: '222', previousFiles })
+    );
     expect(embedToFolder).toHaveBeenCalledTimes(1);
     expect(mergeFolder).toHaveBeenCalledWith(
       path.join(root, book),
@@ -68,6 +75,7 @@ describe('MCP download jobs', () => {
     jobs = new DownloadJobs(root, {
       open: jest.fn().mockResolvedValue(undefined),
       downloads: {
+        snapshotFiles: jest.fn().mockResolvedValue(new Map()),
         waitForBook: jest.fn().mockResolvedValue({
           folderPath: path.join(root, book),
           chapterCount: 2,
@@ -86,6 +94,10 @@ describe('MCP download jobs', () => {
     let rejectOpen!: (error: Error) => void;
     jobs = new DownloadJobs(root, {
       open: () => new Promise((_resolve, reject) => (rejectOpen = reject)),
+      downloads: {
+        snapshotFiles: jest.fn().mockResolvedValue(new Map()),
+        waitForBook: jest.fn(),
+      },
     });
     const first = jobs.download(loan, {});
     expect(() => jobs.download(loan, {})).toThrow('already running');
