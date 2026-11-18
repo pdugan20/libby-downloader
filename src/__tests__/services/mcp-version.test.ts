@@ -37,7 +37,9 @@ describe('MCP package version lookup', () => {
     restoreListeners = () => {
       subscriptions.forEach(([emitter, event], index) => {
         for (const listener of emitter.listeners(event)) {
-          if (!snapshots[index].has(listener)) emitter.removeListener(event, listener);
+          if (!snapshots[index].has(listener)) {
+            emitter.removeListener(event, listener as (...args: unknown[]) => void);
+          }
         }
       });
     };
