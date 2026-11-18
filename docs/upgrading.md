@@ -1,6 +1,6 @@
 # Upgrading
 
-Use Node.js 24.19+ within 24.x and npm 11.19+ within 11.x. CLI and MCP users need
+For source installations, use Node.js 24.19+ within 24.x and npm 11.19+ within 11.x. CLI and MCP users need
 `ffprobe` from FFmpeg on their PATH; the FFmpeg encoder is bundled.
 
 ## From a checkout
