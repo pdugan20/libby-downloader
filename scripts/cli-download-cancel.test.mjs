@@ -31,11 +31,12 @@ test(
     const stdin = new PassThrough();
     stdout.columns = 80;
     let stopped = false;
+      // Expose intermediate frames in CI so unmount happens during the wait.
     const app = render(React.createElement(DownloadProgress, {
       loanUrl: 'https://libbyapp.com/open/loan/111/222',
       dataDir: ${JSON.stringify(directory)},
       onComplete: () => {},
-    }), {stdout, stdin, stderr: stdout});
+      }), {stdout, stdin, stderr: stdout, debug: true});
     stdout.on('data', chunk => {
       if (!stopped && chunk.toString().includes('Waiting for Libby')) {
         stopped = true;
