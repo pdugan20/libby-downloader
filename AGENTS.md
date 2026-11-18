@@ -85,9 +85,10 @@ npm run release:dry               # Preview release without changes
 1. **Chrome Extension Downloads:**
    - User clicks extension button on Libby audiobook page
    - Extension extracts BIF object (book metadata) from page
-   - Extension hooks JSON.parse to capture odreadCmptParams (crypto keys)
+   - Extension quietly seeks the paused player into each audio part and records the
+     signed `?cmpt=` URL the player requests (no playback needed)
    - Downloads chapters sequentially via chrome.downloads API (500ms delays)
-   - Saves metadata.json alongside MP3 files
+   - Saves metadata.json (without chapter URLs) alongside MP3 files, replacing earlier copies
 
 2. **CLI Tags (Optional):**
    - Auto-discovers books in ~/Downloads/libby-downloads/ (override with `--data-dir`)
@@ -146,5 +147,6 @@ and background scripts.
 If downloads suddenly fail, check these in Chrome DevTools:
 
 - `BIF` object structure (book/chapter metadata)
-- `odreadCmptParams` availability (crypto keys for chapter URLs)
+- Player seeking: `BIF.objects.compass.at({ floc })` and the quiet `BIF.objects.spool.seek(component, ms, true)`
+- The player's audio requests: each part should load as `<part path>?cmpt=<token>`
 - Extension button injection on audiobook pages

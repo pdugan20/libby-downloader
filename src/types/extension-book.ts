@@ -28,15 +28,6 @@ export interface BookData {
 }
 
 /**
- * Crypto parameters extracted from Libby's odreadCmptParams
- */
-export interface CryptoParams {
-  b: {
-    '-odread-cmpt-params': number[];
-  };
-}
-
-/**
  * BIF (Book Information File) object structure from Libby
  */
 export interface BIFObject {

@@ -62,6 +62,8 @@ export class DownloadService {
       url: chapter.url,
       filename: filename,
       saveAs: false,
+      // Replace this book's earlier copy; Chrome would otherwise save chapter-001 (1).mp3
+      conflictAction: 'overwrite',
     });
 
     // Wait for download to complete

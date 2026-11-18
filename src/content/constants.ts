@@ -16,7 +16,7 @@ export const ButtonState = {
 export type ButtonStateType = (typeof ButtonState)[keyof typeof ButtonState];
 
 export const Timeouts = {
-  EXTRACTION: 10000,
+  EXTRACTION: 20000, // Allowed time without progress while collecting chapter URLs
   DOWNLOAD_DELAY: 500,
   NOTIFICATION_DURATION: 3000,
   BUTTON_RESET: 3000,

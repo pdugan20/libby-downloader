@@ -109,9 +109,20 @@ export class UIManager {
    */
   updateState(state: ButtonStateType, data: StateData = {}): void {
     switch (state) {
-      case ButtonState.EXTRACTING:
-        this.sendIframeMessage(MessageTypes.UPDATE_PROGRESS_UI, 'extracting');
+      case ButtonState.EXTRACTING: {
+        const { completed, total } = data as Partial<DownloadProgressData>;
+        if (completed === undefined || total === undefined) {
+          this.sendIframeMessage(MessageTypes.UPDATE_PROGRESS_UI, 'extracting');
+          break;
+        }
+        // The overlay already exists; reuse its progress bar for chapter preparation
+        this.sendIframeMessage(MessageTypes.UPDATE_PROGRESS_UI, 'downloading', {
+          completed,
+          total,
+          message: `Preparing ${completed} of ${total} chapters`,
+        });
         break;
+      }
 
       case ButtonState.DOWNLOADING: {
         const progressData = data as DownloadProgressData;

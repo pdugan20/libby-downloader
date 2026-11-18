@@ -7,7 +7,7 @@ import type { BookData } from '../types/extension-book';
 import { ExtractionError, IframeError, TimeoutError, ValidationError } from '../types/errors';
 import { MessageTypes } from '../types/messages';
 import { logger } from '../shared/logger';
-import { DEBUG_MODE } from './constants';
+import { DEBUG_MODE, Timeouts } from './constants';
 import type { UIManager } from './ui-manager';
 import { validateBookData, validateOrigin } from './validators';
 
@@ -49,15 +49,22 @@ export class MessageHandler {
       return;
     }
 
-    const { type, data, error } = event.data as {
+    const { type, data, error, progress } = event.data as {
       type: string;
       data?: BookData;
       error?: string;
+      progress?: { completed: number; total: number };
     };
 
     switch (type) {
       case 'LIBBY_DOWNLOADER_BUTTON_CLICKED':
         this.handleButtonClick();
+        break;
+
+      case MessageTypes.EXTRACTION_PROGRESS:
+        if (progress) {
+          this.handleExtractionProgress(progress);
+        }
         break;
 
       case MessageTypes.EXTRACTION_SUCCESS:
@@ -173,14 +180,32 @@ export class MessageHandler {
       );
     }
 
+    this.startExtractionTimer();
+  }
+
+  /**
+   * (Re)start the extraction timer. Progress from the iframe restarts it, so long books
+   * only time out when Libby stops responding.
+   */
+  private startExtractionTimer(): void {
+    if (this.extractionTimeout !== null) {
+      clearTimeout(this.extractionTimeout);
+    }
+
     this.extractionTimeout = window.setTimeout(() => {
+      this.extractionTimeout = null;
       const error = new TimeoutError(
-        'Extraction timeout. Try playing the audiobook for a few seconds first.',
-        10000
+        'Libby stopped responding while preparing the download. Reload the audiobook and try again.',
+        Timeouts.EXTRACTION
       );
       logger.operationFailed('Book extraction', error);
       this.uiManager.showError(error.message);
-    }, 10000);
+    }, Timeouts.EXTRACTION);
+  }
+
+  private handleExtractionProgress(progress: { completed: number; total: number }): void {
+    this.startExtractionTimer();
+    this.uiManager.updateState('extracting', progress);
   }
 
   private async handleExtractionSuccess(bookData: BookData): Promise<void> {
