@@ -54,16 +54,20 @@ export function DownloadProgress({
 
   useEffect(() => {
     const service = new LoanDownloadService(dataDir);
+    const controller = new AbortController();
 
     service
       .snapshotFiles()
       .then(async (previousFiles) => {
+        controller.signal.throwIfAborted();
         const startedAt = Date.now();
         await openInChrome(autostartUrl(loanUrl));
+        controller.signal.throwIfAborted();
         setStage('waiting');
         return service.waitForBook({
           startedAt,
           previousFiles,
+          signal: controller.signal,
           titleId: loanTitleId(loanUrl),
           onProgress: (progress) => {
             setFolder(progress.folder);
@@ -73,6 +77,7 @@ export function DownloadProgress({
         });
       })
       .then((downloaded) => {
+        controller.signal.throwIfAborted();
         setBook(downloaded);
         if (downloaded.missingChapters.length > 0) {
           throw new Error(
@@ -85,7 +90,10 @@ export function DownloadProgress({
           afterTag();
         }
       })
-      .catch(fail);
+      .catch((error) => {
+        if (!controller.signal.aborted) fail(error);
+      });
+    return () => controller.abort();
   }, []);
 
   if (error) {

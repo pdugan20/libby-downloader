@@ -10,6 +10,7 @@ import { execFile, spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { setTimeout as delay } from 'node:timers/promises';
 import { AUTOSTART_HASH } from '../shared/autostart';
 
 const LOAN_PATH = /^\/open\/loan\/(\d+)\/(\d+)\/?$/;
@@ -30,6 +31,7 @@ export interface DownloadedBook {
 }
 
 export interface WaitForBookOptions {
+  signal?: AbortSignal;
   /** File versions captured before Chrome opens; unchanged files cannot complete a new request. */
   previousFiles?: ReadonlyMap<string, string>;
   /** Request time for deadlines and the timestamp cutoff when no snapshot was supplied. */
@@ -148,7 +150,8 @@ export class LoanDownloadService {
       preparationTimeoutMs = 15 * 60 * 1000,
       pollIntervalMs = 2000,
       onProgress,
-      sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms)),
+      signal,
+      sleep = (ms: number) => delay(ms, undefined, { signal }),
       now = Date.now,
     } = options;
 
@@ -157,6 +160,7 @@ export class LoanDownloadService {
     let downloading = false;
 
     for (;;) {
+      signal?.throwIfAborted();
       const folders = (await this.scanActivity(startedAt, previousFiles)).filter(
         (folder) => !titleId || folder.name.endsWith(` (${titleId})`)
       );
@@ -174,6 +178,7 @@ export class LoanDownloadService {
           onProgress?.({ folder: book.name, chapters: book.chapterNumbers.size });
         }
         if (book.metadataFresh) {
+          signal?.throwIfAborted();
           return this.finish(book);
         }
       }
