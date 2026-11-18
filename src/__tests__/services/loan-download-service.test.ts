@@ -179,6 +179,7 @@ describe('LoanDownloadService.waitForBook', () => {
       new LoanDownloadService(dataDir).waitForBook({
         startedAt,
         idleTimeoutMs: 10_000,
+        preparationTimeoutMs: 10_000,
         ...fakeTime,
       })
     ).rejects.toThrow("Chrome didn't start the download");
@@ -194,6 +195,7 @@ describe('LoanDownloadService.waitForBook', () => {
         startedAt,
         titleId: '222',
         idleTimeoutMs: 10_000,
+        preparationTimeoutMs: 10_000,
         ...fakeTime,
       })
     ).rejects.toThrow();
@@ -212,6 +214,7 @@ describe('LoanDownloadService.waitForBook', () => {
         previousFiles,
         titleId: '222',
         idleTimeoutMs: 10_000,
+        preparationTimeoutMs: 10_000,
         ...fakeTime,
       })
     ).rejects.toThrow();
@@ -298,5 +301,27 @@ describe('LoanDownloadService.waitForBook', () => {
     expect(result.missingChapters).toEqual([]);
     expect(counts).toEqual([0, 1]);
     expect(clock - startedAt).toBeGreaterThanOrEqual(5 * 60_000);
+  });
+
+  it('allows URL preparation to exceed the download idle timeout before any files arrive', async () => {
+    const service = new LoanDownloadService(dataDir);
+    const previousFiles = await service.snapshotFiles();
+    const result = await service.waitForBook({
+      startedAt,
+      previousFiles,
+      titleId: '222',
+      now: fakeTime.now,
+      sleep: async (ms) => {
+        clock += ms;
+        if (clock - startedAt >= 200_000) {
+          await writeBook('Slow Preparation (222)', ['chapter-001.mp3', 'metadata.json'], {
+            chapters: 1,
+            mtime: clock,
+          });
+        }
+      },
+    });
+    expect(result.missingChapters).toEqual([]);
+    expect(clock - startedAt).toBe(200_000);
   });
 });

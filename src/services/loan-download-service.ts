@@ -40,6 +40,8 @@ export interface WaitForBookOptions {
   timeoutMs?: number;
   /** Give up when no file changes for this long */
   idleTimeoutMs?: number;
+  /** Allow URL preparation this long before the first file appears (default 15 minutes). */
+  preparationTimeoutMs?: number;
   pollIntervalMs?: number;
   onProgress?: (progress: DownloadProgressInfo) => void;
   sleep?: (ms: number) => Promise<void>;
@@ -143,6 +145,7 @@ export class LoanDownloadService {
       previousFiles,
       timeoutMs = 60 * 60 * 1000,
       idleTimeoutMs = 3 * 60 * 1000,
+      preparationTimeoutMs = 15 * 60 * 1000,
       pollIntervalMs = 2000,
       onProgress,
       sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms)),
@@ -151,6 +154,7 @@ export class LoanDownloadService {
 
     let lastChange = startedAt;
     let lastReported = '';
+    let downloading = false;
 
     for (;;) {
       const folders = (await this.scanActivity(startedAt, previousFiles)).filter(
@@ -161,6 +165,7 @@ export class LoanDownloadService {
         folders.sort((a, b) => b.latestChange - a.latestChange)[0];
 
       if (book) {
+        downloading = true;
         lastChange = Math.max(lastChange, book.latestChange);
         const report = `${book.name}:${book.chapterNumbers.size}`;
         if (report !== lastReported) {
@@ -174,7 +179,11 @@ export class LoanDownloadService {
       }
 
       const current = now();
-      if (current - lastChange > idleTimeoutMs) {
+      if (
+        downloading
+          ? current - lastChange > idleTimeoutMs
+          : current - startedAt > preparationTimeoutMs
+      ) {
         throw new Error(
           book
             ? `The download of "${book.name}" stopped after ${book.chapterNumbers.size} chapters. Check the Libby tab in Chrome.`
