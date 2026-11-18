@@ -25,6 +25,7 @@ npm run dev                       # Run interactive CLI
 npm run dev -- list               # List downloaded books
 npm run dev -- tag                # Tag MP3 files
 npm run dev -- merge              # Merge chapters into M4B audiobook
+npm run dev -- download <loan-url> --tag --merge  # Start a download in Chrome and wait for it
 npm run dev -- --data-dir ./fixtures  # Use test fixtures instead of real downloads
 
 # Testing & Validation
@@ -100,7 +101,9 @@ npm run release:dry               # Preview release without changes
    - Embeds chapter markers, metadata, and cover art
    - Output: 64kbps AAC mono
 
-Extension handles ALL downloading. CLI is for tagging, merging, and listing only.
+Extension handles ALL downloading. `libby download` only opens the loan in Chrome with an
+autostart marker (`src/shared/autostart.ts`) and waits for the extension's files; the rest of
+the CLI tags, merges, and lists.
 
 ## Debug Mode
 

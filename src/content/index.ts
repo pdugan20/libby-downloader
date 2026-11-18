@@ -7,6 +7,7 @@
 import { DEBUG_MODE } from './constants';
 import { MessageHandler } from './message-handler';
 import { UIManager } from './ui-manager';
+import { consumeAutostartRequest } from '../shared/autostart';
 
 console.log('[Libby Downloader] Content script loaded');
 
@@ -27,5 +28,11 @@ const messageHandler = new MessageHandler(uiManager);
 
 // Setup message listeners
 messageHandler.setupListeners();
+
+// `libby download` opens the loan with a marker; read it before Libby's app loads
+if (consumeAutostartRequest(window.location, window.history)) {
+  console.log('[Libby Downloader] Download requested by libby download');
+  messageHandler.requestAutostart();
+}
 
 console.log('[Libby Downloader] Ready - waiting for button click from iframe');

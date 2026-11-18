@@ -6,6 +6,7 @@ import { createElement } from 'react';
 import { render } from 'ink';
 import { logger, LogLevel } from './utils/logger';
 import { App } from './ui/ink/App';
+import { parseLoanUrl } from './services/loan-download-service';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
@@ -99,6 +100,44 @@ program
       })
     );
     await instance.waitUntilExit();
+  });
+
+// Download command
+program
+  .command('download <loan-url>')
+  .description(
+    'Download a Libby loan through Chrome and the extension (copy the address of the open audiobook)'
+  )
+  .option('--tag', 'Tag the chapters after downloading')
+  .option('--merge', 'Merge the chapters into an M4B after downloading')
+  .option('--force', 'Overwrite an existing M4B file when merging')
+  .action(async (loanUrl: string, options, cmd: Command) => {
+    let url: string;
+    try {
+      url = parseLoanUrl(loanUrl);
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+      return;
+    }
+
+    const instance = render(
+      createElement(App, {
+        command: 'download',
+        dataDir: getDataDir(cmd),
+        downloadOptions: {
+          loanUrl: url,
+          tag: options.tag,
+          merge: options.merge,
+          force: options.force,
+        },
+      })
+    );
+    try {
+      await instance.waitUntilExit();
+    } catch {
+      process.exitCode = 1;
+    }
   });
 
 // Global options

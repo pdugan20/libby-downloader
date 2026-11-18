@@ -33,6 +33,14 @@ npm run build && npm link
 
 Open an audiobook in Libby, then click the download button in the top-right navigation bar. Files save to `~/Downloads/libby-downloads/[Book Title] ([Libby title ID])/`, so books with the same title stay separate.
 
+To start a download from the terminal instead, copy the address of the open audiobook and run:
+
+```bash
+libby download https://libbyapp.com/open/loan/123456/7890123 --tag --merge
+```
+
+This opens the loan in Chrome, where the extension starts the download on its own, then waits for every chapter and optionally tags and merges the book.
+
 ### CLI
 
 The CLI provides tagging and merging for downloaded books. Run `libby` for the interactive menu, or use commands directly:
@@ -40,6 +48,7 @@ The CLI provides tagging and merging for downloaded books. Run `libby` for the i
 ```bash
 libby                      # Interactive menu
 libby list                 # List all downloaded books
+libby download <loan-url>  # Download a loan through Chrome (--tag, --merge)
 libby tag                  # Tag MP3 files with metadata (interactive)
 libby tag ~/path/to/book/  # Tag a specific folder
 libby merge                # Merge chapters into M4B audiobook (interactive)

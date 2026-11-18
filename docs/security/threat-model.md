@@ -26,6 +26,12 @@ releases.
 - **CLI arguments and local files**: folders, `--data-dir`, tag overrides, cover URLs,
   `--force`, and the JSON and media files in a book folder (`src/cli.ts`,
   `src/services/book-service.ts`).
+- **Loan addresses with the autostart marker.** `libby download` accepts only
+  `https://libbyapp.com/open/loan/<card>/<title>`, opens it in Chrome without a shell, and
+  adds `#libby-downloader-autostart`. The content script removes the marker and starts a
+  download when the player is ready (`src/services/loan-download-service.ts`,
+  `src/shared/autostart.ts`). Any link can carry the marker, so the most it can do is
+  download the signed-in user's own loan into their downloads folder.
 - **Cover image servers**, and the contributors, dependencies, and tag pushes that feed
   the release build (`src/services/metadata-service.ts`, `package-lock.json`,
   `.github/workflows/release.yml`).
