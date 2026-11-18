@@ -53,14 +53,17 @@ export function DownloadProgress({
   };
 
   useEffect(() => {
-    const startedAt = Date.now();
     const service = new LoanDownloadService(dataDir);
 
-    openInChrome(autostartUrl(loanUrl))
-      .then(() => {
+    service
+      .snapshotFiles()
+      .then(async (previousFiles) => {
+        const startedAt = Date.now();
+        await openInChrome(autostartUrl(loanUrl));
         setStage('waiting');
         return service.waitForBook({
           startedAt,
+          previousFiles,
           titleId: loanTitleId(loanUrl),
           onProgress: (progress) => {
             setFolder(progress.folder);

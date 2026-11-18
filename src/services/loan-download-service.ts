@@ -6,7 +6,7 @@
  * its metadata.json, which the extension writes after the last chapter.
  */
 
-import { execFile } from 'child_process';
+import { execFile, spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -14,8 +14,6 @@ import { AUTOSTART_HASH } from '../shared/autostart';
 
 const LOAN_PATH = /^\/open\/loan\/(\d+)\/(\d+)\/?$/;
 const CHAPTER_FILE = /^chapter-(\d{3,})\.mp3$/;
-// Filesystem timestamps can trail the clock slightly
-const CLOCK_SLACK_MS = 2000;
 
 export interface DownloadProgressInfo {
   /** Book folder name, once the first file for it appears */
@@ -32,7 +30,9 @@ export interface DownloadedBook {
 }
 
 export interface WaitForBookOptions {
-  /** When the download was requested (ms since epoch); older files are ignored */
+  /** File versions captured before Chrome opens; unchanged files cannot complete a new request. */
+  previousFiles?: ReadonlyMap<string, string>;
+  /** Request time for deadlines and the timestamp cutoff when no snapshot was supplied. */
   startedAt: number;
   /** Only watch the folder for this Libby title, named "<title> (<titleId>)" */
   titleId?: string;
@@ -51,6 +51,7 @@ interface FolderActivity {
   chapterNumbers: Set<number>;
   metadataFresh: boolean;
   latestChange: number;
+  fileVersions: Map<string, string>;
 }
 
 /**
@@ -99,6 +100,17 @@ export function openInChrome(url: string): Promise<void> {
         : ['google-chrome', [url]];
 
   return new Promise((resolve, reject) => {
+    if (process.platform !== 'darwin' && process.platform !== 'win32') {
+      // Linux Chrome stays alive until the browser closes. Observe process startup,
+      // then detach instead of waiting for session termination.
+      const child = spawn(command, args, { detached: true, stdio: 'ignore' });
+      child.once('error', (error) => reject(new Error(`Couldn't open Chrome: ${error.message}`)));
+      child.once('spawn', () => {
+        child.unref();
+        resolve();
+      });
+      return;
+    }
     execFile(command, args, (error) =>
       error ? reject(new Error(`Couldn't open Chrome: ${error.message}`)) : resolve()
     );
@@ -112,6 +124,12 @@ export class LoanDownloadService {
     this.dataDir = dataDir || path.join(os.homedir(), 'Downloads', 'libby-downloads');
   }
 
+  /** Capture existing chapter and completion-marker versions before launching Chrome. */
+  async snapshotFiles(): Promise<ReadonlyMap<string, string>> {
+    const folders = await this.scanActivity(-Infinity);
+    return new Map(folders.flatMap((folder) => [...folder.fileVersions]));
+  }
+
   /**
    * Wait for the extension to finish a book requested at startedAt.
    * Finishes when that book's metadata.json is written, which happens after its last
@@ -122,6 +140,7 @@ export class LoanDownloadService {
     const {
       startedAt,
       titleId,
+      previousFiles,
       timeoutMs = 60 * 60 * 1000,
       idleTimeoutMs = 3 * 60 * 1000,
       pollIntervalMs = 2000,
@@ -134,7 +153,7 @@ export class LoanDownloadService {
     let lastReported = '';
 
     for (;;) {
-      const folders = (await this.scanActivity(startedAt - CLOCK_SLACK_MS)).filter(
+      const folders = (await this.scanActivity(startedAt, previousFiles)).filter(
         (folder) => !titleId || folder.name.endsWith(` (${titleId})`)
       );
       const book =
@@ -194,12 +213,16 @@ export class LoanDownloadService {
   /**
    * Collect files changed since the cutoff, grouped by book folder
    */
-  private async scanActivity(cutoff: number): Promise<FolderActivity[]> {
+  private async scanActivity(
+    cutoff: number,
+    previousFiles?: ReadonlyMap<string, string>
+  ): Promise<FolderActivity[]> {
     let entries;
     try {
       entries = await fs.readdir(this.dataDir, { withFileTypes: true });
-    } catch {
-      return [];
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+      throw new Error('Could not read the downloads directory.');
     }
 
     const folders: FolderActivity[] = [];
@@ -210,31 +233,40 @@ export class LoanDownloadService {
         chapterNumbers: new Set(),
         metadataFresh: false,
         latestChange: 0,
+        fileVersions: new Map(),
       };
       const folderPath = path.join(this.dataDir, entry.name);
       let files: string[];
       try {
         files = await fs.readdir(folderPath);
-      } catch {
-        continue;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+        throw new Error('Could not read a book directory.');
       }
       for (const file of files) {
+        const chapter = file.match(CHAPTER_FILE);
+        const partial = /^chapter-\d{3,}\.mp3\.crdownload$/.test(file);
+        if (!chapter && !partial && file !== 'metadata.json') continue;
         let stat;
         try {
-          stat = await fs.stat(path.join(folderPath, file));
-        } catch {
-          continue;
+          stat = await fs.lstat(path.join(folderPath, file));
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+          throw new Error('Could not inspect a downloaded file.');
         }
-        if (!stat.isFile() || stat.mtimeMs < cutoff) continue;
-        activity.latestChange = Math.max(activity.latestChange, stat.mtimeMs);
-        const chapter = file.match(CHAPTER_FILE);
+        if (!stat.isFile()) continue;
+        const key = path.join(entry.name, file);
+        const version = `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
+        activity.fileVersions.set(key, version);
+        if (previousFiles ? previousFiles.get(key) === version : stat.mtimeMs < cutoff) continue;
+        activity.latestChange = Math.max(activity.latestChange, stat.mtimeMs, stat.ctimeMs);
         if (chapter) {
           activity.chapterNumbers.add(Number(chapter[1]));
         } else if (file === 'metadata.json') {
           activity.metadataFresh = true;
         }
       }
-      if (activity.latestChange > 0) {
+      if (activity.latestChange > 0 || activity.chapterNumbers.size > 0 || activity.metadataFresh) {
         folders.push(activity);
       }
     }

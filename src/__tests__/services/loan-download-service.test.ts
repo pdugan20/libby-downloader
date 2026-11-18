@@ -5,12 +5,50 @@
 import { promises as fs } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { EventEmitter } from 'events';
+import { execFile, spawn } from 'child_process';
 import {
   autostartUrl,
   LoanDownloadService,
   loanTitleId,
   parseLoanUrl,
+  openInChrome,
 } from '../../services/loan-download-service';
+
+jest.mock('child_process', () => ({ execFile: jest.fn(), spawn: jest.fn() }));
+
+describe('openInChrome', () => {
+  const platform = process.platform;
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: platform });
+    jest.resetAllMocks();
+  });
+
+  it('resolves when a Linux browser starts, without waiting for it to exit', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    const child = Object.assign(new EventEmitter(), { unref: jest.fn() });
+    (spawn as jest.Mock).mockReturnValue(child);
+    const opened = openInChrome('https://libbyapp.com/open/loan/111/222');
+    expect(spawn).toHaveBeenCalledWith('google-chrome', expect.any(Array), {
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.emit('spawn');
+    await expect(opened).resolves.toBeUndefined();
+    expect(child.unref).toHaveBeenCalled();
+    expect(execFile).not.toHaveBeenCalled();
+  });
+
+  it('reports a missing Linux browser executable', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    const child = Object.assign(new EventEmitter(), { unref: jest.fn() });
+    (spawn as jest.Mock).mockReturnValue(child);
+    const opened = openInChrome('https://libbyapp.com/open/loan/111/222');
+    child.emit('error', new Error('spawn google-chrome ENOENT'));
+    await expect(opened).rejects.toThrow("Couldn't open Chrome");
+    expect(child.unref).not.toHaveBeenCalled();
+  });
+});
 
 describe('parseLoanUrl', () => {
   it('accepts a loan address and drops its query and hash', () => {
@@ -146,6 +184,81 @@ describe('LoanDownloadService.waitForBook', () => {
     ).rejects.toThrow("Chrome didn't start the download");
   });
 
+  it('does not accept the previous completion marker from one second before the request', async () => {
+    await writeBook('My Book (222)', ['chapter-001.mp3', 'metadata.json'], {
+      chapters: 1,
+      mtime: startedAt - 1000,
+    });
+    await expect(
+      new LoanDownloadService(dataDir).waitForBook({
+        startedAt,
+        titleId: '222',
+        idleTimeoutMs: 10_000,
+        ...fakeTime,
+      })
+    ).rejects.toThrow();
+  });
+
+  it('ignores unchanged files even when their timestamps are newer than the request', async () => {
+    await writeBook('My Book (222)', ['chapter-001.mp3', 'metadata.json'], {
+      chapters: 1,
+      mtime: startedAt + 1000,
+    });
+    const service = new LoanDownloadService(dataDir);
+    const previousFiles = await service.snapshotFiles();
+    await expect(
+      service.waitForBook({
+        startedAt,
+        previousFiles,
+        titleId: '222',
+        idleTimeoutMs: 10_000,
+        ...fakeTime,
+      })
+    ).rejects.toThrow();
+  });
+
+  it('waits for replacements and accepts changed files with coarse pre-request timestamps', async () => {
+    const folder = 'My Book (222)';
+    await writeBook(folder, ['chapter-001.mp3', 'metadata.json'], {
+      chapters: 1,
+      mtime: startedAt - 1000,
+    });
+    const service = new LoanDownloadService(dataDir);
+    const previousFiles = await service.snapshotFiles();
+    let polls = 0;
+    const result = await service.waitForBook({
+      startedAt,
+      previousFiles,
+      titleId: '222',
+      now: fakeTime.now,
+      sleep: async (ms) => {
+        polls++;
+        clock += ms;
+        for (const name of ['chapter-001.mp3', 'metadata.json']) {
+          const dest = path.join(dataDir, folder, name);
+          await fs.copyFile(dest, dest + '.next');
+          await fs.rename(dest + '.next', dest);
+          const time = new Date(startedAt - 1000);
+          await fs.utimes(dest, time, time);
+        }
+      },
+    });
+    expect(polls).toBe(1);
+    expect(result.missingChapters).toEqual([]);
+  });
+
+  it('does not count unchanged chapters when only the new completion marker arrives', async () => {
+    const folder = 'My Book (222)';
+    await writeBook(folder, ['chapter-001.mp3', 'metadata.json'], { chapters: 1 });
+    const service = new LoanDownloadService(dataDir);
+    const previousFiles = await service.snapshotFiles();
+    const dest = path.join(dataDir, folder, 'metadata.json');
+    await fs.copyFile(dest, dest + '.next');
+    await fs.rename(dest + '.next', dest);
+    const result = await service.waitForBook({ startedAt, previousFiles, ...fakeTime });
+    expect(result.missingChapters).toEqual([1]);
+  });
+
   it('reports a download that stops partway', async () => {
     await writeBook('My Book', ['chapter-001.mp3', 'chapter-002.mp3']);
 
@@ -156,5 +269,34 @@ describe('LoanDownloadService.waitForBook', () => {
         ...fakeTime,
       })
     ).rejects.toThrow('The download of "My Book" stopped after 2 chapters');
+  });
+
+  it('treats a growing partial chapter as activity without counting it as downloaded', async () => {
+    const service = new LoanDownloadService(dataDir);
+    const previousFiles = await service.snapshotFiles();
+    const folder = 'Slow Book (222)';
+    const counts: number[] = [];
+    const result = await service.waitForBook({
+      startedAt,
+      previousFiles,
+      titleId: '222',
+      pollIntervalMs: 60_000,
+      now: fakeTime.now,
+      onProgress: ({ chapters }) => counts.push(chapters),
+      sleep: async (ms) => {
+        clock += ms;
+        await writeBook(folder, ['chapter-001.mp3.crdownload'], { mtime: clock });
+        if (clock - startedAt >= 5 * 60_000) {
+          await fs.rename(
+            path.join(dataDir, folder, 'chapter-001.mp3.crdownload'),
+            path.join(dataDir, folder, 'chapter-001.mp3')
+          );
+          await writeBook(folder, ['metadata.json'], { chapters: 1, mtime: clock });
+        }
+      },
+    });
+    expect(result.missingChapters).toEqual([]);
+    expect(counts).toEqual([0, 1]);
+    expect(clock - startedAt).toBeGreaterThanOrEqual(5 * 60_000);
   });
 });
