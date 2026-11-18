@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0](https://github.com/pdugan20/libby-downloader/compare/v1.2.0...v1.3.0) (2026-11-18)
+
+### Features
+
+* Start active loan downloads with `libby download <loan-url> --tag --merge`.
+* Manage downloads, tagging, and merging through the local `libby-mcp` server with progress jobs.
+* Improve merge progress reporting and metadata reprocessing.
+
+### Bug Fixes
+
+* Restore chapter downloads after Libby's URL changes, without starting playback.
+* Keep same-title books separate using title IDs, and omit signed URLs from saved metadata.
+* Preserve original chapters and existing M4B files on tagging or merge failure and cancellation.
+* Validate iframe message origins and update dependencies with security fixes.
+* Report the installed package version consistently in the CLI and MCP server.
+
+### Upgrading
+
+* Source installations require Node.js 24.19+ within 24.x and npm 11.19+ within 11.x.
+* CLI and MCP users need `ffprobe` from FFmpeg on their PATH; the encoder is bundled.
+* See the [upgrade guide](https://github.com/pdugan20/libby-downloader/blob/v1.3.0/docs/upgrading.md) for extension reloads, MCP restarts, and download folder changes.
+
 ## [1.2.0](https://github.com/pdugan20/libby-downloader/compare/v1.1.0...v1.2.0) (2026-03-29)
 
 ### Features
